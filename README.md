@@ -1,4 +1,5 @@
 
+
 # Electron Vue SQLite Starter 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -81,23 +82,23 @@ yarn build
 
 electron-vue-sqlite-template/
 ├── src/
-│   ├── main/                   			# Electron Main Process
-│   │   │   ├── database/       	# SQLite3 wrapper
-│   │   │   │   ├── migrations/ 	# Schema version control
-│   │   │   │   └── seed.ts     		# Initial data population
-│   │   ├── main.ts             			# Main process entry
-│   │   └── preload.ts          		# Preload script
+│   ├── main/	# Electron Main Process
+│   │   ├── database/	# SQLite3 wrapper
+│   │   │   ├── migrations/	# Schema version control
+│   │   │   └── seed.ts	# Initial data population
+│   │   ├── main.ts	# Main process entry
+│   │   └── preload.ts	# Preload script
 │   │
-│   └── renderer/               			# Vue 3 Renderer Process
-│       ├── assets/             			# Compiled assets
-│       ├── components/         		# Shared UI components
-│       ├── composables/        		# Vue composition APIs
-│       ├── services/           			# Business logic layer
-│       ├── types/              			# TypeScript definitions
-│       └── views/              			# Route-based components
+│   └── renderer/	# Vue 3 Renderer Process
+│       ├── assets/	# Compiled assets
+│       ├── components/	# Shared UI components
+│       ├── composables/	# Vue composition APIs
+│       ├── services/	# Business logic layer
+│       ├── types/	# TypeScript definitions
+│       └── views/	# Route-based components
 │
-├── electron-builder.json       	# Production packaging config
-└── vite.config.ts                 		# Renderer build config
+├── electron-builder.json	# Production packaging config
+└── vite.config.ts	# Renderer build config
 
 ## Database Operations Example 💾
 
