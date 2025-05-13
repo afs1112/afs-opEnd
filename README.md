@@ -80,6 +80,7 @@ yarn build
 ```
 ## Architecture Overview 🏗️
 
+```
 electron-vue-sqlite-template/
 ├── src/
 │   ├── main/	# Electron Main Process
@@ -99,6 +100,8 @@ electron-vue-sqlite-template/
 │
 ├── electron-builder.json	# Production packaging config
 └── vite.config.ts	# Renderer build config
+
+```
 
 ## Database Operations Example 💾
 
