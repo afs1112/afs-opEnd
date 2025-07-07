@@ -1,0 +1,72 @@
+//终端端飞行通信模块编辑
+import "PublicStruct.proto";
+package UavFlyMonitor; 
+/******************************************************枚举**************************************************************************/ 
+//飞行控制命令
+enum CommandType 
+{
+	Cmd_self_check            = 0;         //自检
+	Cmd_start_fly             = 1;         //起飞
+	Cmd_start_engine          = 2;         //启动
+	Cmd_recycled              = 3;         //回收
+	Cmd_programming_control   = 4;         //程控
+	Cmd_manual_control        = 5;         //手控
+	Cmd_climb                 = 6;         //爬升
+	Cmd_flat                  = 7;         //平飞
+	Cmd_hovering_left         = 8;         //左盘旋
+	Cmd_direct                = 9;         //直飞
+	Cmd_hovering_right        = 10;        //右盘旋
+	Cmd_light_open            = 11;        //开灯
+	Cmd_light_off             = 12;        //关灯
+	Cmd_main_backups          = 13;        //主备切换
+	Cmd_stop                  = 14;        //停止
+	Cmd_umbrella_open         = 15;        //开伞
+	Cmd_umbrella_throw        = 16;        //抛伞
+	Cmd_sensor_open           = 17;        //载荷开
+	Cmd_sensor_close          = 18;        //载荷关
+	Cmd_cabin_door_open       = 19;        //舱门开
+	Cmd_cabin_door_close      = 20;        //舱门关
+	Cmd_sensor_take_back      = 21;        //载荷收
+	Cmd_sensor_put            = 22;        //载荷放
+};
+
+/*******************************************************无人机控制上传接口*******************************************************/ 
+
+//飞行控制  [*数据包类型: 0]
+message  UavFlyControlRequest{	                     
+	required  int32  uavID     = 1;              //无人机ID
+    required  CommandType type = 2;              //控制命令
+};
+
+//姿态控制 [*数据包类型: 1]
+message UavAttitudeControl
+{
+	required  int32  uavID           = 1;                  //无人机ID
+	required  double yaw             = 2;                  //航向
+	required  double height          = 3;                  //高度
+}
+
+//发动机控制 [*数据包类型: 2]
+message UavEngineControl
+{
+	required  int32  uavID              = 1;               //无人机ID
+	required  double throttle_butterfly = 2;               //油门
+	required  double air_passage        = 3;               //气道
+	required  double rotate_speed       = 4;               //转速
+};
+
+//链路控制 [*数据包类型: 3]
+message DataChainControl
+{
+
+};
+
+/*******************************************************无人机信息采集回复接口*******************************************************/ 
+
+//控制回复  [*数据包类型: 4]
+message  UavFlyControlReply{	                  
+	required int32  uavID                         = 1;               //无人机ID
+	required CommandType type                     = 2;               //命令
+	required PublicStruct.ReplyState  result      = 3;               //结果
+};
+

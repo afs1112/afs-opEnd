@@ -26,6 +26,25 @@ contextBridge.exposeInMainWorld("electronAPI", {
   importFromJson: () => ipcRenderer.invoke("import:json"),
   importDatabaseFile: () => ipcRenderer.invoke("import:database"),
   importFromSqlFile: () => ipcRenderer.invoke("import:sql"),
+
+  // 组播相关
+  multicast: {
+    start: () => ipcRenderer.invoke("multicast:start"),
+    stop: () => ipcRenderer.invoke("multicast:stop"),
+    getStatus: () => ipcRenderer.invoke("multicast:getStatus"),
+    getConfig: () => ipcRenderer.invoke("multicast:getConfig"),
+    updateConfig: (address: string, port: number, interfaceAddr: string) => 
+      ipcRenderer.invoke("multicast:updateConfig", address, port, interfaceAddr),
+    onPacket: (callback: (packet: any) => void) => {
+      ipcRenderer.on("multicast:packet", (_, packet) => callback(packet));
+    },
+    onError: (callback: (error: string) => void) => {
+      ipcRenderer.on("multicast:error", (_, error) => callback(error));
+    },
+    removeAllListeners: (channel: string) => {
+      ipcRenderer.removeAllListeners(channel);
+    },
+  },
 });
 
 function ensureSerializable(data: any): any {

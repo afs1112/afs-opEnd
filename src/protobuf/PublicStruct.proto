@@ -1,0 +1,55 @@
+//终端端飞行通信模块编辑
+package PublicStruct;
+/******************************************************枚举**************************************************************************/ 
+
+//数据包类型[根据通信协议定义的枚举值]
+enum PackageType
+{
+	PackType_Invalid                  = 0;          //无效信息
+	PackType_Flystatus                = 0x01;       //飞行状态信息
+	PackType_HeartbeatInternal        = 0x02;       //内部心跳
+	PackType_SceneDataInit            = 0x03;       //场景数据初始化
+	PackType_FlyControl               = 0x10;       //飞行控制
+	PackType_AttitudeControl          = 0x11;       //姿态控制
+	PackType_EngineControl            = 0x12;       //发动机控制
+	PackType_DataChainControl         = 0x13;       //链路控制
+	PackType_FlyControlReply          = 0x14;       //飞行控制回复
+	PackType_RouteUpload              = 0x20;       //航线上传
+	PackType_SecurityBoundaryControl  = 0x21;       //安全边界控制
+	PackType_FixedPointNavigation     = 0x22;       //定点导航
+	PackType_RangePointSelect         = 0x23;       //靶场点选择
+	PackType_NavReply                 = 0x24;       //导航信息回复
+	PackType_RouteUploadReply         = 0x25;       //航线上传回复
+	PackType_NavModeRequest           = 0x26;       //导航模式
+	PackType_PositioningModeRequest   = 0x27;       //定位模式
+	PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
+	
+}
+
+enum ReplyState
+{
+	ReplyState_Normal  = 0;   //正常
+	ReplyState_Warning = 1;   //警告
+	ReplyState_Error   = 2;   //错误     
+};
+
+//地理信息结构
+message GeoCoordinate
+{
+	optional double longitude = 1;    
+	optional double latitude  = 2;
+	optional double altitude  = 3;
+}
+
+//终端内部心跳
+message HeartbeatInternal
+{
+	required int32 softwareID  = 1;             //软件ID
+	required int32 state       = 2;             //当前状态
+	optional int32 reserve     = 3;             //预留
+} 
+
+
+
+
+

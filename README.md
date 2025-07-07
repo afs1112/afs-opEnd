@@ -1,106 +1,189 @@
 
 
-# Electron Vue SQLite Starter 🚀
+# 设备模拟操作端 🚀
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Electron 28](https://img.shields.io/badge/Electron-28-9FEAF9.svg?logo=electron)](https://www.electronjs.org)
 [![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D.svg?logo=vuedotjs)](https://vuejs.org)
 [![TypeScript Ready](https://img.shields.io/badge/TypeScript-Ready-3178C6.svg?logo=typescript)](https://www.typescriptlang.org)
 
-**Production-Grade Template for Enterprise Desktop Applications** - Combine the power of Electron ⚡, Vue 3 Composition API 🔥, and SQLite 💾 in a secure, maintainable architecture.
+**基于Electron和Vue 3的设备模拟操作端** - 支持组播监听、protobuf解析、无人机通信协议等功能。
 
 ![{7E915174-6BEE-45A4-8E5C-82397882E431}](https://github.com/user-attachments/assets/a7928531-a4bc-4c9b-91df-ff7fc8aa7ebb)
 
 
-## Why This Template? 💡
+## 主要功能 💡
 
-A batteries-included solution that solves common Electron-Vue integration challenges:
-✅ **Secure IPC Communication** with strict validation  
-✅ **Database Migrations** system for schema management  
-✅ **Native Module** integration best practices  
-✅ **Cross-platform** packaging configuration  
-✅ **Modern Vue 3** development experience  
-✅ **Type-safe** across entire codebase
+设备模拟操作端的主要功能特性：
+✅ **组播监听** - 支持UDP组播数据包监听  
+✅ **Protobuf解析** - 支持多种无人机通信协议解析  
+✅ **实时数据显示** - 实时显示接收到的数据包信息  
+✅ **数据导出** - 支持数据导出和清空功能  
+✅ **环境配置** - 支持通过配置文件设置组播参数  
+✅ **调试面板** - 内置开发者工具和调试功能
 
-## Key Features ✨
+## 核心功能 ✨
 
-### 🛡️ Core Architecture
+### 🛡️ 核心架构
 - Electron 28 + Vue 3 + Vite + TypeScript 
-- Strict IPC security with `electron-ipc-controller`
-- Pre-configured native module support (SQLite3)
-- Multi-environment configuration (dev/prod)
+- 安全的IPC通信机制
+- 原生模块支持 (SQLite3, UDP组播)
+- 多环境配置支持 (开发/生产)
 
-### 💾 Database Layer
-- SQLite3 with connection pooling
-- Migration system with version control
-- Transaction support & prepared statements
-- Example CRUD operations with type-safe interfaces
+### 📡 组播监听
+- UDP组播数据包监听
+- 实时数据包解析和显示
+- 支持多种协议格式
+- 数据包统计和日志
 
-### 🎛️ Production Optimization
-- Electron-builder configuration with:
-  - Auto-update support
-  - Code signing preparation
-  - Cross-platform builds (Windows/Mac/Linux)
-  - Resource compression (asar)
-- Performance monitoring hooks
-- Memory leak detection setup
+### 🔍 Protobuf解析
+- 支持多种无人机通信协议
+- 实时protobuf数据解析
+- 结构化数据显示
+- 协议类型识别
 
-### 🎨 Frontend Features
-- Theme system with CSS variables
-- Responsive layout components
-- Error boundary components
-- Customizable plugin architecture
-- Dark/light mode with system sync
+### 🎛️ 生产优化
+- Electron-builder配置:
+  - 自动更新支持
+  - 代码签名准备
+  - 跨平台构建 (Windows/Mac/Linux)
+  - 资源压缩 (asar)
+- 性能监控钩子
+- 内存泄漏检测
 
-## Getting Started 🚀
+### 🎨 前端特性
+- 现代化UI设计
+- 响应式布局组件
+- 错误边界处理
+- 可定制化插件架构
+- 深色/浅色主题支持
 
-### System Requirements
-- Node.js 18+ (LTS recommended)
-- npm 9+ or yarn 1.22+
-- Python 3.10+ (for node-gyp compilation)
-- Build tools for your OS:
+## 快速开始 🚀
+
+### 系统要求
+- Node.js 18+ (推荐LTS版本)
+- npm 9+ 或 yarn 1.22+
+- Python 3.10+ (用于node-gyp编译)
+- 构建工具:
   - **Windows**: Visual Studio Build Tools
   - **Mac**: Xcode Command Line Tools
   - **Linux**: build-essential
 
-### Installation
+### 安装和运行
 ```bash
-# Clone with SSH
-git clone git@github.com:NinelXram/electron-vue-sqlite-template.git
-cd electron-vue-sqlite-template
+# 克隆项目
+git clone <repository-url>
+cd opEnd
 
-# Install dependencies
-yarn install
+# 安装依赖
+npm install
 
-# Start development mode
-yarn dev
+# 启动开发模式
+npm run dev
 
-# Build production packages
-yarn build
+# 构建生产版本
+npm run build
+
+# 启动应用
+npm start
 ```
-## Architecture Overview 🏗️
+
+## 协议配置 📡
+
+### 组播配置
+在 `config.env` 文件中配置组播参数：
+
+```ini
+# 组播配置
+MULTICAST_ADDRESS=239.255.43.21
+MULTICAST_PORT=10086
+INTERFACE_ADDRESS=0.0.0.0
+
+# 应用配置
+NODE_ENV=development
+```
+
+### 通信协议格式
+数据包格式：`0xAA 0x55 + ProtocolID + PackageType + Size + ProtobufData`
+
+- **包头**: 0xAA 0x55 (固定)
+- **ProtocolID**: 协议ID (0或1代表两个飞机)
+- **PackageType**: 包类型
+- **Size**: Protobuf数据长度 (4字节小端序)
+- **ProtobufData**: 实际的protobuf数据
+
+### 支持的协议类型
+- **0x01**: 飞行状态信息 (UavFlyStatusInfo)
+- **0x20**: 航线上传 (UavRouteUpload)
+- **0x21**: 安全边界控制 (UavSecurityBoundaryControl)
+- **0x22**: 定点导航 (UavFixedPointNavigation)
+- **0x23**: 靶场点选择 (UavRangePointSelect)
+- **0x24**: 导航回复信息 (UavNavReplyInfo)
+- **0x25**: 航线上传回复 (UavRouteUploadReply)
+- **0x26**: 导航模式请求 (UavNavModeRequest)
+- **0x27**: 定位模式请求 (UavPositioningModeRequest)
+- **0x28**: 回收航线命令 (UavRecoveryrouteCmd)
+## 测试和调试 🧪
+
+### 测试脚本
+项目提供了多个测试脚本来验证功能：
+
+```bash
+# 测试新的协议格式
+node test-new-protocol.js
+
+# 测试组播监听
+node test-multicast.js
+
+# 测试protobuf数据发送
+node test-protobuf-multicast.js
+```
+
+### 调试面板
+在应用运行时，可以通过以下方式打开调试面板：
+
+1. **键盘快捷键**: 
+   - macOS: `Cmd + Option + I` 或 `F12`
+   - Windows/Linux: `Ctrl + Shift + I` 或 `F12`
+
+2. **菜单栏**: 
+   - 点击 "开发" -> "打开开发者工具"
+
+3. **强制重新加载**: 
+   - 点击 "开发" -> "强制重新加载"
+
+## 项目结构 🏗️
 
 ```
-electron-vue-sqlite-template/
+opEnd/
 ├── src/
-│   ├── main/	# Electron Main Process
-│   │   ├── database/	# SQLite3 wrapper
-│   │   │   ├── migrations/	# Schema version control
-│   │   │   └── seed.ts	# Initial data population
-│   │   ├── main.ts	# Main process entry
-│   │   └── preload.ts	# Preload script
+│   ├── main/	# Electron主进程
+│   │   ├── database/	# SQLite3数据库
+│   │   │   ├── migrations/	# 数据库迁移
+│   │   │   └── seeds/	# 初始数据
+│   │   ├── services/	# 服务层
+│   │   │   ├── multicast.service.ts	# 组播监听服务
+│   │   │   └── protobuf-parser.service.ts	# Protobuf解析服务
+│   │   ├── main.ts	# 主进程入口
+│   │   └── preload.ts	# 预加载脚本
 │   │
-│   └── renderer/	# Vue 3 Renderer Process
-│       ├── assets/	# Compiled assets
-│       ├── components/	# Shared UI components
-│       ├── composables/	# Vue composition APIs
-│       ├── services/	# Business logic layer
-│       ├── types/	# TypeScript definitions
-│       └── views/	# Route-based components
+│   ├── protobuf/	# Protobuf定义文件
+│   │   ├── PublicStruct.proto	# 公共结构
+│   │   ├── UavFlyStatusStruct.proto	# 飞行状态协议
+│   │   ├── UavNavMonitorStruct.proto	# 导航监控协议
+│   │   └── UavFlyMonitorStruct.proto	# 飞行监控协议
+│   │
+│   └── renderer/	# Vue 3渲染进程
+│       ├── assets/	# 静态资源
+│       ├── services/	# 前端服务
+│       ├── typings/	# TypeScript类型定义
+│       └── views/	# 页面组件
+│           └── pages/
+│               └── MulticastPage.vue	# 组播监听页面
 │
-├── electron-builder.json	# Production packaging config
-└── vite.config.ts	# Renderer build config
-
+├── config.env	# 环境配置文件
+├── electron-builder.json	# 打包配置
+└── package.json	# 项目配置
 ```
 
 ## Database Operations Example 💾

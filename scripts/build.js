@@ -30,4 +30,19 @@ Promise.allSettled([buildRenderer(), buildMain()]).then(() => {
       "Renderer & main successfully transpiled! (ready to be built with electron-builder)"
     )
   );
+
+  // === 自动复制protobuf目录 ===
+  const fs = require('fs');
+  const path = require('path');
+  const src = path.join(__dirname, '../src/protobuf');
+  const dest = path.join(__dirname, '../build/main/src/protobuf');
+  if (fs.existsSync(src)) {
+    fs.mkdirSync(dest, { recursive: true });
+    fs.readdirSync(src).forEach(file => {
+      fs.copyFileSync(path.join(src, file), path.join(dest, file));
+    });
+    console.log(Chalk.greenBright('Protobuf definitions copied to build/main/src/protobuf'));
+  } else {
+    console.warn(Chalk.yellow('src/protobuf directory does not exist, skip copy.'));
+  }
 });

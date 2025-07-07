@@ -1,0 +1,211 @@
+//终端端飞行通信模块编辑
+import "PublicStruct.proto";
+package UaviationSimulation; 
+/******************************************************枚举**************************************************************************/ 
+//天气,梯度
+enum WeatherType
+{
+	Weather_Sunny = 0;    //晴天
+	Waether_Rain  = 1;    //雨天
+	Weather_Snow  = 2;    //雪天
+	Weather_Foggy = 3;    //雾
+}
+
+enum ElectromagnetismType
+{
+	Electromagnetism_Low = 0;
+	Electromagnetism_Mid = 1;
+	Electromagnetism_High = 2;
+}
+
+/*******************************************************回复接口*******************************************************/ 
+
+//无人机姿态信息
+message UavAttitudeDisplay
+{
+	optional double roll                 = 1;    //横滚
+	optional double pitch                = 2;    //俯仰
+	optional double yaw                  = 3;    //偏航
+	optional double speed                = 4;    //速度
+	optional double indicated_airspeed   = 5;    //指示空速
+	optional double ground_speed         = 6;    //地速
+	optional double height               = 7;    //高度
+	optional double high_pressure        = 8;    //气压计
+	optional double high_satellite       = 9;    //卫星高
+}
+
+//温度，缸温，油温
+message UavTemperature
+{
+	optional double temperature1  = 1;       //温度1
+	optional double temperature2  = 2;       //温度2
+	optional double temperature3  = 3;       //温度3
+	optional double temperature4  = 4;       //温度4
+};
+
+//发动机显示
+message UavEngineDisplay
+{
+	optional double throttle_butterfly            = 1;  //油门
+	optional double air_passage                   = 2;  //气道
+	optional double rotate_speed                  = 3;  //转速
+	optional double oil_quantity                  = 4;  //油量
+	optional UavTemperature cylinder_temperature  = 5;  //缸温
+};
+
+//链路
+message DataChainDisplay
+{
+}
+
+//飞行参数
+message UavBaseStatus
+{
+	optional double elevator       = 1;      //升降舵
+	optional double left_aileron   = 2;      //左副翼
+	optional double right_aileron  = 3;      //右副翼
+	optional double damper         = 4;      //阻尼
+	optional double airway         = 5;      //气道
+}
+
+//电压信息
+message UavVoltage
+{
+	optional double voltage1          = 1;         //一路
+	optional double voltage2          = 2;         //二路
+	optional double voltageComputer   = 3;         //计算机
+};
+
+//无人机角速率
+message UavAngularrate
+{
+	optional double pitch          = 1;     //俯仰
+	optional double roll           = 2;     //横滚
+	optional double yaw            = 3;     //偏航
+	optional double acceleration   = 4;     //加速度
+};
+
+//其他信息
+message UavOtherStatus
+{
+	optional UavTemperature cylinderTemperature     = 1;        //缸温
+	optional double atmospheric_temperature         = 2;        //大气温度
+	optional double ignition_damping                = 3;        //点火阻尼
+}
+
+//飞行信息结构
+message UavFlyStatus
+{
+	optional UavBaseStatus  control_value           = 1;       //控制量
+	optional UavBaseStatus  output_value            = 2;       //输出量
+	optional UavVoltage     voltage_value           = 3;       //电压
+	optional UavAngularrate main_angular_rate_value = 4;       //角速率-主
+	optional UavAngularrate bak_angular_rate_value  = 5;       //角速率-备
+	optional UavOtherStatus other_status_value      = 6;       //其他状态
+}
+
+//预警信息
+message FlyWarningInfo
+{
+	optional PublicStruct.ReplyState fly_stop_state              = 1;         //停止
+	optional PublicStruct.ReplyState height_state                = 2;         //高度
+	optional PublicStruct.ReplyState speed_state                 = 3;         //速度
+	optional PublicStruct.ReplyState atttiude_state              = 4;         //姿态
+	optional PublicStruct.ReplyState engine_state                = 5;         //发动机
+	optional PublicStruct.ReplyState elec_pressure_state         = 6;         //电压
+	optional PublicStruct.ReplyState self_check_state            = 7;         //自检
+	optional PublicStruct.ReplyState allow_open_umbrella_state   = 8;         //允许开伞
+	optional PublicStruct.ReplyState cabin_door_opened_state     = 9;         //舱门开
+	optional PublicStruct.ReplyState mid_the_platform_state      = 10;        //平台中
+	optional PublicStruct.ReplyState light_closed_state          = 11;        //关灯
+}
+
+//其他信息结构
+message OtherInfoExtra
+{
+	optional string currentExecuteState =1;   //执行状态
+	optional bool   satNavEnabled =   2;      //卫星导航是否启用
+	optional bool   securityBoundaryEnabled =   3;      //安全边界是否启用
+	
+}
+
+//无人机飞行状态---靶场点  [*数据包类型: 0x1]
+message  UavFlyStatusInfo{	                  
+	required int32  uavID                                   = 1;        //无人机ID
+	optional PublicStruct.GeoCoordinate coord               = 2;        //位置
+	optional UavAttitudeDisplay attitudeInfo                = 3;        //姿态信息
+	optional UavTemperature cylinderTemperatureInfo         = 4;        //缸温
+	optional UavEngineDisplay engineDisplay                 = 5;        //发动机信息
+	optional DataChainDisplay dataChainInfo                 = 6;        //链路信息
+	optional UavFlyStatus flyStatus                         = 7;        //飞行参数
+	optional FlyWarningInfo flyWarningInfo                  = 8;        //预警信息
+	optional OtherInfoExtra otherInfoExtra                  = 9;        //其他信息
+};
+
+/*******************************************************内部心跳初始化数据接口*******************************************************/ 
+//战斗位置
+message LocationOfFight
+{
+	required string name                   = 1;   //地图选择的地图文件
+	required double gcs_longitude          = 2;   //当前经度
+	required double gcs_latitude           = 3;   //当前纬度
+	required double bounds_min_longitude   = 4;   //地图边界-最小经度
+	required double bounds_max_longitude   = 5;   //地图边界-最大经度
+	required double bounds_min_latitude    = 6;   //地图边界-最小纬度
+	required double bounds_max_latitude    = 7;   //地图边界-最大纬度
+}
+//无人机初始化数据，靶场点
+message UavInitData
+{
+	required int32 uav_id                                   = 1;
+	optional PublicStruct.GeoCoordinate coord               = 2;        //位置
+	optional double yaw                                     = 3;        //航向
+	optional double oil_quantity                            = 4;        //初始油量
+} 
+
+message UavInitDataPack
+{
+	optional UavInitData uav_1A                  = 1;
+	optional UavInitData uav_1B                  = 2;
+	optional UavInitData uav_2A                  = 3;
+	optional UavInitData uav_2B                  = 4;
+}
+
+//天线初始化数据，靶场点（目前未使用，预留）
+message AntennaInitData
+{
+	required int32 antenna_id                                   = 1;   //天线ID
+	
+}
+
+//天线数据包
+message AntennaInitDataPack
+{
+	optional UavInitData antenna_1                  = 1;
+	optional UavInitData antenna_2                  = 2;
+}
+
+//侦察列表
+message ReconnaissanceCircle
+{
+    required int32 id                  = 1;          //id
+	optional double center_longitude   = 2;          //经度
+	optional double center_latitude    = 3;          //纬度
+	optional double circle_r           = 4;          //半径（单位：度）
+}
+
+//初始化数据  [信息类型: 0x03]
+message SceneInitData
+{
+	required int32 sc_id                              = 1;    //场景ID
+	optional string init_time                         = 2;    //初始化时间
+	optional WeatherType weather                      = 3;    //天气
+	optional ElectromagnetismType elec_environment    = 4;    //电磁环境
+	optional LocationOfFight location                 = 5;    //战斗位置
+	optional double barometric_height                 = 6;    //气压高度
+	optional UavInitDataPack   uav_data               = 7;    //无人机数据
+	optional AntennaInitDataPack antenna_data         = 8;    //天线数据
+	repeated ReconnaissanceCircle reconnaissance_area = 9;    //侦察区域列表
+}
+
+

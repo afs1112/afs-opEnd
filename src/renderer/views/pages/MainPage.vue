@@ -92,6 +92,9 @@
         </template>
       </el-table-column>
     </el-table></el-tab-pane>
+    <el-tab-pane :label="TAB_VALUES.MULTICAST.label" :name="TAB_VALUES.MULTICAST.id">
+      <MulticastPage />
+    </el-tab-pane>
   </el-tabs>
 
     <el-dialog
@@ -213,6 +216,7 @@ import {
 import { companyService } from "../../services/companies";
 import { userService } from "../../services/users";
 import { commonService } from "../../services";
+import MulticastPage from "./MulticastPage.vue";
 
 const TAB_VALUES = {
   COMPANIES: {
@@ -223,6 +227,10 @@ const TAB_VALUES = {
   USERS: {
     label: "Users Management",
     id: "users" 
+  },
+  MULTICAST: {
+    label: "组播监听",
+    id: "multicast"
   },
 };
 

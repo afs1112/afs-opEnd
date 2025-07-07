@@ -1,7 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session, Menu } from "electron";
 import { join } from "path";
 import fs from "fs";
+import * as dotenv from 'dotenv';
 import { dbService } from "./database/db.service";
+import { multicastService, MulticastPacket } from "./services/multicast.service";
+
+// 加载环境配置
+const envPath = join(app.getAppPath(), 'config.env');
+dotenv.config({ path: envPath });
 
 app.whenReady().then(async () => {
   try {
@@ -9,6 +15,13 @@ app.whenReady().then(async () => {
     await dbService.runSeeds();
 
     createWindow();
+
+    // 启动组播监听服务
+    try {
+      await multicastService.start();
+    } catch (error) {
+      console.error("组播服务启动失败:", error);
+    }
 
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
@@ -28,6 +41,61 @@ app.whenReady().then(async () => {
     console.error("Initialization failed:", error);
     app.quit();
   }
+});
+
+// 组播服务IPC处理
+ipcMain.handle("multicast:start", async () => {
+  try {
+    await multicastService.start();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("multicast:stop", async () => {
+  try {
+    await multicastService.stop();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("multicast:getStatus", () => {
+  return multicastService.getStatus();
+});
+
+ipcMain.handle("multicast:getConfig", () => {
+  return {
+    address: process.env.MULTICAST_ADDRESS || '224.0.0.1',
+    port: parseInt(process.env.MULTICAST_PORT || '8888'),
+    interfaceAddress: process.env.INTERFACE_ADDRESS || '0.0.0.0'
+  };
+});
+
+ipcMain.handle("multicast:updateConfig", (_, address: string, port: number, interfaceAddr: string) => {
+  try {
+    multicastService.updateConfig(address, port, interfaceAddr);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 监听组播数据包并转发给渲染进程
+multicastService.on('packet', (packet: MulticastPacket) => {
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach(window => {
+    window.webContents.send('multicast:packet', packet);
+  });
+});
+
+multicastService.on('error', (error) => {
+  const windows = BrowserWindow.getAllWindows();
+  windows.forEach(window => {
+    window.webContents.send('multicast:error', error.message);
+  });
 });
 
 ipcMain.handle("database:query", (_, sql, params) => {
@@ -104,6 +172,39 @@ function createWindow() {
       contextIsolation: true,
     },
   });
+
+  // 创建菜单
+  const template = [
+    {
+      label: '开发',
+      submenu: [
+        {
+          label: '打开开发者工具',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => {
+            mainWindow.webContents.openDevTools();
+          }
+        },
+        {
+          label: '重新加载',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => {
+            mainWindow.reload();
+          }
+        },
+        {
+          label: '强制重新加载',
+          accelerator: 'CmdOrCtrl+Shift+R',
+          click: () => {
+            mainWindow.webContents.reloadIgnoringCache();
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
 
   if (process.env.NODE_ENV === "development") {
     const rendererPort = process.argv[2];

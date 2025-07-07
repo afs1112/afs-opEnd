@@ -1,0 +1,77 @@
+//无人机飞行状态信息协议
+import "PublicStruct.proto";
+package UavFlyStatus;
+
+//无人机飞行状态信息---待补充  [*包类型: 0x1]
+message UavFlyStatusInfo {
+    required int32 uavID = 1;                                    //无人机ID
+    optional PublicStruct.GeoCoordinate coord = 2;               //位置
+    optional UavAttitudeDisplay attitudeInfo = 3;                //姿态信息
+    optional UavTemperature cylinderTemperatureInfo = 4;         //缸温
+    optional UavEngineDisplay engineDisplay = 5;                 //发动机信息
+    optional DataChainDisplay dataChainInfo = 6;                 //链路信息
+    optional UavFlyStatus flyStatus = 7;                         //飞行参数
+    optional FlyWarningInfo flyWarningInfo = 8;                  //预警信息
+    optional OtherInfoExtra otherInfoExtra = 9;                  //其他信息
+}
+
+//姿态信息显示
+message UavAttitudeDisplay {
+    optional double ground_speed = 1;                            //地速
+    optional double yaw = 2;                                     //航向角
+    optional double pitch = 3;                                   //俯仰角
+    optional double roll = 4;                                    //横滚角
+    optional double altitude = 5;                                //高度
+    optional double vertical_speed = 6;                          //垂直速度
+}
+
+//温度信息
+message UavTemperature {
+    optional double cylinder_temperature = 1;                    //缸温
+    optional double oil_temperature = 2;                         //油温
+    optional double exhaust_temperature = 3;                     //排气温度
+}
+
+//发动机显示信息
+message UavEngineDisplay {
+    optional double throttle = 1;                                //油门
+    optional double rpm = 2;                                     //转速
+    optional double fuel_consumption = 3;                        //燃油消耗
+    optional double oil_pressure = 4;                            //油压
+}
+
+//数据链显示信息
+message DataChainDisplay {
+    optional double signal_strength = 1;                         //信号强度
+    optional double packet_loss_rate = 2;                        //丢包率
+    optional double latency = 3;                                 //延迟
+    optional bool connection_status = 4;                         //连接状态
+}
+
+//飞行状态
+message UavFlyStatus {
+    optional string flight_mode = 1;                             //飞行模式
+    optional double battery_level = 2;                           //电池电量
+    optional double remaining_fuel = 3;                          //剩余燃油
+    optional double flight_time = 4;                             //飞行时间
+    optional double distance_to_target = 5;                      //距离目标距离
+}
+
+//飞行预警信息
+message FlyWarningInfo {
+    optional bool low_battery = 1;                               //低电量警告
+    optional bool low_fuel = 2;                                  //低燃油警告
+    optional bool signal_loss = 3;                               //信号丢失警告
+    optional bool engine_fault = 4;                              //发动机故障警告
+    optional bool gps_loss = 5;                                  //GPS丢失警告
+    optional string warning_message = 6;                         //警告信息
+}
+
+//其他信息扩展
+message OtherInfoExtra {
+    optional bool securityBoundaryEnabled = 1;                   //安全边界启用状态
+    optional string currentExecuteState = 2;                     //当前执行状态
+    optional bool satNavEnabled = 3;                             //卫星导航启用状态
+    optional double mission_progress = 4;                        //任务进度
+    optional string current_waypoint = 5;                        //当前航点
+} 

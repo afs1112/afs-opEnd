@@ -1,0 +1,158 @@
+//终端端飞行通信模块编辑
+import "PublicStruct.proto";
+package UavNavMonitor; 
+/******************************************************枚举**************************************************************************/ 
+//航线类型
+enum RouteType
+{	
+	RouteType_Cruise           = 0;   //巡航航线
+	RouteType_Recovery         = 1;   //回收航线
+	RouteType_SecurityBoundary = 2;   //安全边界
+        RouteType_PinPointNav      = 3;   //定点导航
+	RouteType_RangePoint       = 4;   //靶场点
+}
+
+//定点导航类型
+enum FixedPointNavType{
+	NavType_Zone       =0;    //0
+	NavType_Eight      =1;    //8字
+}
+
+//靶场点选择操作模式
+enum RangePointSelOperateType
+{
+	OperateType_Base = 0;     //基础
+	OperateType_Repeat = 1;   //循环
+}
+
+//顺序模式
+enum SequentialModel
+{
+	SM_Incremental = 0;      //递增
+	SM_Decreasing  = 1;
+}
+
+//进入模式
+enum EntryMode
+{
+	EM_Straightline = 0;     //直线
+	EM_Route        = 1;     //航线
+}
+
+//回收航线
+enum RecoveryrouteState
+{
+     State_Allow_Recovery = 0;    //允许回收
+     State_StepInto_Recovery = 1; //进入回收航线
+}
+/*******************************************************航线上传接口*******************************************************/ 
+//航点信息
+message WayPoint
+{
+        optional int32 index         = 1;                   //序号
+	optional PublicStruct.GeoCoordinate coord = 2;      //经纬度
+        optional string command1     = 3;                   //指令1
+        optional string command2     = 4;                   //指令2
+}
+
+message WayPointList{
+	repeated WayPoint wayPoint =1;
+}
+
+//航线上传  [*数据包类型: 0x20]
+message  UavRouteUpload{	                     
+	required  int32  uavID              = 1;           //无人机ID
+	required  RouteType routeType       = 2;           //航线类型[巡航航线、回收航线、安全边界]
+        required  int32  wayPointSize       = 3;           //上传航点数量
+        repeated  WayPoint wayPointList     = 4;           //航点列表
+};
+
+
+//安全边界控制 [*数据包类型: 0x21]
+message  UavSecurityBoundaryControl{	                     
+	required  int32  uavID     = 1;                //无人机ID
+    required  bool   enabled   = 2;                //启用/禁止
+};
+
+//定点导航（位置参考控制） [*数据包类型: 0x22]
+message UavFixedPointNavigation
+{
+	required  int32  uavID     = 1;              //无人机ID
+	required  FixedPointNavType type = 2;        //类型
+	optional double longitude = 3;               //经度
+	optional double latitude = 4;                //纬度
+	optional double altitude = 5;                //高度
+	optional double azimuth = 6;                 //方位角
+	optional double len = 7;                     //长度
+	optional double width = 8;                   //宽度
+	optional double interval = 9;                //间隔
+	optional double time = 10;                   //时间
+}
+
+//选择靶场点---靶场点 [*数据包类型: 0x23]
+message UavRangePointSelect 
+{
+	required  int32  uavID     = 1;                             //无人机ID
+	optional  RangePointSelOperateType operateType = 2;         //操作类型（基础类型和循环类型不同，取不同的参数）
+	optional  int32 serialNumberSelection = 3;                  //选择序号
+	optional  SequentialModel sequentialModel = 4;              //顺序模式
+	optional  EntryMode entryMode = 5;                          //进入模式
+	optional  int32  serialNumberStart = 6;                     //开始序号 仅在循环模式下有效
+	optional  int32  serialNumberStop  = 7;                     //结束序号 仅在循环模式下有效
+	optional  int32  numberCycles  = 8;                         //循环次数 仅在循环模式下有效
+}
+
+//导航模式  [*数据包类型: 0x26]
+message UavNavModeRequest 
+{
+	required  int32 uavID      = 1;              //无人机ID
+	optional  bool  uavPos     = 2;              //
+	optional  bool  gpsPos     = 3;              //gps
+	optional  bool  gdtPos     = 4;              //gdt
+	optional  bool  insPos     = 5;              //惯导
+}
+
+//定位模式  [*数据包类型: 0x27]
+message UavPositioningModeRequest 
+{
+	required  int32 uavID                    = 1;              //无人机ID
+	optional  bool  positioningSatellite     = 2;              //卫星定位
+	optional  bool  positioningRadio         = 3;              //无线电定位
+	optional  bool  attitudeOpened           = 4;              //姿态开关
+}
+
+/*******************************************************导航信息采集接口*******************************************************/ 
+
+//无人机导航信息采集---靶场点 [*数据包类型: 0x24]
+message UavNavReplyInfo
+{
+	required int32  uavID              = 1;               //无人机ID
+	optional string navMode            = 2;               //导航模式
+	optional double trackDeviation     = 3;               //航迹偏差
+	optional double waypointsNum       = 4;               //航点数
+	optional double headingControl     = 5;               //航向控制
+	optional double yaw                = 6;               //航向角
+	optional int32  nextPointSerialNumber   = 7;          //下一个点
+	optional double pointDistance      = 8;               //点距离
+	optional double givenHeight        = 9;               //给定高度
+	optional double windSpeed          = 10;              //风速
+	optional double windDirection      = 11;              //风向
+	optional double distanceStopping   = 12;              //停止距离
+	optional double averageGroundSpeed = 13;              //平均地速
+}
+
+//航线上传回复    [*数据包类型: 0x25]
+message UavRouteUploadReply 
+{
+	required int32  uavID            = 1;               //无人机ID
+        required RouteType routeType     = 2;               //航线类型[巡航航线、回收航线、安全边界、定点导航]
+	required bool   result           = 3;               //结果
+}
+
+//回收航线命令    [*数据包类型: 0x28]
+message UavRecoveryrouteCmd 
+{
+	required int32  uavID                          = 1;               //无人机ID
+        required RecoveryrouteState cmd                = 2;               //命令状态
+	
+}
