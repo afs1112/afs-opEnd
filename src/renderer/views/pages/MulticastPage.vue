@@ -53,7 +53,7 @@
     <!-- 状态显示 -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-4">
       <h2 class="text-xl font-semibold mb-4">监听状态</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div class="text-center">
           <div class="text-2xl font-bold" :class="isListening ? 'text-green-600' : 'text-red-600'">
             {{ isListening ? '监听中' : '已停止' }}
@@ -70,7 +70,15 @@
         </div>
         <div class="text-center">
           <div class="text-2xl font-bold text-purple-600">{{ packets.length }}</div>
-          <div class="text-sm text-gray-500">数据包数量</div>
+          <div class="text-sm text-gray-500">总数据包</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-green-600">{{ parsedPacketsCount }}</div>
+          <div class="text-sm text-gray-500">已解析</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-orange-600">{{ platformStatusCount }}</div>
+          <div class="text-sm text-gray-500">平台状态</div>
         </div>
       </div>
     </div>
@@ -111,17 +119,53 @@
             <el-tag size="small" type="info">#{{ index + 1 }}</el-tag>
           </div>
           <div class="bg-gray-100 rounded p-3 font-mono text-sm overflow-x-auto">
-            <div v-if="packet.parsedPacket" class="mb-2">
-              <div class="text-blue-600 font-semibold">解析结果:</div>
-              <div class="text-sm">
-                <div><strong>包类型:</strong> {{ packet.parsedPacket.packageTypeName }} (0x{{ packet.parsedPacket.packageType.toString(16) }})</div>
-                <div><strong>解析数据:</strong></div>
-                <pre class="mt-1 text-xs">{{ JSON.stringify(packet.parsedPacket.parsedData, null, 2) }}</pre>
+            <div v-if="packet.parsedPacket" class="mb-4">
+              <div class="text-green-600 font-semibold mb-2">✅ 解析成功:</div>
+              <div class="bg-white rounded p-2 mb-2">
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div><strong>包类型:</strong> {{ packet.parsedPacket.packageTypeName }}</div>
+                  <div><strong>类型码:</strong> 0x{{ packet.parsedPacket.packageType.toString(16).padStart(2, '0') }}</div>
+                  <div><strong>协议ID:</strong> 0x{{ packet.parsedPacket.protocolID.toString(16).padStart(2, '0') }}</div>
+                  <div><strong>数据大小:</strong> {{ packet.parsedPacket.size }} 字节</div>
+                </div>
+              </div>
+              
+              <!-- 平台状态特殊显示 -->
+              <div v-if="packet.parsedPacket.packageType === 0x29 && packet.parsedPacket.parsedData" class="bg-blue-50 rounded p-2 mb-2">
+                <div class="text-blue-700 font-semibold text-xs mb-1">🚁 平台状态信息:</div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div><strong>平台ID:</strong> {{ packet.parsedPacket.parsedData.PlatformId }}</div>
+                  <div><strong>平台类型:</strong> {{ getPlatformTypeName(packet.parsedPacket.parsedData.type) }}</div>
+                  <div v-if="packet.parsedPacket.parsedData.coord">
+                    <strong>经度:</strong> {{ packet.parsedPacket.parsedData.coord.longitude?.toFixed(6) }}°
+                  </div>
+                  <div v-if="packet.parsedPacket.parsedData.coord">
+                    <strong>纬度:</strong> {{ packet.parsedPacket.parsedData.coord.latitude?.toFixed(6) }}°
+                  </div>
+                  <div v-if="packet.parsedPacket.parsedData.coord" class="col-span-2">
+                    <strong>高度:</strong> {{ packet.parsedPacket.parsedData.coord.altitude?.toFixed(1) }}m
+                  </div>
+                </div>
+              </div>
+              
+              <div class="text-xs">
+                <div class="text-gray-600 font-semibold mb-1">完整解析数据:</div>
+                <pre class="bg-white rounded p-2 text-xs overflow-x-auto">{{ JSON.stringify(packet.parsedPacket.parsedData, null, 2) }}</pre>
               </div>
             </div>
+            
+            <div v-else class="mb-4">
+              <div class="text-red-600 font-semibold mb-2">❌ 未解析 (显示原始数据):</div>
+              <div class="bg-yellow-50 rounded p-2 text-xs">
+                <div><strong>可能原因:</strong> 包格式不匹配、protobuf定义未加载或数据损坏</div>
+              </div>
+            </div>
+            
             <div class="mt-2">
-              <div class="text-gray-600 font-semibold">原始数据:</div>
-              <pre>{{ toHex(packet.data) }}</pre>
+              <div class="text-gray-600 font-semibold mb-1">原始十六进制数据:</div>
+              <div class="bg-white rounded p-2">
+                <pre class="text-xs break-all">{{ toHex(packet.data) }}</pre>
+              </div>
             </div>
           </div>
         </div>
@@ -131,7 +175,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 
 interface MulticastPacket {
@@ -171,9 +215,18 @@ const status = reactive<MulticastStatus>({
 });
 
 const config = reactive({
-  address: '',
-  port: 8888,
+  address: '239.255.43.21',
+  port: 10086,
   interfaceAddress: '0.0.0.0'
+});
+
+// 计算属性
+const parsedPacketsCount = computed(() => {
+  return packets.value.filter(p => p.parsedPacket).length;
+});
+
+const platformStatusCount = computed(() => {
+  return packets.value.filter(p => p.parsedPacket?.packageType === 0x29).length;
 });
 
 // 格式化时间
@@ -188,6 +241,17 @@ function toHex(buffer: Buffer | Uint8Array | number[]): string {
     .map(b => b.toString(16).padStart(2, '0'))
     .join(' ');
 }
+
+// 获取平台类型名称
+const getPlatformTypeName = (type: number): string => {
+  const types: Record<number, string> = {
+    0: '无人机',
+    2: '火炮',
+    3: '炮弹',
+    4: '目标'
+  };
+  return types[type] || `未知类型(${type})`;
+};
 
 // 开始监听
 const startListening = async () => {
