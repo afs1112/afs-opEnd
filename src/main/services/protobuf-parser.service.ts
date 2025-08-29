@@ -41,39 +41,81 @@ export class ProtobufParserService {
     this.packageTypes.set(0x26, 'PackType_NavModeRequest');
     this.packageTypes.set(0x27, 'PackType_PositioningModeRequest');
     this.packageTypes.set(0x28, 'PackType_RecoveryrouteCmd');
+    this.packageTypes.set(0x29, 'PackType_PlatformStatus'); // 新增平台状态信息
   }
 
   public async loadProtobufDefinitions(): Promise<void> {
     try {
+      const fs = require('fs');
+
       // 判断环境，优先尝试build/main/src/protobuf，再尝试src/protobuf
       const pathList = [
         join(app.getAppPath(), 'main', 'src', 'protobuf'), // 生产环境打包后
         join(app.getAppPath(), 'src', 'protobuf'),        // 开发环境
+        join(process.cwd(), 'src', 'protobuf'),           // 当前工作目录
+        join(__dirname, '..', '..', 'protobuf'),          // 相对于当前文件
       ];
+
       let protobufPath = '';
       let found = false;
-      const fs = require('fs');
+
+      console.log('[Protobuf] 尝试查找protobuf定义文件...');
       for (const p of pathList) {
+        console.log(`[Protobuf] 检查路径: ${p}`);
         if (fs.existsSync(p)) {
           protobufPath = p;
           found = true;
+          console.log(`[Protobuf] ✅ 找到protobuf目录: ${p}`);
           break;
         }
       }
+
       if (!found) {
-        throw new Error('未找到protobuf定义目录，请检查build/main/src/protobuf或src/protobuf');
+        throw new Error(`未找到protobuf定义目录，已尝试路径: ${pathList.join(', ')}`);
       }
+
+      // 检查必需的文件是否存在，只加载存在的文件
+      const requiredFiles = [
+        'PublicStruct.proto',
+        'PlatformStatus.proto'  // 修正文件名，去掉多余的 'F'
+      ];
+
+      const availableFiles: string[] = [];
+      for (const file of requiredFiles) {
+        const filePath = join(protobufPath, file);
+        if (fs.existsSync(filePath)) {
+          availableFiles.push(filePath);
+          console.log(`[Protobuf] ✅ 找到文件: ${file}`);
+        } else {
+          console.log(`[Protobuf] ❌ 缺少文件: ${file}`);
+        }
+      }
+
+      if (availableFiles.length === 0) {
+        throw new Error('未找到任何protobuf定义文件');
+      }
+
       // 加载protobuf定义文件
-      this.root = await protobuf.load([
-        join(protobufPath, 'PublicStruct.proto'),
-        join(protobufPath, 'UavNavMonitorStruct.proto'),
-        join(protobufPath, 'UavFlyMonitorStruct.proto'),
-        join(protobufPath, 'UaviationSimulationStruct.proto'),
-        join(protobufPath, 'UavFlyStatusStruct.proto')
-      ]);
-      console.log('Protobuf定义文件加载成功，目录：', protobufPath);
+      console.log(`[Protobuf] 开始加载 ${availableFiles.length} 个文件...`);
+      console.log(`[Protobuf] 文件列表:`, availableFiles);
+
+      this.root = await protobuf.load(availableFiles);
+      console.log('[Protobuf] ✅ Protobuf定义文件加载成功，目录：', protobufPath);
+      console.log('[Protobuf] 可用的消息类型:', Object.keys(this.root.nested || {}));
+
+      // 详细显示每个命名空间的内容
+      if (this.root.nested) {
+        for (const [namespace, content] of Object.entries(this.root.nested)) {
+          if (content instanceof protobuf.Namespace && content.nested) {
+            console.log(`[Protobuf] 命名空间 ${namespace}:`, Object.keys(content.nested));
+          } else {
+            console.log(`[Protobuf] 对象 ${namespace}:`, content.constructor.name);
+          }
+        }
+      }
+
     } catch (error) {
-      console.error('加载Protobuf定义文件失败:', error);
+      console.error('[Protobuf] ❌ 加载Protobuf定义文件失败:', error);
       throw error;
     }
   }
@@ -100,12 +142,31 @@ export class ProtobufParserService {
       const protocolID = data[2];
       const packageType = data[3];
       const size = data.readUInt32LE(4); // 4字节的protobuf数据长度
-      const messageData = data.slice(8, 8 + size); // protobuf数据
 
-      if (messageData.length !== size) {
-        console.warn(`protobuf数据长度不匹配，期望${size}字节，实际${messageData.length}字节`);
-        return null;
+      console.log(`[Parser] 包解析详情:`, {
+        protocolID: `0x${protocolID.toString(16)}`,
+        packageType: `0x${packageType.toString(16)}`,
+        declaredSize: size,
+        actualPacketLength: data.length,
+        remainingBytes: data.length - 8,
+        sizeBytes: data.subarray(4, 8).toString('hex')
+      });
+
+      // 如果声明的大小明显错误，尝试使用剩余的所有字节
+      let actualSize = size;
+      if (size > data.length - 8 || size <= 0) {
+        actualSize = data.length - 8;
+        console.log(`[Parser] 🔧 大小字段异常，使用剩余字节数: ${actualSize}`);
       }
+
+      const messageData = data.subarray(8, 8 + actualSize); // protobuf数据
+
+      console.log(`[Parser] 提取的protobuf数据:`, {
+        expectedSize: size,
+        actualSize: actualSize,
+        extractedLength: messageData.length,
+        protobufHex: messageData.toString('hex')
+      });
 
       const packageTypeName = this.packageTypes.get(packageType) || 'Unknown';
 
@@ -161,6 +222,9 @@ export class ProtobufParserService {
         case 0x28: // PackType_RecoveryrouteCmd
           parsedData = this.parseRecoveryrouteCmd(messageData);
           break;
+        case 0x29: // PackType_PlatformStatus
+          parsedData = this.parsePlatformStatus(messageData);
+          break;
         default:
           console.warn(`未知的包类型: 0x${packageType.toString(16)}`);
           parsedData = { raw: messageData.toString('hex') };
@@ -190,6 +254,45 @@ export class ProtobufParserService {
     } catch (error) {
       console.error('解析飞行状态失败:', error);
       return { error: '解析失败', raw: data.toString('hex') };
+    }
+  }
+
+  private parsePlatformStatus(data: Buffer): any {
+    try {
+      console.log('[Parser] 尝试解析平台状态数据...');
+
+      if (!this.root) {
+        throw new Error('Protobuf root 未初始化');
+      }
+
+      // 尝试查找消息类型
+      let PlatformStatusInfo: protobuf.Type;
+      try {
+        PlatformStatusInfo = this.root.lookupType('PlatformStatus.PlatformStatusInfo');
+      } catch (lookupError: unknown) {
+        console.log('[Parser] 尝试其他命名空间...');
+        // 尝试不同的命名空间
+        try {
+          PlatformStatusInfo = this.root.lookupType('PlatformStatusInfo');
+        } catch (e) {
+          console.log('[Parser] 可用的类型:', Object.keys(this.root.nested || {}));
+          const errorMessage = lookupError instanceof Error ? lookupError.message : String(lookupError);
+          throw new Error(`无法找到 PlatformStatusInfo 类型: ${errorMessage}`);
+        }
+      }
+
+      console.log('[Parser] ✅ 找到消息类型，开始解码...');
+      const decoded = PlatformStatusInfo.decode(data);
+      console.log('[Parser] ✅ 解码成功:', decoded);
+
+      return decoded;
+    } catch (error) {
+      console.error('[Parser] ❌ 解析平台状态失败:', error);
+      return {
+        error: '解析失败',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        raw: data.toString('hex')
+      };
     }
   }
 

@@ -23,6 +23,7 @@ enum PackageType
 	PackType_NavModeRequest           = 0x26;       //导航模式
 	PackType_PositioningModeRequest   = 0x27;       //定位模式
 	PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
+	PackageType_PlatformStatus		  = 0x29;		//平台状态回传
 	
 }
 

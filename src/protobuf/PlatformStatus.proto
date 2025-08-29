@@ -1,0 +1,29 @@
+import "PublicStruct.proto";
+package PlatformStatus;
+enum PackageType
+{
+	PackType_Invalid                  = 0;          //无效信息
+	PackType_PlatformStatus           = 0x29;       //平台状态信息	
+}
+
+enum PlatformType
+{
+	PlatForm_Uav        = 0;    // 无人机
+	PlatForm_Artillery  = 2;    //火炮
+	PlatForm_Shell      = 3;    //炮弹
+	PlatForm_Target     = 4;    //目标
+}
+
+//地理信息结构
+message GeoCoordinate
+{
+	optional double longitude = 1;    
+	optional double latitude  = 2;
+	optional double altitude  = 3;
+}
+
+message  PlatformStatusInfo{	                  
+	required string  PlatformId                = 1;        //平台ID
+    optional PlatformType  type                = 2;        // 平台类型
+	optional PublicStruct.GeoCoordinate  coord = 3;        //位置
+};

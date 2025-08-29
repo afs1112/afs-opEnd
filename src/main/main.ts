@@ -209,6 +209,11 @@ function createWindow() {
   if (process.env.NODE_ENV === "development") {
     const rendererPort = process.argv[2];
     mainWindow.loadURL(`http://localhost:${rendererPort}`);
+    
+    // 在开发模式下自动打开开发者工具
+    mainWindow.webContents.once('dom-ready', () => {
+      mainWindow.webContents.openDevTools();
+    });
   } else {
     mainWindow.loadFile(join(app.getAppPath(), "renderer", "index.html"));
   }

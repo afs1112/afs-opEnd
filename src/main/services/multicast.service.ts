@@ -57,24 +57,58 @@ export class MulticastService extends EventEmitter {
         this.socket.on('message', (msg, rinfo) => {
           const timestamp = Date.now();
           const source = `${rinfo.address}:${rinfo.port}`;
-          
+
           // 尝试解析protobuf数据
           let parsedPacket: ParsedPacket | undefined;
           try {
+            console.log('[Multicast][调试] 收到数据包:', {
+              length: msg.length,
+              header: msg.subarray(0, 8).toString('hex'),
+              fullPacket: msg.toString('hex'),
+              packageType: `0x${msg[3].toString(16).padStart(2, '0')}`,
+              protocolID: `0x${msg[2].toString(16).padStart(2, '0')}`,
+              dataSize: msg.length >= 8 ? msg.readUInt32LE(4) : 'N/A',
+              source
+            });
+
             const parsed = protobufParserService.parsePacket(msg, source, timestamp);
             if (parsed) {
               parsedPacket = parsed;
               // 打印结构化数据到后台
-              console.log('[Multicast][Protobuf解析]', {
+              console.log('[Multicast][Protobuf解析成功] ✅', {
                 time: new Date(timestamp).toLocaleString('zh-CN'),
                 source,
                 packageType: parsed.packageTypeName + ` (0x${parsed.packageType.toString(16)})`,
-                protocolID: parsed.protocolID,
-                parsedData: parsed.parsedData
+                protocolID: `0x${parsed.protocolID.toString(16)}`,
+                parsedData: parsed.parsedData,
+                rawDataSize: parsed.size
+              });
+
+              // 如果是平台状态数据，额外打印详细信息
+              if (parsed.packageType === 0x29) {
+                console.log('[Multicast][平台状态详情] 🚁', {
+                  platformId: parsed.parsedData?.PlatformId,
+                  platformType: parsed.parsedData?.type,
+                  coordinates: parsed.parsedData?.coord,
+                  timestamp: new Date(timestamp).toISOString()
+                });
+              }
+            } else {
+              console.log('[Multicast][Protobuf解析] ❌ 返回null，可能是包格式不匹配');
+              console.log('[Multicast][调试] 包头检查:', {
+                expectedHeader: 'aa55',
+                actualHeader: msg.subarray(0, 2).toString('hex'),
+                isValidHeader: msg[0] === 0xAA && msg[1] === 0x55,
+                minLength: msg.length >= 8
               });
             }
           } catch (error) {
-            console.warn('Protobuf解析失败:', error);
+            console.error('[Multicast][Protobuf解析失败] ❌:', error);
+            console.log('[Multicast][错误详情]', {
+              errorMessage: error instanceof Error ? error.message : String(error),
+              packetLength: msg.length,
+              packetHex: msg.toString('hex')
+            });
           }
 
           const packet: MulticastPacket = {
