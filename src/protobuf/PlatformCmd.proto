@@ -1,0 +1,9 @@
+import "PublicStruct.proto";
+package PlatformStatus;
+// 平台控制命令
+message  PlatformCmd{	                     
+	required  string  platformName     = 1;                //无人机ID
+    required  string  platformType     = 2;                //平台类型
+    required  PublicStruct.PlatformCommand  command          = 3;       // 命令
+    optional  Info                               =4 // 附加参数
+};
