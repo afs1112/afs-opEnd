@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getConfig: () => ipcRenderer.invoke("multicast:getConfig"),
     updateConfig: (address: string, port: number, interfaceAddr: string) => 
       ipcRenderer.invoke("multicast:updateConfig", address, port, interfaceAddr),
+    sendPlatformCmd: (data: any) => ipcRenderer.invoke("multicast:sendPlatformCmd", data),
     onPacket: (callback: (packet: any) => void) => {
       ipcRenderer.on("multicast:packet", (_, packet) => callback(packet));
     },

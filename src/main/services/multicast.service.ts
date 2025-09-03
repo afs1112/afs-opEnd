@@ -86,11 +86,28 @@ export class MulticastService extends EventEmitter {
 
               // 如果是平台状态数据，额外打印详细信息
               if (parsed.packageType === 0x29) {
+                const platforms = parsed.parsedData?.platform || [];
                 console.log('[Multicast][平台状态详情] 🚁', {
-                  platformId: parsed.parsedData?.PlatformId,
-                  platformType: parsed.parsedData?.type,
-                  coordinates: parsed.parsedData?.coord,
-                  timestamp: new Date(timestamp).toISOString()
+                  平台数量: platforms.length,
+                  平台信息: platforms.map((platform: any, index: number) => ({
+                    编号: index + 1,
+                    名称: platform.base?.name,
+                    类型: platform.base?.type,
+                    阵营: platform.base?.side,
+                    编队: platform.base?.group,
+                    坐标: platform.base?.location ? {
+                      经度: platform.base.location.longitude,
+                      纬度: platform.base.location.latitude,
+                      高度: platform.base.location.altitude
+                    } : null,
+                    更新时间: new Date((platform.updataTime || 0) * 1000).toLocaleString('zh-CN'),
+                    通信设备数: platform.comms?.length || 0,
+                    传感器数: platform.sensors?.length || 0,
+                    武器数: platform.weapons?.length || 0,
+                    跟踪目标数: platform.tracks?.length || 0,
+                    航迹点数: platform.mover?.route?.length || 0
+                  })),
+                  时间戳: new Date(timestamp).toISOString()
                 });
               }
             } else {

@@ -1,9 +1,39 @@
+syntax = "proto2";
 import "PublicStruct.proto";
 package PlatformStatus;
+
+enum PlatformCommand
+    {
+
+  Uav_EoPod_On = 0;// 光电吊舱开
+  Uav_EoPod_Off = 1;// 光电吊舱关
+  Uav_EoPod_Turn = 2;// 光电吊舱转向
+  Uav_LazerPod_On = 3;// 激光吊舱开
+  Uav_LazerPod_Off = 4;// 激光吊舱关
+  Uav_LazerPod_Turn = 5;// 激光吊舱转向
+  Uav_LazerPod_Lasing = 6;// 激光吊舱照射
+  Uav_LazerPod_Cease = 7;// 激光吊舱停止照射
+  Uav_Nav = 8;// 无人机航线规划
+  Arty_Load = 9;// 火炮装填
+  Arty_Fire = 10;// 火炮发射
+
+}
+
+
+
 // 平台控制命令
-message  PlatformCmd{	                     
-	required  string  platformName     = 1;                //无人机ID
-    required  string  platformType     = 2;                //平台类型
-    required  PublicStruct.PlatformCommand  command          = 3;       // 命令
-    optional  Info                               =4 // 附加参数
+message PlatformCmd {
+  optional int32 commandID = 0;
+  required string platformName = 1;//无人机ID
+  required string platformType = 2;//平台类型
+  required PlatformCommand command = 3;// 命令
+  optional FireParam fireParam = 4;// 附加参数
 };
+
+//武器发射参数
+message FireParam
+    {
+  optional string weaponName = 1;//武器类型实例化的名称
+  optional string targetName = 2;//目标平台名称
+  optional int32 quantity = 3;//发射次数默认为1
+}

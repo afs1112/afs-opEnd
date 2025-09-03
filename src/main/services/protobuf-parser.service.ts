@@ -42,6 +42,7 @@ export class ProtobufParserService {
     this.packageTypes.set(0x27, 'PackType_PositioningModeRequest');
     this.packageTypes.set(0x28, 'PackType_RecoveryrouteCmd');
     this.packageTypes.set(0x29, 'PackType_PlatformStatus'); // 新增平台状态信息
+    this.packageTypes.set(0x2A, 'PackType_PlatformCmd'); // 新增平台控制命令
   }
 
   public async loadProtobufDefinitions(): Promise<void> {
@@ -74,14 +75,28 @@ export class ProtobufParserService {
         throw new Error(`未找到protobuf定义目录，已尝试路径: ${pathList.join(', ')}`);
       }
 
-      // 检查必需的文件是否存在，只加载存在的文件
-      const requiredFiles = [
-        'PublicStruct.proto',
-        'PlatformStatus.proto'  // 修正文件名，去掉多余的 'F'
-      ];
+      // 自动扫描protobuf目录中的所有.proto文件
+      const files = fs.readdirSync(protobufPath).filter(file => file.endsWith('.proto'));
+      
+      console.log(`[Protobuf] 发现 ${files.length} 个.proto文件:`, files);
+
+      // 按依赖关系排序加载，先加载基础的PublicStruct.proto
+      const sortedFiles: string[] = [];
+      
+      // 优先加载公共结构，因为其他文件都依赖它
+      if (files.includes('PublicStruct.proto')) {
+        sortedFiles.push('PublicStruct.proto');
+      }
+      
+      // 然后加载其他文件
+      files.forEach((file: string) => {
+        if (file !== 'PublicStruct.proto') {
+          sortedFiles.push(file);
+        }
+      });
 
       const availableFiles: string[] = [];
-      for (const file of requiredFiles) {
+      for (const file of sortedFiles) {
         const filePath = join(protobufPath, file);
         if (fs.existsSync(filePath)) {
           availableFiles.push(filePath);
@@ -99,19 +114,36 @@ export class ProtobufParserService {
       console.log(`[Protobuf] 开始加载 ${availableFiles.length} 个文件...`);
       console.log(`[Protobuf] 文件列表:`, availableFiles);
 
-      this.root = await protobuf.load(availableFiles);
-      console.log('[Protobuf] ✅ Protobuf定义文件加载成功，目录：', protobufPath);
-      console.log('[Protobuf] 可用的消息类型:', Object.keys(this.root.nested || {}));
+      try {
+        this.root = await protobuf.load(availableFiles);
+        console.log('[Protobuf] ✅ Protobuf定义文件加载成功，目录：', protobufPath);
+        console.log('[Protobuf] 可用的消息类型:', Object.keys(this.root.nested || {}));
 
-      // 详细显示每个命名空间的内容
-      if (this.root.nested) {
-        for (const [namespace, content] of Object.entries(this.root.nested)) {
-          if (content instanceof protobuf.Namespace && content.nested) {
-            console.log(`[Protobuf] 命名空间 ${namespace}:`, Object.keys(content.nested));
-          } else {
-            console.log(`[Protobuf] 对象 ${namespace}:`, content.constructor.name);
+        // 详细显示每个命名空间的内容
+        if (this.root.nested) {
+          for (const [namespace, content] of Object.entries(this.root.nested)) {
+            if (content instanceof protobuf.Namespace && content.nested) {
+              console.log(`[Protobuf] 命名空间 ${namespace}:`, Object.keys(content.nested));
+            } else {
+              console.log(`[Protobuf] 对象 ${namespace}:`, content.constructor.name);
+            }
           }
         }
+      } catch (loadError) {
+        console.error('[Protobuf] ❌ protobuf.load() 失败:', loadError);
+        
+        // 尝试单独加载每个文件来诊断问题
+        console.log('[Protobuf] 🔍 尝试单独加载文件进行诊断...');
+        for (const filePath of availableFiles) {
+          try {
+            const singleRoot = await protobuf.load([filePath]);
+            console.log(`[Protobuf] ✅ 单独加载成功: ${filePath}`);
+          } catch (singleError) {
+            console.error(`[Protobuf] ❌ 单独加载失败 ${filePath}:`, singleError);
+          }
+        }
+        
+        throw loadError;
       }
 
     } catch (error) {
@@ -225,6 +257,9 @@ export class ProtobufParserService {
         case 0x29: // PackType_PlatformStatus
           parsedData = this.parsePlatformStatus(messageData);
           break;
+        case 0x2A: // PackType_PlatformCmd
+          parsedData = this.parsePlatformCmd(messageData);
+          break;
         default:
           console.warn(`未知的包类型: 0x${packageType.toString(16)}`);
           parsedData = { raw: messageData.toString('hex') };
@@ -265,33 +300,57 @@ export class ProtobufParserService {
         throw new Error('Protobuf root 未初始化');
       }
 
-      // 尝试查找消息类型
-      let PlatformStatusInfo: protobuf.Type;
+      // 尝试查找消息类型 - 根据PlatformStatus.proto，主要消息类型是Platforms
+      let PlatformsType: protobuf.Type;
       try {
-        PlatformStatusInfo = this.root.lookupType('PlatformStatus.PlatformStatusInfo');
+        PlatformsType = this.root.lookupType('PlatformStatus.Platforms');
+        console.log('[Parser] ✅ 找到 PlatformStatus.Platforms 类型');
       } catch (lookupError: unknown) {
-        console.log('[Parser] 尝试其他命名空间...');
-        // 尝试不同的命名空间
+        console.log('[Parser] 尝试其他可能的类型名...');
+        // 尝试不同的命名空间和类型名
         try {
-          PlatformStatusInfo = this.root.lookupType('PlatformStatusInfo');
+          PlatformsType = this.root.lookupType('Platforms');
+          console.log('[Parser] ✅ 找到 Platforms 类型');
         } catch (e) {
-          console.log('[Parser] 可用的类型:', Object.keys(this.root.nested || {}));
-          const errorMessage = lookupError instanceof Error ? lookupError.message : String(lookupError);
-          throw new Error(`无法找到 PlatformStatusInfo 类型: ${errorMessage}`);
+          try {
+            PlatformsType = this.root.lookupType('PlatformStatus.Platform');
+            console.log('[Parser] ✅ 找到 PlatformStatus.Platform 类型（单个平台）');
+          } catch (e2) {
+            console.log('[Parser] 可用的类型:', Object.keys(this.root.nested || {}));
+            if (this.root.nested && this.root.nested['PlatformStatus']) {
+              const platformNested = this.root.nested['PlatformStatus'] as protobuf.Namespace;
+              console.log('[Parser] PlatformStatus命名空间中的类型:', Object.keys(platformNested.nested || {}));
+            }
+            const errorMessage = lookupError instanceof Error ? lookupError.message : String(lookupError);
+            throw new Error(`无法找到 PlatformStatus 相关类型: ${errorMessage}`);
+          }
         }
       }
 
-      console.log('[Parser] ✅ 找到消息类型，开始解码...');
-      const decoded = PlatformStatusInfo.decode(data);
-      console.log('[Parser] ✅ 解码成功:', decoded);
+      console.log('[Parser] 🔍 开始解码平台状态数据，数据长度:', data.length);
+      console.log('[Parser] 🔍 数据前32字节:', data.subarray(0, Math.min(32, data.length)).toString('hex'));
+      
+      const decoded = PlatformsType.decode(data);
+      console.log('[Parser] ✅ 平台状态解码成功:', decoded);
 
-      return decoded;
+      // 如果解码成功，尝试转换为普通对象以便更好地显示
+      const decodedObject = PlatformsType.toObject(decoded, {
+        longs: String,
+        enums: String,
+        bytes: String,
+        defaults: true
+      });
+      
+      console.log('[Parser] 📊 平台状态详细信息:', JSON.stringify(decodedObject, null, 2));
+
+      return decodedObject;
     } catch (error) {
       console.error('[Parser] ❌ 解析平台状态失败:', error);
       return {
         error: '解析失败',
         errorMessage: error instanceof Error ? error.message : String(error),
-        raw: data.toString('hex')
+        raw: data.toString('hex'),
+        dataLength: data.length
       };
     }
   }
@@ -443,6 +502,63 @@ export class ProtobufParserService {
     } catch (error) {
       console.error('解析回收航线命令失败:', error);
       return { error: '解析失败', raw: data.toString('hex') };
+    }
+  }
+
+  private parsePlatformCmd(data: Buffer): any {
+    try {
+      console.log('[Parser] 尝试解析平台控制命令数据...');
+
+      if (!this.root) {
+        throw new Error('Protobuf root 未初始化');
+      }
+
+      // 尝试查找消息类型
+      let PlatformCmdType: protobuf.Type;
+      try {
+        PlatformCmdType = this.root.lookupType('PlatformStatus.PlatformCmd');
+        console.log('[Parser] ✅ 找到 PlatformStatus.PlatformCmd 类型');
+      } catch (lookupError: unknown) {
+        console.log('[Parser] 尝试其他可能的类型名...');
+        try {
+          PlatformCmdType = this.root.lookupType('PlatformCmd');
+          console.log('[Parser] ✅ 找到 PlatformCmd 类型');
+        } catch (e) {
+          console.log('[Parser] 可用的类型:', Object.keys(this.root.nested || {}));
+          if (this.root.nested && this.root.nested['PlatformStatus']) {
+            const platformNested = this.root.nested['PlatformStatus'] as protobuf.Namespace;
+            console.log('[Parser] PlatformStatus命名空间中的类型:', Object.keys(platformNested.nested || {}));
+          }
+          const errorMessage = lookupError instanceof Error ? lookupError.message : String(lookupError);
+          throw new Error(`无法找到 PlatformCmd 相关类型: ${errorMessage}`);
+        }
+      }
+
+      console.log('[Parser] 🔍 开始解码平台控制命令数据，数据长度:', data.length);
+      console.log('[Parser] 🔍 数据前32字节:', data.subarray(0, Math.min(32, data.length)).toString('hex'));
+      
+      const decoded = PlatformCmdType.decode(data);
+      console.log('[Parser] ✅ 平台控制命令解码成功:', decoded);
+
+      // 如果解码成功，尝试转换为普通对象以便更好地显示
+      const decodedObject = PlatformCmdType.toObject(decoded, {
+        longs: String,
+        enums: String,
+        bytes: String,
+        defaults: true
+      });
+      
+      console.log('[Parser] 📊 平台控制命令详细信息:', JSON.stringify(decodedObject, null, 2));
+
+      return decodedObject;
+    } catch (error) {
+      console.error('[Parser] ❌ 解析平台控制命令失败:', error);
+      return {
+        error: '解析失败',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        raw: data.toString('hex'),
+        dataLength: data.length
+      };
     }
   }
 

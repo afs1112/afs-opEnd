@@ -4,6 +4,7 @@ import fs from "fs";
 import * as dotenv from 'dotenv';
 import { dbService } from "./database/db.service";
 import { multicastService, MulticastPacket } from "./services/multicast.service";
+import { multicastSenderService, PlatformCmdData } from "./services/multicast-sender.service";
 
 // 加载环境配置
 const envPath = join(app.getAppPath(), 'config.env');
@@ -21,6 +22,14 @@ app.whenReady().then(async () => {
       await multicastService.start();
     } catch (error) {
       console.error("组播服务启动失败:", error);
+    }
+
+    // 初始化组播发送服务
+    try {
+      await multicastSenderService.initialize();
+      console.log('✅ 组播发送服务初始化成功');
+    } catch (error) {
+      console.error("❌ 组播发送服务初始化失败:", error);
     }
 
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -68,8 +77,8 @@ ipcMain.handle("multicast:getStatus", () => {
 
 ipcMain.handle("multicast:getConfig", () => {
   return {
-    address: process.env.MULTICAST_ADDRESS || '224.0.0.1',
-    port: parseInt(process.env.MULTICAST_PORT || '8888'),
+    address: process.env.MULTICAST_ADDRESS || '239.255.43.21',
+    port: parseInt(process.env.MULTICAST_PORT || '10086'),
     interfaceAddress: process.env.INTERFACE_ADDRESS || '0.0.0.0'
   };
 });
@@ -79,6 +88,29 @@ ipcMain.handle("multicast:updateConfig", (_, address: string, port: number, inte
     multicastService.updateConfig(address, port, interfaceAddr);
     return { success: true };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 组播发送服务IPC处理
+ipcMain.handle("multicast:sendPlatformCmd", async (_, data: PlatformCmdData) => {
+  try {
+    // 检查服务是否已初始化，如果没有则尝试重新初始化
+    if (!multicastSenderService.isInitialized()) {
+      console.log('[Main] MulticastSender未初始化，尝试重新初始化...');
+      try {
+        await multicastSenderService.initialize();
+        console.log('[Main] ✅ MulticastSender重新初始化成功');
+      } catch (initError) {
+        console.error('[Main] ❌ MulticastSender重新初始化失败:', initError);
+        return { success: false, error: `初始化失败: ${initError instanceof Error ? initError.message : String(initError)}` };
+      }
+    }
+    
+    await multicastSenderService.sendPlatformCmd(data);
+    return { success: true };
+  } catch (error: any) {
+    console.error('发送PlatformCmd失败:', error);
     return { success: false, error: error.message };
   }
 });
