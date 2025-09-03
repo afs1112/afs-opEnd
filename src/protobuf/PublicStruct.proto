@@ -24,7 +24,7 @@ enum PackageType
 	PackType_PositioningModeRequest   = 0x27;       //定位模式
 	PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
 	PackageType_PlatformStatus		  = 0x29;		//平台状态回传
-	PackageType_PlatformCommand		  = 0x30;		//平台控制命令
+	PackageType_PlatformCommand		  = 0x2A;		//平台控制命令
 	
 }
 
