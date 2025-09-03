@@ -19,8 +19,6 @@ enum PlatformCommand
 
 }
 
-
-
 // 平台控制命令
 message PlatformCmd {
   optional int32 commandID = 0;

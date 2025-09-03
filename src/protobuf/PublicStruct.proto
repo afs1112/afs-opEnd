@@ -5,24 +5,24 @@ package PublicStruct;
 //数据包类型[根据通信协议定义的枚举值]
 enum PackageType
 {
-	PackType_Invalid                  = 0;          //无效信息
-	PackType_Flystatus                = 0x01;       //飞行状态信息
-	PackType_HeartbeatInternal        = 0x02;       //内部心跳
-	PackType_SceneDataInit            = 0x03;       //场景数据初始化
-	PackType_FlyControl               = 0x10;       //飞行控制
-	PackType_AttitudeControl          = 0x11;       //姿态控制
-	PackType_EngineControl            = 0x12;       //发动机控制
-	PackType_DataChainControl         = 0x13;       //链路控制
-	PackType_FlyControlReply          = 0x14;       //飞行控制回复
-	PackType_RouteUpload              = 0x20;       //航线上传
-	PackType_SecurityBoundaryControl  = 0x21;       //安全边界控制
-	PackType_FixedPointNavigation     = 0x22;       //定点导航
-	PackType_RangePointSelect         = 0x23;       //靶场点选择
-	PackType_NavReply                 = 0x24;       //导航信息回复
-	PackType_RouteUploadReply         = 0x25;       //航线上传回复
-	PackType_NavModeRequest           = 0x26;       //导航模式
-	PackType_PositioningModeRequest   = 0x27;       //定位模式
-	PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
+	// PackType_Invalid                  = 0;          //无效信息
+	// PackType_Flystatus                = 0x01;       //飞行状态信息
+	// PackType_HeartbeatInternal        = 0x02;       //内部心跳
+	// PackType_SceneDataInit            = 0x03;       //场景数据初始化
+	// PackType_FlyControl               = 0x10;       //飞行控制
+	// PackType_AttitudeControl          = 0x11;       //姿态控制
+	// PackType_EngineControl            = 0x12;       //发动机控制
+	// PackType_DataChainControl         = 0x13;       //链路控制
+	// PackType_FlyControlReply          = 0x14;       //飞行控制回复
+	// PackType_RouteUpload              = 0x20;       //航线上传
+	// PackType_SecurityBoundaryControl  = 0x21;       //安全边界控制
+	// PackType_FixedPointNavigation     = 0x22;       //定点导航
+	// PackType_RangePointSelect         = 0x23;       //靶场点选择
+	// PackType_NavReply                 = 0x24;       //导航信息回复
+	// PackType_RouteUploadReply         = 0x25;       //航线上传回复
+	// PackType_NavModeRequest           = 0x26;       //导航模式
+	// PackType_PositioningModeRequest   = 0x27;       //定位模式
+	// PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
 	PackageType_PlatformStatus		  = 0x29;		//平台状态回传
 	PackageType_PlatformCommand		  = 0x2A;		//平台控制命令
 	

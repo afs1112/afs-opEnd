@@ -15,7 +15,7 @@ let messageTypes = {};
 
 async function loadProtobufDefinitions() {
   try {
-    const protobufPath = path.join(__dirname, '..', 'protobuf');
+    const protobufPath = path.join(__dirname, '../src/', 'protobuf');
     
     // 加载Platform Status相关的protobuf定义
     root = await protobuf.load([

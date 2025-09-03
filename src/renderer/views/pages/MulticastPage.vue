@@ -113,7 +113,8 @@
           <div class="flex justify-between items-start mb-2">
             <div class="flex gap-4 text-sm text-gray-600">
               <span>时间: {{ formatTime(packet.timestamp) }}</span>
-              <span>来源: {{ packet.source }}</span>
+              <span>源IP: {{ extractSourceIP(packet.source) }}</span>
+              <span>端口: {{ extractSourcePort(packet.source) }}</span>
               <span>大小: {{ packet.size }} 字节</span>
             </div>
             <el-tag size="small" type="info">#{{ index + 1 }}</el-tag>
@@ -122,11 +123,13 @@
             <div v-if="packet.parsedPacket" class="mb-4">
               <div class="text-green-600 font-semibold mb-2">✅ 解析成功:</div>
               <div class="bg-white rounded p-2 mb-2">
-                <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="grid grid-cols-3 gap-2 text-xs">
                   <div><strong>包类型:</strong> {{ packet.parsedPacket.packageTypeName }}</div>
                   <div><strong>类型码:</strong> 0x{{ packet.parsedPacket.packageType.toString(16).padStart(2, '0') }}</div>
                   <div><strong>协议ID:</strong> 0x{{ packet.parsedPacket.protocolID.toString(16).padStart(2, '0') }}</div>
                   <div><strong>数据大小:</strong> {{ packet.parsedPacket.size }} 字节</div>
+                  <div><strong>源IP:</strong> {{ extractSourceIP(packet.source) }}</div>
+                  <div><strong>端口:</strong> {{ extractSourcePort(packet.source) }}</div>
                 </div>
               </div>
               
@@ -192,6 +195,7 @@ interface MulticastPacket {
     parsedData: any;
     rawData: Buffer;
     size: number;
+    protocolID: number;
   };
 }
 
@@ -232,6 +236,18 @@ const platformStatusCount = computed(() => {
 // 格式化时间
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleString('zh-CN');
+};
+
+// 从源信息中提取IP地址
+const extractSourceIP = (source: string): string => {
+  const match = source.match(/^(.+):(\d+)$/);
+  return match ? match[1] : source;
+};
+
+// 从源信息中提取端口号
+const extractSourcePort = (source: string): string => {
+  const match = source.match(/^(.+):(\d+)$/);
+  return match ? match[2] : '';
 };
 
 // 原始数据转十六进制
