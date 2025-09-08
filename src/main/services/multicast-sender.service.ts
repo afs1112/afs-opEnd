@@ -32,8 +32,26 @@ export class MulticastSenderService {
 
   public async initialize(): Promise<void> {
     try {
-      // 创建UDP socket
-      this.socket = dgram.createSocket('udp4');
+      // 创建支持端口复用的UDP socket
+      this.socket = dgram.createSocket({
+        type: 'udp4',
+        reuseAddr: true  // 允许地址复用
+      });
+
+      // 设置socket选项
+      if (this.socket) {
+        this.socket.on('listening', () => {
+          if (this.socket) {
+            try {
+              this.socket.setBroadcast(true);
+              this.socket.setRecvBufferSize(65536); // 增加接收缓冲区大小
+              console.log('[MulticastSender] Socket选项设置成功');
+            } catch (optionError) {
+              console.warn('[MulticastSender] 设置socket选项时出现警告:', optionError);
+            }
+          }
+        });
+      }
 
       // 加载protobuf定义文件
       await this.loadProtobufDefinitions();

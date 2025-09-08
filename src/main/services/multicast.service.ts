@@ -47,7 +47,11 @@ export class MulticastService extends EventEmitter {
           console.warn('Protobuf定义文件加载失败，将使用原始数据显示:', error);
         }
 
-        this.socket = dgram.createSocket('udp4');
+        // 创建支持端口复用的socket
+        this.socket = dgram.createSocket({
+          type: 'udp4',
+          reuseAddr: true  // 允许地址复用，这是解决端口占用问题的关键
+        });
 
         this.socket.on('error', (err) => {
           console.error('组播监听错误:', err);
@@ -148,11 +152,27 @@ export class MulticastService extends EventEmitter {
         });
 
         // 绑定到指定端口
-        this.socket.bind(this.multicastPort, this.interfaceAddress, () => {
+        this.socket.bind({
+          port: this.multicastPort,
+          address: this.interfaceAddress,
+          exclusive: false // 允许端口复用
+        }, () => {
           if (this.socket) {
-            // 加入组播组
-            this.socket.addMembership(this.multicastAddress, this.interfaceAddress);
-            console.log(`已加入组播组: ${this.multicastAddress}`);
+            try {
+              // 加入组播组
+              this.socket.addMembership(this.multicastAddress, this.interfaceAddress);
+              console.log(`已加入组播组: ${this.multicastAddress}`);
+            } catch (membershipError) {
+              console.warn('[Multicast] 加入组播组时出现警告:', membershipError);
+              // 尝试使用默认接口
+              try {
+                this.socket.addMembership(this.multicastAddress);
+                console.log(`[Multicast] 已使用默认接口加入组播组: ${this.multicastAddress}`);
+              } catch (defaultMembershipError) {
+                console.error('[Multicast] 无法加入组播组:', defaultMembershipError);
+                this.emit('error', new Error('无法加入组播组，请检查网络配置'));
+              }
+            }
           }
         });
 
@@ -194,4 +214,4 @@ export class MulticastService extends EventEmitter {
   }
 }
 
-export const multicastService = new MulticastService(); 
+export const multicastService = new MulticastService();
