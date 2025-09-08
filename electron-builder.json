@@ -37,6 +37,10 @@
             "to": "main/src/protobuf",
             "filter": ["**/*"]
         },
+        {
+            "from": "build/config.env",
+            "to": "config.env"
+        },
 	"!build",
 	"!dist",
 	"!scripts"

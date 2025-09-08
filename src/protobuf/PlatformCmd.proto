@@ -3,7 +3,7 @@ import "PublicStruct.proto";
 package PlatformStatus;
 
 enum PlatformCommand
-    {
+{
 
   Uav_EoPod_On = 0;// 光电吊舱开
   Uav_EoPod_Off = 1;// 光电吊舱关
@@ -21,16 +21,16 @@ enum PlatformCommand
 
 // 平台控制命令
 message PlatformCmd {
-  optional int32 commandID = 0;
-  required string platformName = 1;//无人机ID
-  required string platformType = 2;//平台类型
-  required PlatformCommand command = 3;// 命令
-  optional FireParam fireParam = 4;// 附加参数
+  optional int32 commandID = 1;
+  required string platformName = 2;//无人机ID
+  required string platformType = 3;//平台类型
+  required PlatformCommand command = 4;// 命令
+  optional FireParam fireParam = 5;// 附加参数
 };
 
 //武器发射参数
 message FireParam
-    {
+{
   optional string weaponName = 1;//武器类型实例化的名称
   optional string targetName = 2;//目标平台名称
   optional int32 quantity = 3;//发射次数默认为1

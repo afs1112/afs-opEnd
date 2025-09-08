@@ -238,7 +238,10 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
-  if (process.env.NODE_ENV === "development") {
+  // 检查是否为开发模式：同时检查环境变量和命令行参数
+  const isDevelopment = process.env.NODE_ENV === "development" && process.argv.length > 2;
+  
+  if (isDevelopment) {
     const rendererPort = process.argv[2];
     mainWindow.loadURL(`http://localhost:${rendererPort}`);
     

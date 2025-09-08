@@ -45,4 +45,18 @@ Promise.allSettled([buildRenderer(), buildMain()]).then(() => {
   } else {
     console.warn(Chalk.yellow('src/protobuf directory does not exist, skip copy.'));
   }
+
+  // === 复制生产环境配置文件 ===
+  const prodConfigSrc = path.join(__dirname, '../config.production.env');
+  const buildConfigDest = path.join(__dirname, '../build/config.env');
+  if (fs.existsSync(prodConfigSrc)) {
+    fs.copyFileSync(prodConfigSrc, buildConfigDest);
+    console.log(Chalk.greenBright('Production config copied to build/config.env'));
+  } else {
+    console.warn(Chalk.yellow('config.production.env does not exist, using development config'));
+    const devConfigSrc = path.join(__dirname, '../config.env');
+    if (fs.existsSync(devConfigSrc)) {
+      fs.copyFileSync(devConfigSrc, buildConfigDest);
+    }
+  }
 });
