@@ -61,5 +61,5 @@ message TargetSetParam
 //速度设定参数
 message SetSpeedparam
 {
-  optional  number speed = 1;
+  optional  int32 speed = 1;
 }
