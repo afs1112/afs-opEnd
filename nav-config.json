@@ -1,0 +1,40 @@
+{
+  "navigation": {
+    "enabled": true,
+    "relativePath": "Nav/Nav.exe",
+    "description": "导航软件配置",
+    "fallbackPaths": [
+      "Nav/Nav.exe",
+      "Navigation/Nav.exe",
+      "../Nav/Nav.exe",
+      "./external/Nav/Nav.exe"
+    ],
+    "platform": {
+      "win32": {
+        "executable": "Nav.exe",
+        "relativePath": "Nav/Nav.exe"
+      },
+      "darwin": {
+        "executable": "Nav.exe",
+        "relativePath": "Nav/Nav.exe"
+      },
+      "linux": {
+        "executable": "Nav",
+        "relativePath": "Nav/Nav"
+      }
+    },
+    "startupOptions": {
+      "detached": true,
+      "stdio": "ignore",
+      "windowsHide": false
+    },
+    "timeout": 5000,
+    "retryAttempts": 3
+  },
+  "logging": {
+    "enabled": true,
+    "level": "info"
+  },
+  "version": "1.0.0",
+  "lastModified": "2025-01-08"
+}

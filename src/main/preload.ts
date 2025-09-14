@@ -1,31 +1,35 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  db: {
+  database: {
     query: (sql, params) => ipcRenderer.invoke("database:query", sql, params),
     execute: (sql, params) =>
       ipcRenderer.invoke("database:execute", sql, params),
     reset: () => ipcRenderer.invoke("database:reset"),
   },
-  showSaveDialog: async (options: any) => {
-    return await ipcRenderer.invoke("show-save-dialog", options);
+  export: {
+    showSaveDialog: async (options: any) => {
+      return await ipcRenderer.invoke("show-save-dialog", options);
+    },
+    exportFile: async (filePath: string, data: any) => {
+      return await ipcRenderer.invoke("export-file", {
+        filePath,
+        data: ensureSerializable(data),
+      });
+    },
+    exportDatabase: async () => {
+      return await ipcRenderer.invoke("export-database");
+    },
+    exportSqlQuery: async () => {
+      return await ipcRenderer.invoke("export-sql-query");
+    },
   },
-
-  exportToFile: async (filePath: string, data: any) => {
-    return await ipcRenderer.invoke("export-file", {
-      filePath,
-      data: ensureSerializable(data),
-    });
+  
+  import: {
+    importFromJsonFile: () => ipcRenderer.invoke("import:json"),
+    importDatabaseFile: () => ipcRenderer.invoke("import:database"),
+    importFromSqlFile: () => ipcRenderer.invoke("import:sql"),
   },
-  exportDatabase: async () => {
-    return await ipcRenderer.invoke("export-database");
-  },
-  exportSqlQuery: async () => {
-    return await ipcRenderer.invoke("export-sql-query");
-  },
-  importFromJson: () => ipcRenderer.invoke("import:json"),
-  importDatabaseFile: () => ipcRenderer.invoke("import:database"),
-  importFromSqlFile: () => ipcRenderer.invoke("import:sql"),
 
   // 组播相关
   multicast: {
@@ -45,6 +49,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
     removeAllListeners: (channel: string) => {
       ipcRenderer.removeAllListeners(channel);
     },
+  },
+
+  // 导航软件相关
+  nav: {
+    openNavigation: () => ipcRenderer.invoke("nav:openNavigation"),
+    getConfig: () => ipcRenderer.invoke("nav:getConfig"),
+    updateConfig: (config: any) => ipcRenderer.invoke("nav:updateConfig", config),
+    resetConfig: () => ipcRenderer.invoke("nav:resetConfig"),
+    validateConfig: () => ipcRenderer.invoke("nav:validateConfig"),
+    getNavPath: () => ipcRenderer.invoke("nav:getNavPath"),
+  },
+
+  // UavId相关
+  uav: {
+    generateId: () => ipcRenderer.invoke("uav:generateId"),
+    getCurrentId: () => ipcRenderer.invoke("uav:getCurrentId"),
+    setCurrentId: (uavId: string, description?: string) => 
+      ipcRenderer.invoke("uav:setCurrentId", uavId, description),
+    getHistory: () => ipcRenderer.invoke("uav:getHistory"),
+    prepareForNavigation: () => ipcRenderer.invoke("uav:prepareForNavigation"),
   },
 });
 

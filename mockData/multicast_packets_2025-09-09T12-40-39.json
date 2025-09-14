@@ -1,0 +1,4526 @@
+[
+  {
+    "序号": 1,
+    "时间": "2025/9/9 20:40:35",
+    "包类型": "PackType_PlatformStatus",
+    "数据": {
+      "platform": [
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "cannon_1",
+            "type": "CANNON",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.58138766962816,
+              "latitude": 24.30568159787804,
+              "altitude": 0
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 120.56587194444444,
+                "latitude": 24.33462611111111,
+                "altitude": 0,
+                "labelName": "Waypoint-0",
+                "speed": 22.352
+              },
+              {
+                "longitude": 120.58755972222221,
+                "latitude": 24.345298333333332,
+                "altitude": 0,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.60004083333332,
+                "latitude": 24.330380833333333,
+                "altitude": 0,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59148499999999,
+                "latitude": 24.308369444444445,
+                "altitude": 0,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.5576536111111,
+                "latitude": 24.29936027777778,
+                "altitude": 0,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.55209916666666,
+                "latitude": 24.27505083333333,
+                "altitude": 0,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56631,
+                "latitude": 24.33360722222222,
+                "altitude": 0,
+                "labelName": "Waypoint-6",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam1",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.26247777777778,
+              "latitude": 22.922286111111113,
+              "altitude": 0
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.3"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "command_north",
+            "type": "COMMAND_POST",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.94015,
+              "latitude": 24.751069444444443,
+              "altitude": 100
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE_BLUE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 16
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl",
+            "type": "ROCKET",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.08730164193233,
+              "latitude": 24.806896514086105,
+              "altitude": 0
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 121.07528333333333,
+                "latitude": 24.872508333333332,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-0",
+                "speed": 20
+              },
+              {
+                "longitude": 121.09047222222222,
+                "latitude": 24.789575,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.4"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam2",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.49666111111111,
+              "latitude": 24.059541666666668,
+              "altitude": 0
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship1",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.13126111111112,
+              "latitude": 25.51789722222222,
+              "altitude": 5
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship2",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.10405777777778,
+              "latitude": 25.592337222222223,
+              "altitude": 5
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.5"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.1"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.60581896627703,
+              "latitude": 25.495924938251264,
+              "altitude": 914.4000000000001
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-0",
+                "speed": 100
+              },
+              {
+                "longitude": 119.84928888888888,
+                "latitude": 25.474694444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.31681666666667,
+                "latitude": 25.435944444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59173888888888,
+                "latitude": 25.382786111111113,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56354722222223,
+                "latitude": 25.296836111111112,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.7"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.8"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.2"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1b",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.33940669951772,
+              "latitude": 25.26459937122552,
+              "altitude": 3000
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.86845555555554,
+                "latitude": 25.450788888888887,
+                "altitude": 3000,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 120.58021388888889,
+                "latitude": 25.168594444444444,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.85977222222222,
+                "latitude": 25.207944444444443,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.79934166666666,
+                "latitude": 24.957683333333332,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.9"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.10"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.3"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-2a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.94517834901215,
+              "latitude": 24.959137127263023,
+              "altitude": 3000.0000000000005
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.50439999999999,
+                "latitude": 25.187155555555556,
+                "altitude": 120,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 119.68078055555556,
+                "latitude": 25.125977777777777,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.34363333333333,
+                "latitude": 24.7058,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.61924722222221,
+                "latitude": 24.716611111111114,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.58201944444444,
+                "latitude": 24.46333333333333,
+                "altitude": 3000,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.4"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.11"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-1",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.85112222222222,
+              "latitude": 25.461844444444445,
+              "altitude": 150
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.5"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "40.116.70.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-2",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.47434166666666,
+              "latitude": 25.19697222222222,
+              "altitude": 36.576
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.6"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.12"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01_hill",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.24251388888888,
+              "latitude": 25.576701943395463,
+              "altitude": 0
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.2425138888889,
+                "latitude": 25.543444444444447,
+                "altitude": 30.48,
+                "labelName": "Waypoint-0",
+                "speed": 10
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.13"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.7"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_1",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.27095,
+              "latitude": 25.504469444444446,
+              "altitude": 50
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.14"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.8"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_2",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.81295833333333,
+              "latitude": 25.44996666666667,
+              "altitude": 50
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.15"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.9"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl300",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.53830277777779,
+              "latitude": 25.197977777777776,
+              "altitude": 50
+            }
+          },
+          "updataTime": 369.10000000004965,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "序号": 2,
+    "时间": "2025/9/9 20:40:48",
+    "包类型": "PackType_PlatformStatus",
+    "数据": {
+      "platform": [
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "cannon_1",
+            "type": "CANNON",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.55878504395797,
+              "latitude": 24.30260710139882,
+              "altitude": 0
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 120.56587194444444,
+                "latitude": 24.33462611111111,
+                "altitude": 0,
+                "labelName": "Waypoint-0",
+                "speed": 22.352
+              },
+              {
+                "longitude": 120.58755972222221,
+                "latitude": 24.345298333333332,
+                "altitude": 0,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.60004083333332,
+                "latitude": 24.330380833333333,
+                "altitude": 0,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59148499999999,
+                "latitude": 24.308369444444445,
+                "altitude": 0,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.5576536111111,
+                "latitude": 24.29936027777778,
+                "altitude": 0,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.55209916666666,
+                "latitude": 24.27505083333333,
+                "altitude": 0,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56631,
+                "latitude": 24.33360722222222,
+                "altitude": 0,
+                "labelName": "Waypoint-6",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam1",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.26247777777778,
+              "latitude": 22.922286111111113,
+              "altitude": 0
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.3"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "command_north",
+            "type": "COMMAND_POST",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.94015,
+              "latitude": 24.751069444444443,
+              "altitude": 100
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE_BLUE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 16
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl",
+            "type": "ROCKET",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.0904722222222,
+              "latitude": 24.789575540435372,
+              "altitude": 0
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 121.07528333333333,
+                "latitude": 24.872508333333332,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-0",
+                "speed": 20
+              },
+              {
+                "longitude": 121.09047222222222,
+                "latitude": 24.789575,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.4"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam2",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.49666111111111,
+              "latitude": 24.059541666666668,
+              "altitude": 0
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship1",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.13126111111112,
+              "latitude": 25.51789722222222,
+              "altitude": 5
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship2",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.10405777777778,
+              "latitude": 25.592337222222223,
+              "altitude": 5
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.5"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.1"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.97625831228785,
+              "latitude": 25.464320102095744,
+              "altitude": 914.4000000000001
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-0",
+                "speed": 100
+              },
+              {
+                "longitude": 119.84928888888888,
+                "latitude": 25.474694444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.31681666666667,
+                "latitude": 25.435944444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59173888888888,
+                "latitude": 25.382786111111113,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56354722222223,
+                "latitude": 25.296836111111112,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.7"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.8"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.2"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1b",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.83373491593484,
+              "latitude": 25.20425781241288,
+              "altitude": 3000
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.86845555555554,
+                "latitude": 25.450788888888887,
+                "altitude": 3000,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 120.58021388888889,
+                "latitude": 25.168594444444444,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.85977222222222,
+                "latitude": 25.207944444444443,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.79934166666666,
+                "latitude": 24.957683333333332,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.9"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.10"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.3"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-2a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.37582914501985,
+              "latitude": 24.70653855876546,
+              "altitude": 3000.0000000000005
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.50439999999999,
+                "latitude": 25.187155555555556,
+                "altitude": 120,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 119.68078055555556,
+                "latitude": 25.125977777777777,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.34363333333333,
+                "latitude": 24.7058,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.61924722222221,
+                "latitude": 24.716611111111114,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.58201944444444,
+                "latitude": 24.46333333333333,
+                "altitude": 3000,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.4"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.11"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-1",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.85112222222222,
+              "latitude": 25.461844444444445,
+              "altitude": 150
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.5"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "40.116.70.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-2",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.47434166666666,
+              "latitude": 25.19697222222222,
+              "altitude": 36.576
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.6"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.12"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01_hill",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.24251388888882,
+              "latitude": 25.610569257060302,
+              "altitude": 0
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.2425138888889,
+                "latitude": 25.543444444444447,
+                "altitude": 30.48,
+                "labelName": "Waypoint-0",
+                "speed": 10
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.13"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.7"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_1",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.27095,
+              "latitude": 25.504469444444446,
+              "altitude": 50
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.14"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.8"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_2",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.81295833333333,
+              "latitude": 25.44996666666667,
+              "altitude": 50
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.15"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.9"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl300",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.53830277777779,
+              "latitude": 25.197977777777776,
+              "altitude": 50
+            }
+          },
+          "updataTime": 743.7999999998713,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "序号": 3,
+    "时间": "2025/9/9 20:41:36",
+    "包类型": "PackType_PlatformStatus",
+    "数据": {
+      "platform": [
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "cannon_1",
+            "type": "CANNON",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.55362904593171,
+              "latitude": 24.281747540983794,
+              "altitude": 0
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 120.56587194444444,
+                "latitude": 24.33462611111111,
+                "altitude": 0,
+                "labelName": "Waypoint-0",
+                "speed": 22.352
+              },
+              {
+                "longitude": 120.58755972222221,
+                "latitude": 24.345298333333332,
+                "altitude": 0,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.60004083333332,
+                "latitude": 24.330380833333333,
+                "altitude": 0,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59148499999999,
+                "latitude": 24.308369444444445,
+                "altitude": 0,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.5576536111111,
+                "latitude": 24.29936027777778,
+                "altitude": 0,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.55209916666666,
+                "latitude": 24.27505083333333,
+                "altitude": 0,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56631,
+                "latitude": 24.33360722222222,
+                "altitude": 0,
+                "labelName": "Waypoint-6",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam1",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.26247777777778,
+              "latitude": 22.922286111111113,
+              "altitude": 0
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.3"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "command_north",
+            "type": "COMMAND_POST",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.94015,
+              "latitude": 24.751069444444443,
+              "altitude": 100
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE_BLUE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 16
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl",
+            "type": "ROCKET",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.0904722222222,
+              "latitude": 24.789575540435372,
+              "altitude": 0
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 121.07528333333333,
+                "latitude": 24.872508333333332,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-0",
+                "speed": 20
+              },
+              {
+                "longitude": 121.09047222222222,
+                "latitude": 24.789575,
+                "altitude": 150.001224,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.4"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "sam2",
+            "type": "BLUESAM",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.49666111111111,
+              "latitude": 24.059541666666668,
+              "altitude": 0
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": ""
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship1",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.13126111111112,
+              "latitude": 25.51789722222222,
+              "altitude": 5
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "ship2",
+            "type": "SHIP",
+            "side": "blue",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 121.10405777777778,
+              "latitude": 25.592337222222223,
+              "altitude": 5
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_SURFACE_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.5"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.1"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.55893807272639,
+              "latitude": 25.296469877524057,
+              "altitude": 914.4000000000001
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-0",
+                "speed": 100
+              },
+              {
+                "longitude": 119.84928888888888,
+                "latitude": 25.474694444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.31681666666667,
+                "latitude": 25.435944444444445,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.59173888888888,
+                "latitude": 25.382786111111113,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.56354722222223,
+                "latitude": 25.296836111111112,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 119.23998333333334,
+                "latitude": 25.527055555555553,
+                "altitude": 914.4000000000001,
+                "labelName": "Waypoint-5",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.7"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.8"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.2"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-1b",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.84302536153133,
+              "latitude": 25.1258634810693,
+              "altitude": 3000
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.86845555555554,
+                "latitude": 25.450788888888887,
+                "altitude": 3000,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 120.58021388888889,
+                "latitude": 25.168594444444444,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.85977222222222,
+                "latitude": 25.207944444444443,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.79934166666666,
+                "latitude": 24.957683333333332,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_net",
+                "type": "WSF_RADIO_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.1"
+            },
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.1"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.9"
+            },
+            {
+              "base": {
+                "name": "uplink_radio",
+                "type": "RED_DATALINK",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.10"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.3"
+            }
+          ],
+          "sensors": [
+            {
+              "base": {
+                "name": "sensor_eoir_1",
+                "type": "SENSOR_EOIR",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -90,
+                "maxAzSlew": 90,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            },
+            {
+              "base": {
+                "name": "laser_designator-1212",
+                "type": "LASER_DESIGNATOR-1212",
+                "slewMode": "cSLEW_AZ_EL",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": false
+              },
+              "mode": "default"
+            }
+          ],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "uav01-2a",
+            "type": "UAV01",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 120.46393123521355,
+              "latitude": 24.713360747381053,
+              "altitude": 3000.0000000000005
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.50439999999999,
+                "latitude": 25.187155555555556,
+                "altitude": 120,
+                "labelName": "Waypoint-0",
+                "speed": 200
+              },
+              {
+                "longitude": 119.68078055555556,
+                "latitude": 25.125977777777777,
+                "altitude": 3000,
+                "labelName": "Waypoint-1",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.34363333333333,
+                "latitude": 24.7058,
+                "altitude": 3000,
+                "labelName": "Waypoint-2",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.61924722222221,
+                "latitude": 24.716611111111114,
+                "altitude": 3000,
+                "labelName": "Waypoint-3",
+                "speed": -1e-12
+              },
+              {
+                "longitude": 120.58201944444444,
+                "latitude": 24.46333333333333,
+                "altitude": 3000,
+                "labelName": "Waypoint-4",
+                "speed": -1e-12
+              }
+            ],
+            "type": "WSF_AIR_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.4"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.11"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "159.71.78.2"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-1",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.85112222222222,
+              "latitude": 25.461844444444445,
+              "altitude": 150
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.5"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "140.162.127.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "40.116.70.1"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01-2",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.47434166666666,
+              "latitude": 25.19697222222222,
+              "altitude": 36.576
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "cmdr_comm",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.6"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_a",
+                "type": "UAV01GDS_COMM_a",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "100.60.69.2"
+            },
+            {
+              "base": {
+                "name": "uav01gds_net_b",
+                "type": "UAV01GDS_COMM_b",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.12"
+            }
+          ],
+          "sensors": [],
+          "weapons": [],
+          "tracks": [],
+          "base": {
+            "name": "gds01_hill",
+            "type": "GDS_CAR",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.24251388888875,
+              "latitude": 25.676701154230695,
+              "altitude": 0
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [
+              {
+                "longitude": 119.2425138888889,
+                "latitude": 25.543444444444447,
+                "altitude": 30.48,
+                "labelName": "Waypoint-0",
+                "speed": 10
+              }
+            ],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "34.202.110.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.13"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.4"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.1"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.7"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_1",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.27095,
+              "latitude": 25.504469444444446,
+              "altitude": 50
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "77.131.199.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.14"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.5"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.2"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.8"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl_2",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.81295833333333,
+              "latitude": 25.44996666666667,
+              "altitude": 50
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        },
+        {
+          "comms": [
+            {
+              "base": {
+                "name": "uav01_comm_phl",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "250.196.165.2"
+            },
+            {
+              "base": {
+                "name": "train_comm",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "0.1.0.15"
+            },
+            {
+              "base": {
+                "name": "cmdr_net",
+                "type": "RED_CMDR_INTEL",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "158.237.145.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_send",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "165.25.25.6"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_try",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "26.133.69.3"
+            },
+            {
+              "base": {
+                "name": "cmdr_net_fire",
+                "type": "WSF_COMM_TRANSCEIVER",
+                "slewMode": "cSLEW_FIXED",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "network": "115.232.255.9"
+            }
+          ],
+          "sensors": [],
+          "weapons": [
+            {
+              "base": {
+                "name": "ssm_rocket",
+                "type": "SSM_MISSILE",
+                "slewMode": "cSLEW_AZ",
+                "minAzSlew": -180,
+                "maxAzSlew": 180,
+                "minElSlew": -90,
+                "maxElSlew": 90,
+                "currentAz": 0,
+                "currentEl": 0,
+                "isTurnedOn": true
+              },
+              "quantity": 6
+            }
+          ],
+          "tracks": [],
+          "base": {
+            "name": "phl300",
+            "type": "ROCKET_LAUNCHER",
+            "side": "red",
+            "group": "",
+            "broken": false,
+            "location": {
+              "longitude": 119.53830277777779,
+              "latitude": 25.197977777777776,
+              "altitude": 50
+            }
+          },
+          "updataTime": 1474.5856900999997,
+          "mover": {
+            "route": [],
+            "type": "WSF_GROUND_MOVER"
+          }
+        }
+      ]
+    }
+  }
+]

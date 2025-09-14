@@ -10,7 +10,9 @@
     "build:win": "node scripts/build.js && electron-builder --win",
     "build:mac": "node scripts/build.js && electron-builder --mac",
     "build:linux": "node scripts/build.js && electron-builder --linux",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "doc:create": "node scripts/create-doc.js",
+    "doc:list": "ls -la docs/"
   },
   "author": {
     "name": "Huynh Quoc Bao",

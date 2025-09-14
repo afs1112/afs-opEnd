@@ -10,6 +10,9 @@
       <el-tab-pane label="火炮操作" name="artillery">
         <ArtilleryOperationPage />
       </el-tab-pane>
+      <el-tab-pane label="命令测试" name="command">
+        <CommandTestPage />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
@@ -19,6 +22,7 @@ import { ref } from 'vue';
 import MulticastPage from "./MulticastPage.vue";
 import UavOperationPage from "./UavOperationPage.vue";
 import ArtilleryOperationPage from "./ArtilleryOperationPage.vue";
+import CommandTestPage from "./CommandTestPage.vue";
 
 const activeTab = ref('multicast');
 </script>

@@ -2,6 +2,28 @@
   <div class="flex h-full p-4 gap-4">
     <!-- 左侧控制面板 -->
     <div class="w-1/3 flex flex-col gap-4">
+      <!-- UavId 管理 -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">UavId 管理</h3>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">当前ID:</span>
+            <span class="text-lg font-bold text-blue-600">{{ currentUavId || '未设置' }}</span>
+          </div>
+          <div class="flex gap-2">
+            <el-button size="small" @click="generateNewUavId" class="flex-1">
+              生成新ID
+            </el-button>
+            <el-button size="small" @click="showUavIdHistory" class="flex-1">
+              历史记录
+            </el-button>
+          </div>
+          <div class="text-xs text-gray-500 text-center">
+            启动导航软件时会自动生成并配置ID
+          </div>
+        </div>
+      </div>
+
       <!-- 无人机状态 -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <h3 class="text-lg font-semibold mb-4 text-gray-800">无人机状态</h3>
@@ -104,6 +126,9 @@
           <el-button @click="returnToHome" class="w-full">
             返航
           </el-button>
+          <el-button type="success" @click="openNavigation" class="w-full">
+            打开导航软件
+          </el-button>
         </div>
       </div>
     </div>
@@ -171,8 +196,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 interface UavStatus {
   isConnected: boolean;
@@ -239,6 +264,7 @@ const flightParams = reactive<FlightParams>({
 });
 
 const operationLogs = ref<OperationLog[]>([]);
+const currentUavId = ref<string>('');
 
 // 添加操作日志
 const addLog = (type: OperationLog['type'], message: string) => {
@@ -329,6 +355,99 @@ const returnToHome = () => {
   ElMessage.success('返航指令已发送');
   // TODO: 实际的返航逻辑
 };
+
+// UavId 相关函数
+const loadCurrentUavId = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.getCurrentId();
+    if (result.success) {
+      currentUavId.value = result.uavId;
+    }
+  } catch (error) {
+    console.error('加载当前UavId失败:', error);
+  }
+};
+
+const generateNewUavId = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.generateId();
+    if (result.success) {
+      currentUavId.value = result.uavId;
+      addLog('success', `生成新的UavId: ${result.uavId}`);
+      ElMessage.success(`新UavId已生成: ${result.uavId}`);
+      
+      // 设置为当前ID
+      await (window as any).electronAPI.uav.setCurrentId(result.uavId, '手动生成');
+    } else {
+      addLog('error', `生成UavId失败: ${result.error}`);
+      ElMessage.error(`生成失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `生成UavId时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+const showUavIdHistory = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.getHistory();
+    if (result.success) {
+      const history = result.history || [];
+      if (history.length === 0) {
+        ElMessage.info('暂无历史记录');
+        return;
+      }
+      
+      const historyText = history
+        .slice(0, 10) // 只显示最近10条
+        .map((record: any) => {
+          const date = new Date(record.generatedAt).toLocaleString();
+          const used = record.usedAt ? ' (已使用)' : '';
+          return `${record.id} - ${date}${used}`;
+        })
+        .join('\n');
+      
+      ElMessageBox.alert(historyText, 'UavId 历史记录', {
+        confirmButtonText: '确定'
+      });
+    } else {
+      ElMessage.error(`获取历史记录失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    ElMessage.error(`获取历史记录时发生错误: ${error.message}`);
+  }
+};
+
+const openNavigation = async () => {
+  try {
+    addLog('info', '正在准备启动导航软件...');
+    const result = await (window as any).electronAPI.nav.openNavigation();
+    
+    if (result.success) {
+      if (result.uavId) {
+        currentUavId.value = result.uavId;
+        addLog('success', `导航软件启动成功，使用UavId: ${result.uavId}`);
+        ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
+      } else {
+        addLog('success', '导航软件启动成功');
+        ElMessage.success('导航软件已启动');
+      }
+    } else {
+      addLog('error', `导航软件启动失败: ${result.error}`);
+      ElMessage.error(`启动失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `启动导航软件时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 组件挂载时加载当前UavId
+onMounted(() => {
+  loadCurrentUavId();
+});
 </script>
 
 <style scoped>

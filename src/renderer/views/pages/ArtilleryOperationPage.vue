@@ -297,8 +297,7 @@ const fireAtDrone = async () => {
     const platformCmdData = {
       commandID: Date.now(), // 使用时间戳作为命令ID
       platformName: selectedInstance.value || 'artillery1', // 平台名称
-      platformType: 'Artillery', // 平台类型
-      command: 10, // Arty_Fire = 10 (根据 PlatformCmd.proto)
+      command: 8, // Arty_Fire = 8 (根据更新后的 PlatformCmd.proto)
       fireParam: {
         weaponName: weaponName.value.trim(),
         targetName: targetName.value.trim(),

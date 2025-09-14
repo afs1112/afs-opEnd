@@ -1,13 +1,9 @@
 syntax = "proto2";
+import "PublicStruct.proto";
+
 
 package PlatformStatus;
 
-message Location 
-{
-  optional double longitude = 1;
-  optional double latitude = 2;
-  optional double altitude = 3;
-}
 ///平台基础数据
 message PlatformBase
 {
@@ -16,23 +12,15 @@ message PlatformBase
 	optional	string side = 3;
 	optional	string group = 4;
 	optional	bool broken  = 5;	
-	optional	Location location = 6;
+	optional	PublicStruct.GeoCoordinate location = 6;
 }
-//航迹点
-message WayPoint
-{
-	optional double longitude = 1;
-	optional double latitude = 2;
-	optional double altitude = 3;
-	optional string labelName = 4;
-	optional double speed = 5;
-}
+
 
 //推进器
 message Mover
 {
 	optional string type = 1;
-	repeated WayPoint route = 2;
+	repeated PublicStruct.WayPoint route = 2;
 }
 
 enum SlewMode
@@ -69,12 +57,13 @@ message Sensor
 {
 	optional PartParam base = 1;
 	optional string mode = 2;
+	optional int32 laser_code = 3;
 }
 //武器
 message Weapon
 {
 	optional PartParam base = 1;
-	optional int32 quantity = 2;
+	optional int32 quantity = 2;	
 }
 
 message Track 
@@ -84,20 +73,31 @@ message Track
 	optional string targetType = 3;
 }
 
+message TargetLoad
+{
+	optional string targetName = 1;       		//
+   	optional double distance = 2;				//距离
+	optional double bearing = 3;				//方位
+	optional double elevationDifference = 4;	//高差	
+	optional double azimuth = 5;				//方位角
+	optional double pitch = 6;					//高低角
+}
+
 //上报的每个平台所有数据
 message Platform
 {
 	optional PlatformBase base = 1;	
-	optional double updataTime = 2;
+	optional double updateTime = 2;  // fix typo
 	optional Mover mover = 3;
 	repeated Comm comms = 4;
 	repeated Sensor sensors = 5;
 	repeated Weapon weapons = 6;
 	repeated Track tracks = 7;
+	optional TargetLoad targetLoad = 8;
 }
 
 //所有平台
 message Platforms
 {
 	repeated Platform platform =1;
-}		
+}	

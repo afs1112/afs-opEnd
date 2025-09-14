@@ -8,7 +8,7 @@ enum RouteType
 	RouteType_Cruise           = 0;   //巡航航线
 	RouteType_Recovery         = 1;   //回收航线
 	RouteType_SecurityBoundary = 2;   //安全边界
-        RouteType_PinPointNav      = 3;   //定点导航
+    RouteType_PinPointNav      = 3;   //定点导航
 	RouteType_RangePoint       = 4;   //靶场点
 }
 
@@ -50,7 +50,7 @@ enum RecoveryrouteState
 message WayPoint
 {
         optional int32 index         = 1;                   //序号
-	optional PublicStruct.GeoCoordinate coord = 2;      //经纬度
+		optional PublicStruct.GeoCoordinate coord = 2;      //经纬度
         optional string command1     = 3;                   //指令1
         optional string command2     = 4;                   //指令2
 }

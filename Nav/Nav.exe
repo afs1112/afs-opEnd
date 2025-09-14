@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "工作目录测试"
+echo "当前目录: $(pwd)"
+echo "脚本位置: $(dirname "$0")"
+echo "查找配置文件:"
+if [ -f "nav-config.ini" ]; then
+    echo "✅ 找到配置文件"
+else
+    echo "❌ 未找到配置文件"
+fi
+exit 0

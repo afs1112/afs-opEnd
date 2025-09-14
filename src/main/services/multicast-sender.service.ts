@@ -6,12 +6,28 @@ import { app } from 'electron';
 export interface PlatformCmdData {
   commandID: number;
   platformName: string;
-  platformType: string;
   command: number; // PlatformCommand 枚举值
   fireParam?: {
     weaponName?: string;
     targetName?: string;
     quantity?: number;
+  };
+  sensorParam?: {
+    sensorName?: string; // 注意：使用sensorName而不是weaponName
+    azSlew?: number;
+    elSlew?: number;
+  };
+  navParam?: {
+    route?: Array<{
+      longitude?: number;
+      latitude?: number;
+      altitude?: number;
+      labelName?: string;
+      speed?: number;
+    }>;
+  };
+  targetSetParam?: {
+    targetName?: string;
   };
 }
 
@@ -69,7 +85,7 @@ export class MulticastSenderService {
 
       // 扩展路径列表，处理各种可能的环境
       const pathList: string[] = [];
-      
+
       // 尝试获取 app 路径，处理可能的异常
       try {
         const appPath = app.getAppPath();
@@ -82,7 +98,7 @@ export class MulticastSenderService {
       } catch (appError) {
         console.log('[MulticastSender] ⚠️ 无法获取app路径，使用备用方案');
       }
-      
+
       // 添加通用路径
       pathList.push(
         join(process.cwd(), 'src', 'protobuf'),           // 当前工作目录
@@ -140,10 +156,10 @@ export class MulticastSenderService {
 
       console.log(`[MulticastSender] 开始加载 ${availableFiles.length} 个protobuf文件...`);
       console.log(`[MulticastSender] 文件列表: ${availableFiles.map(f => require('path').basename(f)).join(', ')}`);
-      
+
       this.root = await protobuf.load(availableFiles);
       console.log('[MulticastSender] ✅ Protobuf定义文件加载成功');
-      
+
       // 验证必要的消息类型是否存在
       try {
         const PlatformCmdType = this.root.lookupType('PlatformStatus.PlatformCmd');
@@ -176,9 +192,51 @@ export class MulticastSenderService {
         throw new Error('UDP socket未初始化，请先调用 initialize() 方法');
       }
 
-      // 查找消息类型
+      // 查找消息类型 - 添加容错处理
+      console.log('[MulticastSender] 开始查找消息类型...');
+
+      // 先检查可用的类型
+      if (this.root.nested) {
+        console.log('[MulticastSender] 可用的命名空间:', Object.keys(this.root.nested));
+        if (this.root.nested['PlatformStatus']) {
+          const platformNested = this.root.nested['PlatformStatus'] as protobuf.Namespace;
+          console.log('[MulticastSender] PlatformStatus命名空间中的类型:', Object.keys(platformNested.nested || {}));
+        }
+      }
+
       const PlatformCmdType = this.root.lookupType('PlatformStatus.PlatformCmd');
-      const FireParamType = this.root.lookupType('PlatformStatus.FireParam');
+      console.log('[MulticastSender] ✅ 找到 PlatformCmdType');
+
+      // 容错查找其他类型
+      let FireParamType, SensorParamType, NavParamType, TargetSetParamType;
+
+      try {
+        FireParamType = this.root.lookupType('PlatformStatus.FireParam');
+        console.log('[MulticastSender] ✅ 找到 FireParamType');
+      } catch (e) {
+        console.log('[MulticastSender] ⚠️ 未找到 FireParamType:', e);
+      }
+
+      try {
+        SensorParamType = this.root.lookupType('PlatformStatus.SensorParam');
+        console.log('[MulticastSender] ✅ 找到 SensorParamType');
+      } catch (e) {
+        console.log('[MulticastSender] ⚠️ 未找到 SensorParamType:', e);
+      }
+
+      try {
+        NavParamType = this.root.lookupType('PlatformStatus.NavParam');
+        console.log('[MulticastSender] ✅ 找到 NavParamType');
+      } catch (e) {
+        console.log('[MulticastSender] ⚠️ 未找到 NavParamType:', e);
+      }
+
+      try {
+        TargetSetParamType = this.root.lookupType('PlatformStatus.TargetSetParam');
+        console.log('[MulticastSender] ✅ 找到 TargetSetParamType');
+      } catch (e) {
+        console.log('[MulticastSender] ⚠️ 未找到 TargetSetParamType:', e);
+      }
 
       console.log('[MulticastSender] 创建PlatformCmd消息:', data);
 
@@ -186,25 +244,75 @@ export class MulticastSenderService {
       const cmdData: any = {
         commandID: data.commandID,
         platformName: data.platformName,
-        platformType: data.platformType,
         command: data.command
       };
 
       // 如果有fireParam，添加到消息中
-      if (data.fireParam) {
+      if (data.fireParam && FireParamType) {
+        console.log('[MulticastSender] 添加fireParam:', data.fireParam);
         const fireParam = FireParamType.create({
           weaponName: data.fireParam.weaponName || '',
           targetName: data.fireParam.targetName || '',
           quantity: data.fireParam.quantity || 1
         });
         cmdData.fireParam = fireParam;
+      } else if (data.fireParam && !FireParamType) {
+        console.log('[MulticastSender] ⚠️ fireParam数据存在但FireParamType未找到，跳过');
+      }
+
+      // 如果有sensorParam，添加到消息中
+      if (data.sensorParam && SensorParamType) {
+        console.log('[MulticastSender] 添加sensorParam:', data.sensorParam);
+        const sensorParam = SensorParamType.create({
+          sensorName: data.sensorParam.sensorName || '', // 注意：使用sensorName而不是weaponName
+          azSlew: data.sensorParam.azSlew || 0,
+          elSlew: data.sensorParam.elSlew || 0
+        });
+        cmdData.sensorParam = sensorParam;
+      } else if (data.sensorParam && !SensorParamType) {
+        console.log('[MulticastSender] ⚠️ sensorParam数据存在但SensorParamType未找到，跳过');
+        console.log('[MulticastSender] 尝试直接使用原始数据...');
+        // 如果找不到类型，尝试直接使用原始数据
+        cmdData.sensorParam = {
+          sensorName: data.sensorParam.sensorName || '',
+          azSlew: data.sensorParam.azSlew || 0,
+          elSlew: data.sensorParam.elSlew || 0
+        };
+      }
+
+      // 如果有navParam，添加到消息中
+      if (data.navParam && NavParamType) {
+        console.log('[MulticastSender] 添加navParam:', data.navParam);
+        const navParam = NavParamType.create({
+          route: data.navParam.route || []
+        });
+        cmdData.navParam = navParam;
+      } else if (data.navParam && !NavParamType) {
+        console.log('[MulticastSender] ⚠️ navParam数据存在但NavParamType未找到，跳过');
+      }
+
+      // 如果有targetSetParam，添加到消息中
+      if (data.targetSetParam && TargetSetParamType) {
+        console.log('[MulticastSender] 添加targetSetParam:', data.targetSetParam);
+        const targetSetParam = TargetSetParamType.create({
+          targetName: data.targetSetParam.targetName || ''
+        });
+        cmdData.targetSetParam = targetSetParam;
+      } else if (data.targetSetParam && !TargetSetParamType) {
+        console.log('[MulticastSender] ⚠️ targetSetParam数据存在但TargetSetParamType未找到，跳过');
       }
 
       // 创建并编码protobuf消息
-      const message = PlatformCmdType.create(cmdData);
-      const protobufBuffer = PlatformCmdType.encode(message).finish();
+      console.log('[MulticastSender] 🔍 最终cmdData:', JSON.stringify(cmdData, null, 2));
 
-      console.log('[MulticastSender] Protobuf编码后大小:', protobufBuffer.length, '字节');
+      const message = PlatformCmdType.create(cmdData);
+      console.log('[MulticastSender] 🔍 创建的消息对象:', message);
+
+      // 消息已创建，可以直接使用
+      console.log('[MulticastSender] ✅ 消息创建成功');
+
+      const protobufBuffer = PlatformCmdType.encode(message).finish();
+      console.log('[MulticastSender] 🔍 Protobuf编码后大小:', protobufBuffer.length, '字节');
 
       // 构造完整的数据包: 0xAA 0x55 + protocolID + packageType + size + protobufData
       const protocolID = 0x01; // 协议ID

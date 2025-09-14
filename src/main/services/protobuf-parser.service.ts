@@ -284,7 +284,7 @@ export class ProtobufParserService {
 
   private parseFlyStatus(data: Buffer): any {
     try {
-      const UavFlyStatusInfo = this.root!.lookupType('UavFlyStatus.UavFlyStatusInfo');
+      const UavFlyStatusInfo = this.root!.lookupType('UaviationSimulation.UavFlyStatusInfo');
       return UavFlyStatusInfo.decode(data);
     } catch (error) {
       console.error('解析飞行状态失败:', error);
@@ -336,7 +336,7 @@ export class ProtobufParserService {
       // 如果解码成功，尝试转换为普通对象以便更好地显示
       const decodedObject = PlatformsType.toObject(decoded, {
         longs: String,
-        enums: String,
+        enums: Number,  // 使用Number保持原始枚举值
         bytes: String,
         defaults: true
       });
@@ -543,7 +543,7 @@ export class ProtobufParserService {
       // 如果解码成功，尝试转换为普通对象以便更好地显示
       const decodedObject = PlatformCmdType.toObject(decoded, {
         longs: String,
-        enums: String,
+        enums: String,  // 使用String显示枚举名称
         bytes: String,
         defaults: true
       });
