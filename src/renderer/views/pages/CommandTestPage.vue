@@ -189,6 +189,14 @@
             >
               航线规划
             </el-button>
+            <el-button 
+              type="success" 
+              @click="showSetSpeedDialog()"
+              :disabled="!selectedPlatform"
+              class="w-full"
+            >
+              设置速度
+            </el-button>
           </div>
         </div>
 
@@ -328,6 +336,29 @@
         <el-button type="primary" @click="sendNavCommand">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 速度设置对话框 -->
+    <el-dialog v-model="setSpeedDialogVisible" title="无人机速度设置" width="400px">
+      <el-form :model="setSpeedForm" label-width="100px">
+        <el-form-item label="平台名称">
+          <el-input :value="selectedPlatform" disabled />
+        </el-form-item>
+        <el-form-item label="目标速度">
+          <el-input-number 
+            v-model="setSpeedForm.speed" 
+            :min="1" 
+            :max="100" 
+            :step="1"
+            class="w-full"
+          />
+          <div class="text-xs text-gray-500 mt-1">单位: m/s，范围: 1-100</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="setSpeedDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="sendSetSpeedCommand">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -366,6 +397,7 @@ const sensorParamDialogVisible = ref(false);
 const fireParamDialogVisible = ref(false);
 const targetSetDialogVisible = ref(false);
 const navParamDialogVisible = ref(false);
+const setSpeedDialogVisible = ref(false);
 
 // 表单数据
 const sensorParamForm = reactive({
@@ -392,6 +424,10 @@ const navParamForm = reactive({
     labelName: string;
     speed: string;
   }>
+});
+
+const setSpeedForm = reactive({
+  speed: 10
 });
 
 // 当前命令
@@ -479,7 +515,8 @@ const PlatformCommandEnum: { [key: string]: number } = {
   'Uav_LazerPod_Cease': 5,  // 激光吊舱停止照射
   'Uav_Nav': 6,            // 无人机航线规划
   'Arty_Target_Set': 7,    // 目标装订
-  'Arty_Fire': 8           // 火炮发射
+  'Arty_Fire': 8,          // 火炮发射
+  'Uav_Set_Speed': 9       // 设定无人机速度
 };
 
 // 命令发送方法
@@ -784,6 +821,44 @@ const sendNavCommand = async () => {
     }
   } catch (error: any) {
     const errorMsg = `发送导航命令失败: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 速度设置对话框
+const showSetSpeedDialog = () => {
+  setSpeedForm.speed = 10; // 默认速度
+  setSpeedDialogVisible.value = true;
+};
+
+const sendSetSpeedCommand = async () => {
+  try {
+    const commandEnum = PlatformCommandEnum['Uav_Set_Speed'];
+    
+    const commandData = {
+      commandID: Date.now(),
+      platformName: String(selectedPlatform.value),
+      command: Number(commandEnum),
+      setSpeedParam: {
+        speed: Number(setSpeedForm.speed)
+      }
+    };
+
+    addLog('info', `发送速度设置命令: 平台 ${selectedPlatform.value} 设置速度为 ${setSpeedForm.speed} m/s`);
+    
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
+    
+    if (result.success) {
+      addLog('success', `速度设置命令发送成功`);
+      ElMessage.success('速度设置命令发送成功');
+      setSpeedDialogVisible.value = false;
+    } else {
+      addLog('error', `速度设置命令发送失败: ${result.error}`);
+      ElMessage.error(`命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送速度设置命令失败: ${error.message}`;
     addLog('error', errorMsg);
     ElMessage.error(errorMsg);
   }

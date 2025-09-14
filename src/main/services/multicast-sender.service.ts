@@ -29,6 +29,9 @@ export interface PlatformCmdData {
   targetSetParam?: {
     targetName?: string;
   };
+  setSpeedParam?: {
+    speed?: number;
+  };
 }
 
 export class MulticastSenderService {
@@ -208,7 +211,7 @@ export class MulticastSenderService {
       console.log('[MulticastSender] ✅ 找到 PlatformCmdType');
 
       // 容错查找其他类型
-      let FireParamType, SensorParamType, NavParamType, TargetSetParamType;
+      let FireParamType, SensorParamType, NavParamType, TargetSetParamType, SetSpeedParamType;
 
       try {
         FireParamType = this.root.lookupType('PlatformStatus.FireParam');
@@ -236,6 +239,13 @@ export class MulticastSenderService {
         console.log('[MulticastSender] ✅ 找到 TargetSetParamType');
       } catch (e) {
         console.log('[MulticastSender] ⚠️ 未找到 TargetSetParamType:', e);
+      }
+
+      try {
+        SetSpeedParamType = this.root.lookupType('PlatformStatus.SetSpeedparam');
+        console.log('[MulticastSender] ✅ 找到 SetSpeedParamType');
+      } catch (e) {
+        console.log('[MulticastSender] ⚠️ 未找到 SetSpeedParamType:', e);
       }
 
       console.log('[MulticastSender] 创建PlatformCmd消息:', data);
@@ -300,6 +310,17 @@ export class MulticastSenderService {
         cmdData.targetSetParam = targetSetParam;
       } else if (data.targetSetParam && !TargetSetParamType) {
         console.log('[MulticastSender] ⚠️ targetSetParam数据存在但TargetSetParamType未找到，跳过');
+      }
+
+      // 如果有setSpeedParam，添加到消息中
+      if (data.setSpeedParam && SetSpeedParamType) {
+        console.log('[MulticastSender] 添加setSpeedParam:', data.setSpeedParam);
+        const setSpeedParam = SetSpeedParamType.create({
+          speed: data.setSpeedParam.speed || 10
+        });
+        cmdData.setSpeedParam = setSpeedParam;
+      } else if (data.setSpeedParam && !SetSpeedParamType) {
+        console.log('[MulticastSender] ⚠️ setSpeedParam数据存在但SetSpeedParamType未找到，跳过');
       }
 
       // 创建并编码protobuf消息

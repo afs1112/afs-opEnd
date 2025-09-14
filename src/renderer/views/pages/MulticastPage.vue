@@ -53,7 +53,7 @@
     <!-- 状态显示 -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-4">
       <h2 class="text-xl font-semibold mb-4">监听状态</h2>
-      <div class="grid grid-cols-1 md:grid-cols-7 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-8 gap-4">
         <div class="text-center">
           <div class="text-2xl font-bold" :class="isListening ? 'text-green-600' : 'text-red-600'">
             {{ isListening ? '监听中' : '已停止' }}
@@ -79,6 +79,10 @@
         <div class="text-center">
           <div class="text-2xl font-bold text-orange-600">{{ platformStatusCount }}</div>
           <div class="text-sm text-gray-500">平台状态</div>
+        </div>
+        <div class="text-center">
+          <div class="text-2xl font-bold text-cyan-600">{{ platformCmdCount }}</div>
+          <div class="text-sm text-gray-500">平台命令</div>
         </div>
         <div class="text-center">
           <div class="text-2xl font-bold text-gray-600">{{ heartbeatPackets.length }}</div>
@@ -257,6 +261,66 @@
                   </div>
                 </div>
               </div>
+
+              <!-- 平台控制命令特殊显示 -->
+              <div v-if="packet.parsedPacket.packageType === 0x2A && packet.parsedPacket.parsedData" class="bg-green-50 rounded p-2 mb-2">
+                <div class="text-green-700 font-semibold text-xs mb-1">🎮 平台控制命令:</div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div><strong>命令ID:</strong> {{ packet.parsedPacket.parsedData.commandID }}</div>
+                  <div><strong>目标平台:</strong> {{ packet.parsedPacket.parsedData.platformName }}</div>
+                  <div><strong>命令类型:</strong> {{ getPlatformCommandName(packet.parsedPacket.parsedData.command) }}</div>
+                  <div><strong>命令码:</strong> {{ packet.parsedPacket.parsedData.command }}</div>
+                </div>
+                
+                <!-- 根据不同命令类型显示参数 -->
+                <div v-if="packet.parsedPacket.parsedData.sensorParam" class="bg-white rounded p-2 mt-2">
+                  <div class="text-blue-600 font-semibold text-xs mb-1">📡 传感器参数:</div>
+                  <div class="grid grid-cols-3 gap-2 text-xs">
+                    <div><strong>传感器:</strong> {{ packet.parsedPacket.parsedData.sensorParam.sensorName }}</div>
+                    <div><strong>方位角:</strong> {{ packet.parsedPacket.parsedData.sensorParam.azSlew }}°</div>
+                    <div><strong>俯仰角:</strong> {{ packet.parsedPacket.parsedData.sensorParam.elSlew }}°</div>
+                  </div>
+                </div>
+                
+                <div v-if="packet.parsedPacket.parsedData.fireParam" class="bg-white rounded p-2 mt-2">
+                  <div class="text-red-600 font-semibold text-xs mb-1">🔥 火力参数:</div>
+                  <div class="grid grid-cols-3 gap-2 text-xs">
+                    <div><strong>武器:</strong> {{ packet.parsedPacket.parsedData.fireParam.weaponName }}</div>
+                    <div><strong>目标:</strong> {{ packet.parsedPacket.parsedData.fireParam.targetName }}</div>
+                    <div><strong>发射次数:</strong> {{ packet.parsedPacket.parsedData.fireParam.quantity }}</div>
+                  </div>
+                </div>
+                
+                <div v-if="packet.parsedPacket.parsedData.navParam" class="bg-white rounded p-2 mt-2">
+                  <div class="text-purple-600 font-semibold text-xs mb-1">🗺️ 导航参数:</div>
+                  <div class="text-xs">
+                    <div><strong>航点数量:</strong> {{ packet.parsedPacket.parsedData.navParam.route?.length || 0 }}</div>
+                    <div v-if="packet.parsedPacket.parsedData.navParam.route && packet.parsedPacket.parsedData.navParam.route.length > 0" class="mt-1">
+                      <div class="font-semibold">航点列表:</div>
+                      <div v-for="(waypoint, idx) in packet.parsedPacket.parsedData.navParam.route.slice(0, 3)" :key="idx" class="ml-2">
+                        {{ idx + 1 }}. {{ waypoint.labelName }} ({{ waypoint.longitude }}, {{ waypoint.latitude }}, {{ waypoint.altitude }}m, {{ waypoint.speed }}m/s)
+                      </div>
+                      <div v-if="packet.parsedPacket.parsedData.navParam.route.length > 3" class="ml-2 text-gray-500">
+                        ... 还有 {{ packet.parsedPacket.parsedData.navParam.route.length - 3 }} 个航点
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div v-if="packet.parsedPacket.parsedData.targetSetParam" class="bg-white rounded p-2 mt-2">
+                  <div class="text-orange-600 font-semibold text-xs mb-1">🎯 目标装订参数:</div>
+                  <div class="text-xs">
+                    <div><strong>目标名称:</strong> {{ packet.parsedPacket.parsedData.targetSetParam.targetName }}</div>
+                  </div>
+                </div>
+                
+                <div v-if="packet.parsedPacket.parsedData.setSpeedParam" class="bg-white rounded p-2 mt-2">
+                  <div class="text-cyan-600 font-semibold text-xs mb-1">⚡ 速度设置参数:</div>
+                  <div class="text-xs">
+                    <div><strong>目标速度:</strong> {{ packet.parsedPacket.parsedData.setSpeedParam.speed }} m/s</div>
+                  </div>
+                </div>
+              </div>
               
               <div class="text-xs">
                 <div class="flex justify-between items-center mb-1">
@@ -361,6 +425,10 @@ const platformStatusCount = computed(() => {
   return packets.value.filter(p => p.parsedPacket?.packageType === 0x29).length;
 });
 
+const platformCmdCount = computed(() => {
+  return packets.value.filter(p => p.parsedPacket?.packageType === 0x2A).length;
+});
+
 // 显示的数据包列表（排除心跳包）
 const displayPackets = computed(() => {
   return packets.value.filter(p => p.parsedPacket?.packageType !== 0x02);
@@ -400,6 +468,23 @@ const getPlatformTypeName = (type: number): string => {
     4: '目标'
   };
   return types[type] || `未知类型(${type})`;
+};
+
+// 获取平台控制命令名称
+const getPlatformCommandName = (command: number): string => {
+  const commands: Record<number, string> = {
+    0: '无效命令',
+    1: '传感器开启',
+    2: '传感器关闭',
+    3: '传感器转向',
+    4: '激光照射',
+    5: '停止照射',
+    6: '航线规划',
+    7: '目标装订',
+    8: '火炮发射',
+    9: '设置速度'  // 新增的速度设置命令
+  };
+  return commands[command] || `未知命令(${command})`;
 };
 
 // 复制到剪贴板
