@@ -1,7 +1,6 @@
 syntax = "proto2";
 import "PublicStruct.proto";
 
-
 package PlatformStatus;
 
 ///平台基础数据
@@ -13,6 +12,10 @@ message PlatformBase
 	optional	string group = 4;
 	optional	bool broken  = 5;	
 	optional	PublicStruct.GeoCoordinate location = 6;
+	optional double roll                 = 7;    //横滚
+	optional double pitch                = 8;    //俯仰
+	optional double yaw                  = 9;    //偏航
+	optional double speed                = 10;    //速度
 }
 
 
@@ -95,9 +98,19 @@ message Platform
 	repeated Track tracks = 7;
 	optional TargetLoad targetLoad = 8;
 }
-
+//环境参数
+message Environment
+{
+	optional double windSpeed = 1;
+	optional double windDirection  = 2;
+ 	optional double cloudLowerAlt = 3;
+ 	optional double cloudUpperAlt = 4;
+	optional double rainUpperAlt = 5;
+	optional double rainRate = 6;
+}
 //所有平台
 message Platforms
 {
 	repeated Platform platform =1;
+	optional Environment evironment = 2;
 }	

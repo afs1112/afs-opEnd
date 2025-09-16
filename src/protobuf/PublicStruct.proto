@@ -1,3 +1,4 @@
+syntax = "proto2";
 //终端端飞行通信模块编辑
 package PublicStruct;
 /******************************************************枚举**************************************************************************/ 
@@ -25,6 +26,7 @@ enum PackageType
 	PackType_RecoveryrouteCmd         = 0x28;       //回收航线命令
 	PackageType_PlatformStatus		  = 0x29;		//平台状态回传
 	PackageType_PlatformCommand		  = 0x2A;		//平台控制命令
+	PackageType_PlatformDeleteCommand	 = 0x2B;		//平台删除命令
 	
 }
 
