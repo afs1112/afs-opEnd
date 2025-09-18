@@ -55,6 +55,16 @@ class UavIdService {
   }
 
   /**
+   * 强制生成新的UavId并设置为当前ID
+   */
+  public generateAndSetNewUavId(): string {
+    const newId = this.generateUavId();
+    this.setCurrentUavId(newId, '用户手动生成');
+    console.log(`[UavId] 用户生成新的UavId: ${newId}`);
+    return newId;
+  }
+
+  /**
    * 加载配置
    */
   public loadConfig(): UavIdConfig {
@@ -119,12 +129,16 @@ class UavIdService {
   public getCurrentUavId(): string {
     const config = this.getConfig();
     
-    if (!config.currentId || config.settings.autoGenerate) {
+    // 只有在没有currentId的情况下才生成新ID
+    // autoGenerate只影响是否在启动时自动生成，不影响已有ID的使用
+    if (!config.currentId) {
       const newId = this.generateUavId();
-      this.setCurrentUavId(newId);
+      this.setCurrentUavId(newId, '系统自动生成');
+      console.log(`[UavId] 生成新的UavId: ${newId}`);
       return newId;
     }
     
+    console.log(`[UavId] 使用现有UavId: ${config.currentId}`);
     return config.currentId;
   }
 
@@ -350,13 +364,13 @@ name1=UA`;
   }
 
   /**
-   * 准备启动导航软件（生成ID并更新配置）
+   * 准备启动导航软件（获取当前ID并更新配置）
    */
   public prepareForNavigation(): { success: boolean; uavId?: string; error?: string } {
     try {
-      // 生成新的UavId
+      // 获取当前UavId（如果没有则生成新的）
       const uavId = this.getCurrentUavId();
-      console.log(`[UavId] 生成UavId: ${uavId}`);
+      console.log(`[UavId] 准备导航启动，使用UavId: ${uavId}`);
       
       // 更新Nav配置文件
       const updateSuccess = this.updateNavConfigId(uavId);

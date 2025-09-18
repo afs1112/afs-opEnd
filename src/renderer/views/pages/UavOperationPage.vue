@@ -1,211 +1,225 @@
 <template>
-  <div class="flex h-full p-4 gap-4">
-    <!-- 左侧控制面板 -->
-    <div class="w-1/3 flex flex-col gap-4">
-      <!-- UavId 管理 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">UavId 管理</h3>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">当前ID:</span>
-            <span class="text-lg font-bold text-blue-600">{{ currentUavId || '未设置' }}</span>
+  <div class="flex flex-col h-full p-4 gap-4">
+    <!-- 顶部连接区域 -->
+    <div class="bg-white rounded-lg shadow-md p-4">
+      <div class="flex items-center gap-4">
+        <span class="text-lg font-semibold text-gray-800">操作模式-无人机</span>
+        <el-select v-model="selectedGroup" placeholder="选择分组" style="width: 150px;" @change="onGroupChange" clearable>
+          <el-option v-for="group in groupOptions" :key="group.value" :label="group.label" :value="group.value" />
+        </el-select>
+        <el-select v-model="selectedUav" placeholder="选择无人机" style="width: 150px;"
+          :disabled="!selectedGroup || uavOptions.length === 0" clearable>
+          <el-option v-for="uav in uavOptions" :key="uav.value" :label="uav.label" :value="uav.value" />
+        </el-select>
+        <el-input v-model="operatorName" placeholder="操作人" style="width: 120px;" />
+        <el-button type="primary" @click="connectToUav" :disabled="connectionStatus.isConnected">
+          {{ connectionStatus.isConnected ? '已连接' : '连接' }}
+        </el-button>
+        <div class="ml-auto flex items-center gap-4">
+          <div class="text-xs text-gray-600">
+            <div>平台数据: {{ platforms.length }} 个平台</div>
+            <div>无人机数量: {{ uavOptions.length }} 个</div>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">导航状态:</span>
-            <span class="text-sm font-medium" :class="navStatus.isRunning ? 'text-green-600' : 'text-gray-500'">
-              {{ navStatus.isRunning ? `运行中 (PID: ${navStatus.pid})` : '未运行' }}
-            </span>
-          </div>
-          <div class="flex gap-2">
-            <el-button size="small" @click="generateNewUavId" class="flex-1">
-              生成新ID
-            </el-button>
-            <el-button size="small" @click="showUavIdHistory" class="flex-1">
-              历史记录
-            </el-button>
-          </div>
-          <div class="text-xs text-gray-500 text-center">
-            启动导航软件时会自动生成并配置ID
-          </div>
-        </div>
-      </div>
-
-      <!-- 无人机状态 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">无人机状态</h3>
-        <div class="grid grid-cols-2 gap-4">
-          <div class="text-center">
-            <div class="text-2xl font-bold" :class="uavStatus.isConnected ? 'text-green-600' : 'text-red-600'">
-              {{ uavStatus.isConnected ? '已连接' : '未连接' }}
-            </div>
-            <div class="text-sm text-gray-500">连接状态</div>
-          </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-blue-600">{{ uavStatus.battery }}%</div>
-            <div class="text-sm text-gray-500">电池电量</div>
-          </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-purple-600">{{ uavStatus.altitude }}m</div>
-            <div class="text-sm text-gray-500">飞行高度</div>
-          </div>
-          <div class="text-center">
-            <div class="text-2xl font-bold text-orange-600">{{ uavStatus.speed }}m/s</div>
-            <div class="text-sm text-gray-500">飞行速度</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 飞行控制 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行控制</h3>
-        <div class="space-y-4">
-          <div class="grid grid-cols-2 gap-2">
-            <el-button type="success" @click="takeOff" :disabled="!uavStatus.isConnected || uavStatus.isFlying">
-              起飞
-            </el-button>
-            <el-button type="warning" @click="land" :disabled="!uavStatus.isFlying">
-              降落
-            </el-button>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <el-button type="info" @click="hover" :disabled="!uavStatus.isFlying">
-              悬停
-            </el-button>
-            <el-button type="danger" @click="emergencyStop">
-              紧急停止
-            </el-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 飞行参数设置 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行参数</h3>
-        <div class="space-y-4">
-          <el-form-item label="目标高度 (m)">
-            <el-input-number 
-              v-model="flightParams.targetAltitude" 
-              :min="0" 
-              :max="1000"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item label="飞行速度 (m/s)">
-            <el-input-number 
-              v-model="flightParams.speed" 
-              :min="0.1" 
-              :max="20"
-              :step="0.1"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-form-item label="航向角 (°)">
-            <el-input-number 
-              v-model="flightParams.heading" 
-              :min="0" 
-              :max="360"
-              style="width: 100%"
-            />
-          </el-form-item>
-          <el-button type="primary" @click="setFlightParams" class="w-full">
-            设置参数
-          </el-button>
-        </div>
-      </div>
-
-      <!-- 任务控制 -->
-      <div class="bg-white rounded-lg shadow-md p-6 flex-1">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">任务控制</h3>
-        <div class="space-y-2">
-          <el-button type="primary" @click="startMission" class="w-full" :disabled="!uavStatus.isConnected">
-            开始任务
-          </el-button>
-          <el-button type="warning" @click="pauseMission" class="w-full">
-            暂停任务
-          </el-button>
-          <el-button type="info" @click="resumeMission" class="w-full">
-            恢复任务
-          </el-button>
-          <el-button type="danger" @click="abortMission" class="w-full">
-            终止任务
-          </el-button>
-          <el-button @click="returnToHome" class="w-full">
-            返航
-          </el-button>
-          <el-button type="success" @click="openNavigation" class="w-full" :disabled="navStatus.isRunning">
-            {{ navStatus.isRunning ? '导航软件运行中' : '打开导航软件' }}
-          </el-button>
-          <el-button type="danger" @click="stopNavigation" class="w-full" :disabled="!navStatus.isRunning">
-            停止导航软件
-          </el-button>
+          <span class="text-sm" :class="connectionStatus.isConnected ? 'text-green-600' : 'text-red-600'">
+            {{ connectionStatus.isConnected ? '● 已连接到仿真端' : '○ 未连接' }}
+          </span>
         </div>
       </div>
     </div>
 
-    <!-- 右侧显示区域 -->
-    <div class="flex-1 flex flex-col gap-4">
-      <!-- 实时数据显示 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">实时飞行数据</h3>
-        <div class="grid grid-cols-3 gap-6">
-          <div class="text-center">
-            <div class="text-lg font-semibold text-gray-700">位置信息</div>
-            <div class="mt-2 space-y-1">
-              <div class="text-sm">经度: {{ uavStatus.position.longitude }}°</div>
-              <div class="text-sm">纬度: {{ uavStatus.position.latitude }}°</div>
-              <div class="text-sm">高度: {{ uavStatus.position.altitude }}m</div>
+    <!-- 主要内容区域 -->
+    <div class="flex gap-4 flex-1">
+      <!-- 左侧控制面板 -->
+      <div class="w-1/3 flex flex-col gap-4">
+        <!-- UavId 管理 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">UavId 管理</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">当前ID:</span>
+              <span class="text-lg font-bold text-blue-600">{{ currentUavId || '未设置' }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">导航状态:</span>
+              <span class="text-sm font-medium" :class="navStatus.isRunning ? 'text-green-600' : 'text-gray-500'">
+                {{ navStatus.isRunning ? `运行中 (PID: ${navStatus.pid})` : '未运行' }}
+              </span>
+            </div>
+            <div class="flex gap-2">
+              <el-button size="small" @click="generateNewUavId" class="flex-1">
+                生成新ID
+              </el-button>
+              <el-button size="small" @click="showUavIdHistory" class="flex-1">
+                历史记录
+              </el-button>
+            </div>
+            <div class="text-xs text-gray-500 text-center">
+              启动导航软件时会自动生成并配置ID
             </div>
           </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-gray-700">姿态信息</div>
-            <div class="mt-2 space-y-1">
-              <div class="text-sm">俯仰角: {{ uavStatus.attitude.pitch }}°</div>
-              <div class="text-sm">横滚角: {{ uavStatus.attitude.roll }}°</div>
-              <div class="text-sm">偏航角: {{ uavStatus.attitude.yaw }}°</div>
+        </div>
+
+        <!-- 无人机状态 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">无人机状态</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center">
+              <div class="text-2xl font-bold" :class="uavStatus.isConnected ? 'text-green-600' : 'text-red-600'">
+                {{ uavStatus.isConnected ? '已连接' : '未连接' }}
+              </div>
+              <div class="text-sm text-gray-500">连接状态</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-blue-600">{{ uavStatus.battery }}%</div>
+              <div class="text-sm text-gray-500">电池电量</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-purple-600">{{ uavStatus.altitude }}m</div>
+              <div class="text-sm text-gray-500">飞行高度</div>
+            </div>
+            <div class="text-center">
+              <div class="text-2xl font-bold text-orange-600">{{ uavStatus.speed }}m/s</div>
+              <div class="text-sm text-gray-500">飞行速度</div>
             </div>
           </div>
-          <div class="text-center">
-            <div class="text-lg font-semibold text-gray-700">速度信息</div>
-            <div class="mt-2 space-y-1">
-              <div class="text-sm">前向速度: {{ uavStatus.velocity.x }}m/s</div>
-              <div class="text-sm">右向速度: {{ uavStatus.velocity.y }}m/s</div>
-              <div class="text-sm">下向速度: {{ uavStatus.velocity.z }}m/s</div>
+        </div>
+
+        <!-- 飞行控制 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行控制</h3>
+          <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-2">
+              <el-button type="success" @click="takeOff" :disabled="!uavStatus.isConnected || uavStatus.isFlying">
+                起飞
+              </el-button>
+              <el-button type="warning" @click="land" :disabled="!uavStatus.isFlying">
+                降落
+              </el-button>
             </div>
+            <div class="grid grid-cols-2 gap-2">
+              <el-button type="info" @click="hover" :disabled="!uavStatus.isFlying">
+                悬停
+              </el-button>
+              <el-button type="danger" @click="emergencyStop">
+                紧急停止
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 飞行参数设置 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行参数</h3>
+          <div class="space-y-4">
+            <el-form-item label="目标高度 (m)">
+              <el-input-number v-model="flightParams.targetAltitude" :min="0" :max="1000" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="飞行速度 (m/s)">
+              <el-input-number v-model="flightParams.speed" :min="0.1" :max="20" :step="0.1" style="width: 100%" />
+            </el-form-item>
+            <el-form-item label="航向角 (°)">
+              <el-input-number v-model="flightParams.heading" :min="0" :max="360" style="width: 100%" />
+            </el-form-item>
+            <el-button type="primary" @click="setFlightParams" class="w-full">
+              设置参数
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 任务控制 -->
+        <div class="bg-white rounded-lg shadow-md p-6 flex-1">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">任务控制</h3>
+          <div class="space-y-2">
+            <el-button type="primary" @click="startMission" class="w-full" :disabled="!uavStatus.isConnected">
+              开始任务
+            </el-button>
+            <el-button type="warning" @click="pauseMission" class="w-full">
+              暂停任务
+            </el-button>
+            <el-button type="info" @click="resumeMission" class="w-full">
+              恢复任务
+            </el-button>
+            <el-button type="danger" @click="abortMission" class="w-full">
+              终止任务
+            </el-button>
+            <el-button @click="returnToHome" class="w-full">
+              返航
+            </el-button>
+            <el-button type="success" @click="openNavigation" class="w-full" :disabled="navStatus.isRunning">
+              {{ navStatus.isRunning ? '导航软件运行中' : '打开导航软件' }}
+            </el-button>
+            <el-button type="danger" @click="stopNavigation" class="w-full" :disabled="!navStatus.isRunning">
+              停止导航软件
+            </el-button>
           </div>
         </div>
       </div>
 
-      <!-- 地图显示区域 -->
-      <div class="bg-white rounded-lg shadow-md p-6 flex-1">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行路径</h3>
-        <div class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
-          <div class="text-center text-gray-500">
-            <div class="text-6xl mb-4">🗺️</div>
-            <div class="text-lg">地图显示区域</div>
-            <div class="text-sm">(待实现)</div>
+      <!-- 右侧显示区域 -->
+      <div class="flex-1 flex flex-col gap-4">
+        <!-- 实时数据显示 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">实时飞行数据</h3>
+          <div class="grid grid-cols-3 gap-6">
+            <div class="text-center">
+              <div class="text-lg font-semibold text-gray-700">位置信息</div>
+              <div class="mt-2 space-y-1">
+                <div class="text-sm">经度: {{ uavStatus.position.longitude }}°</div>
+                <div class="text-sm">纬度: {{ uavStatus.position.latitude }}°</div>
+                <div class="text-sm">高度: {{ uavStatus.position.altitude }}m</div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-semibold text-gray-700">姿态信息</div>
+              <div class="mt-2 space-y-1">
+                <div class="text-sm">俯仰角: {{ uavStatus.attitude.pitch }}°</div>
+                <div class="text-sm">横滚角: {{ uavStatus.attitude.roll }}°</div>
+                <div class="text-sm">偏航角: {{ uavStatus.attitude.yaw }}°</div>
+              </div>
+            </div>
+            <div class="text-center">
+              <div class="text-lg font-semibold text-gray-700">速度信息</div>
+              <div class="mt-2 space-y-1">
+                <div class="text-sm">前向速度: {{ uavStatus.velocity.x }}m/s</div>
+                <div class="text-sm">右向速度: {{ uavStatus.velocity.y }}m/s</div>
+                <div class="text-sm">下向速度: {{ uavStatus.velocity.z }}m/s</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 日志区域 -->
-      <div class="bg-white rounded-lg shadow-md p-6" style="height: 200px;">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">操作日志</h3>
-        <div class="h-32 overflow-y-auto bg-gray-50 rounded p-3 text-sm">
-          <div v-for="(log, index) in operationLogs" :key="index" class="mb-1">
-            <span class="text-gray-500">{{ formatTime(log.timestamp) }}</span>
-            <span class="ml-2" :class="getLogColor(log.type)">{{ log.message }}</span>
+        <!-- 地图显示区域 -->
+        <div class="bg-white rounded-lg shadow-md p-6 flex-1">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行路径</h3>
+          <div class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+            <div class="text-center text-gray-500">
+              <div class="text-6xl mb-4">🗺️</div>
+              <div class="text-lg">地图显示区域</div>
+              <div class="text-sm">(待实现)</div>
+            </div>
           </div>
-          <div v-if="operationLogs.length === 0" class="text-gray-400 text-center py-4">
-            暂无操作记录
+        </div>
+
+        <!-- 日志区域 -->
+        <div class="bg-white rounded-lg shadow-md p-6" style="height: 200px;">
+          <h3 class="text-lg font-semibold mb-4 text-gray-800">操作日志</h3>
+          <div class="h-32 overflow-y-auto bg-gray-50 rounded p-3 text-sm">
+            <div v-for="(log, index) in operationLogs" :key="index" class="mb-1">
+              <span class="text-gray-500">{{ formatTime(log.timestamp) }}</span>
+              <span class="ml-2" :class="getLogColor(log.type)">{{ log.message }}</span>
+            </div>
+            <div v-if="operationLogs.length === 0" class="text-gray-400 text-center py-4">
+              暂无操作记录
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 interface UavStatus {
@@ -243,6 +257,47 @@ interface OperationLog {
   message: string;
 }
 
+// 平台信息接口
+interface Platform {
+  base: {
+    name: string;
+    type: string;
+    side: string;
+    group: string;
+    broken: boolean;
+    location: {
+      longitude: number;
+      latitude: number;
+      altitude: number;
+    };
+    roll: number;
+    pitch: number;
+    yaw: number;
+    speed: number;
+  };
+  updateTime: number;
+  // 其他字段...
+}
+
+// 分组选项接口
+interface GroupOption {
+  label: string;
+  value: string;
+}
+
+// 无人机选项接口
+interface UavOption {
+  label: string;
+  value: string;
+  platform: Platform;
+}
+
+// 连接状态接口
+interface ConnectionStatus {
+  isConnected: boolean;
+  simulationEndpoint: string;
+}
+
 const uavStatus = reactive<UavStatus>({
   isConnected: false,
   isFlying: false,
@@ -275,6 +330,18 @@ const flightParams = reactive<FlightParams>({
 const operationLogs = ref<OperationLog[]>([]);
 const currentUavId = ref<string>('');
 
+// 平台选择相关数据
+const selectedGroup = ref('');
+const selectedUav = ref('');
+const operatorName = ref('');
+const platforms = ref<Platform[]>([]);
+const lastUpdateTime = ref<number>(0);
+
+const connectionStatus = reactive<ConnectionStatus>({
+  isConnected: false,
+  simulationEndpoint: ''
+});
+
 // 导航软件状态
 const navStatus = ref({
   isRunning: false,
@@ -282,6 +349,90 @@ const navStatus = ref({
   startTime: null as number | null,
   uptime: null as number | null
 });
+
+// 计算属性：可用的分组选项
+const groupOptions = computed<GroupOption[]>(() => {
+  const groups = new Set<string>();
+
+  platforms.value.forEach(platform => {
+    if (platform.base?.group && platform.base?.type === 'UAV01') {
+      groups.add(platform.base.group);
+    }
+  });
+
+  return Array.from(groups).map(group => ({
+    label: group,
+    value: group
+  }));
+});
+
+// 计算属性：当前分组下的无人机选项
+const uavOptions = computed<UavOption[]>(() => {
+  if (!selectedGroup.value) {
+    return [];
+  }
+
+  return platforms.value
+    .filter(platform =>
+      platform.base?.group === selectedGroup.value &&
+      platform.base?.type === 'UAV01' &&
+      !platform.base?.broken
+    )
+    .map(platform => ({
+      label: platform.base.name || '未命名无人机',
+      value: platform.base.name || '',
+      platform: platform
+    }));
+});
+
+// 监听分组变化，重置无人机选择
+const onGroupChange = () => {
+  selectedUav.value = '';
+  if (uavOptions.value.length === 1) {
+    // 如果只有一个无人机，自动选择
+    selectedUav.value = uavOptions.value[0].value;
+  }
+};
+
+// 连接到无人机
+const connectToUav = () => {
+  if (!selectedGroup.value || !selectedUav.value) {
+    ElMessage.warning('请选择分组和无人机');
+    return;
+  }
+
+  ElMessage.success(`正在连接到 ${selectedGroup.value} - ${selectedUav.value}`);
+  connectionStatus.isConnected = true;
+  connectionStatus.simulationEndpoint = `${selectedGroup.value}/${selectedUav.value}`;
+  uavStatus.isConnected = true;
+
+  addLog('success', `已连接到无人机: ${selectedUav.value} (分组: ${selectedGroup.value})`);
+
+  // TODO: 实际的连接逻辑
+};
+
+// 处理平台状态数据包
+const handlePlatformStatus = (packet: any) => {
+  try {
+    if (packet.parsedPacket?.packageType === 0x29) {
+      const parsedData = packet.parsedPacket.parsedData;
+
+      if (parsedData?.platform && Array.isArray(parsedData.platform)) {
+        // 更新平台数据
+        platforms.value = parsedData.platform;
+        lastUpdateTime.value = Date.now();
+
+        console.log('[UavOperationPage] 收到平台状态数据:', {
+          平台数量: parsedData.platform.length,
+          无人机数量: parsedData.platform.filter((p: any) => p.base?.type === 'UAV01').length,
+          分组数量: groupOptions.value.length
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[UavOperationPage] 处理平台状态数据失败:', error);
+  }
+};
 
 // 添加操作日志
 const addLog = (type: OperationLog['type'], message: string) => {
@@ -392,7 +543,7 @@ const generateNewUavId = async () => {
       currentUavId.value = result.uavId;
       addLog('success', `生成新的UavId: ${result.uavId}`);
       ElMessage.success(`新UavId已生成: ${result.uavId}`);
-      
+
       // 设置为当前ID
       await (window as any).electronAPI.uav.setCurrentId(result.uavId, '手动生成');
     } else {
@@ -415,7 +566,7 @@ const showUavIdHistory = async () => {
         ElMessage.info('暂无历史记录');
         return;
       }
-      
+
       const historyText = history
         .slice(0, 10) // 只显示最近10条
         .map((record: any) => {
@@ -424,7 +575,7 @@ const showUavIdHistory = async () => {
           return `${record.id} - ${date}${used}`;
         })
         .join('\n');
-      
+
       ElMessageBox.alert(historyText, 'UavId 历史记录', {
         confirmButtonText: '确定'
       });
@@ -440,11 +591,11 @@ const openNavigation = async () => {
   try {
     addLog('info', '正在检查导航软件状态...');
     const result = await (window as any).electronAPI.nav.openNavigation();
-    
+
     if (result.success) {
       if (result.uavId) {
         currentUavId.value = result.uavId;
-        
+
         if (result.isNewProcess) {
           addLog('success', `导航软件启动成功，PID: ${result.pid}，使用UavId: ${result.uavId}`);
           ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
@@ -484,7 +635,7 @@ const stopNavigation = async () => {
   try {
     addLog('info', '正在停止导航软件...');
     const result = await (window as any).electronAPI.nav.stopNavigation();
-    
+
     if (result.success) {
       addLog('success', '导航软件已停止');
       ElMessage.success('导航软件已停止');
@@ -506,7 +657,7 @@ const handleNavUavIdUpdated = (data: any) => {
   currentUavId.value = data.uavId;
   addLog('info', `导航软件启动，UavId已更新: ${data.uavId}`);
   ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
-  
+
   // 更新导航状态
   loadNavStatus();
 };
@@ -515,23 +666,37 @@ const handleNavUavIdUpdated = (data: any) => {
 onMounted(() => {
   loadCurrentUavId();
   loadNavStatus();
-  
+
+  // 监听平台状态数据
+  if (window.electronAPI?.multicast?.onPacket) {
+    window.electronAPI.multicast.onPacket(handlePlatformStatus);
+    console.log('[UavOperationPage] 已开始监听平台状态数据');
+  } else {
+    console.warn('[UavOperationPage] multicast API 不可用');
+  }
+
   // 监听导航启动事件
   (window as any).electronAPI.ipcRenderer.on('nav:uavIdUpdated', (_, data: any) => {
     handleNavUavIdUpdated(data);
   });
-  
+
   // 定期更新导航状态
   const statusInterval = setInterval(loadNavStatus, 5000);
-  
+
   // 保存定时器引用以便清理
   (window as any).__navStatusInterval = statusInterval;
 });
 
-// 组件卸载时清理定时器
+// 组件卸载时清理定时器和监听器
 onUnmounted(() => {
   if ((window as any).__navStatusInterval) {
     clearInterval((window as any).__navStatusInterval);
+  }
+
+  // 清理平台状态监听器
+  if (window.electronAPI?.multicast?.removePacketListener) {
+    window.electronAPI.multicast.removePacketListener(handlePlatformStatus);
+    console.log('[UavOperationPage] 已停止监听平台状态数据');
   }
 });
 </script>

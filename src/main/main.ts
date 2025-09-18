@@ -974,7 +974,7 @@ ipcMain.handle("nav:getNavPath", () => {
 // UavId相关IPC处理
 ipcMain.handle("uav:generateId", () => {
   try {
-    const uavId = uavIdService.generateUavId();
+    const uavId = uavIdService.generateAndSetNewUavId();
     return { success: true, uavId };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -1050,18 +1050,11 @@ ipcMain.handle("uav:prepareForNavigation", () => {
 // 启动导航软件
 ipcMain.handle("nav:openNavigation", async () => {
   try {
-    // 1. 首先准备UavId并更新Nav配置
     console.log(`[Nav] 准备启动导航软件...`);
-    const prepareResult = uavIdService.prepareForNavigation();
     
-    if (!prepareResult.success) {
-      return {
-        success: false,
-        error: `准备UavId失败: ${prepareResult.error}`
-      };
-    }
-    
-    console.log(`[Nav] UavId准备完成: ${prepareResult.uavId}`);
+    // 1. 首先检查导航软件是否已经在运行
+    const isAlreadyRunning = navProcessService.isNavRunning();
+    console.log(`[Nav] 导航软件运行状态: ${isAlreadyRunning ? '已运行' : '未运行'}`);
     
     // 2. 使用配置服务获取导航软件路径
     const navExePath = navConfigService.getNavPath();
@@ -1087,10 +1080,28 @@ ipcMain.handle("nav:openNavigation", async () => {
       };
     }
     
-    // 获取启动选项
+    // 3. 只有在导航软件未运行时才准备UavId
+    let prepareResult: { success: boolean; uavId?: string; error?: string } | null = null;
+    
+    if (!isAlreadyRunning) {
+      console.log(`[Nav] 导航软件未运行，准备UavId...`);
+      prepareResult = uavIdService.prepareForNavigation();
+      
+      if (!prepareResult.success) {
+        return {
+          success: false,
+          error: `准备UavId失败: ${prepareResult.error}`
+        };
+      }
+      
+      console.log(`[Nav] UavId准备完成: ${prepareResult.uavId}`);
+    } else {
+      console.log(`[Nav] 导航软件已运行，使用现有UavId`);
+    }
+    
+    // 4. 获取启动选项并启动/恢复导航软件
     const startupOptions = navConfigService.getStartupOptions();
     
-    // 使用进程管理服务启动导航软件
     const startResult = navProcessService.startNavigation(
       navExePath, 
       navWorkingDir || undefined, 
@@ -1104,25 +1115,30 @@ ipcMain.handle("nav:openNavigation", async () => {
       };
     }
     
+    // 5. 获取当前UavId（不管是新生成的还是现有的）
+    const currentUavId = uavIdService.getCurrentUavId();
+    
     console.log(`[Nav] 导航软件处理完成，PID: ${startResult.pid}`);
     console.log(`[Nav] 工作目录: ${navWorkingDir || '默认'}`);
-    console.log(`[Nav] 使用UavId: ${prepareResult.uavId}`);
+    console.log(`[Nav] 使用UavId: ${currentUavId}`);
     console.log(`[Nav] 是否为新进程: ${startResult.isNewProcess}`);
     
-    // 通知所有渲染进程 UavId 已更新
-    const allWindows = BrowserWindow.getAllWindows();
-    allWindows.forEach(window => {
-      window.webContents.send('nav:uavIdUpdated', {
-        uavId: prepareResult.uavId,
-        timestamp: Date.now(),
-        isNewProcess: startResult.isNewProcess
+    // 6. 只有在启动新进程时才通知UavId更新
+    if (startResult.isNewProcess && prepareResult) {
+      const allWindows = BrowserWindow.getAllWindows();
+      allWindows.forEach(window => {
+        window.webContents.send('nav:uavIdUpdated', {
+          uavId: currentUavId,
+          timestamp: Date.now(),
+          isNewProcess: true
+        });
       });
-    });
+    }
     
     return { 
       success: true, 
       message: startResult.isNewProcess ? "导航软件已启动" : "导航软件已恢复到前台",
-      uavId: prepareResult.uavId,
+      uavId: currentUavId,
       pid: startResult.pid,
       isNewProcess: startResult.isNewProcess
     };

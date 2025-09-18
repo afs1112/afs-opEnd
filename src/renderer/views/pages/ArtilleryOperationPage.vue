@@ -4,21 +4,43 @@
     <div class="bg-white rounded-lg shadow-md p-4">
       <div class="flex items-center gap-4">
         <span class="text-lg font-semibold text-gray-800">操作模式-火炮</span>
-        <el-select v-model="selectedGroup" placeholder="选择组" style="width: 120px;">
-          <el-option label="组1" value="group1" />
-          <el-option label="组2" value="group2" />
-          <el-option label="组3" value="group3" />
+        <el-select 
+          v-model="selectedGroup" 
+          placeholder="选择分组" 
+          style="width: 150px;"
+          @change="onGroupChange"
+          clearable
+        >
+          <el-option 
+            v-for="group in groupOptions" 
+            :key="group.value"
+            :label="group.label" 
+            :value="group.value" 
+          />
         </el-select>
-        <el-select v-model="selectedInstance" placeholder="选择实例" style="width: 120px;">
-          <el-option label="火炮1" value="artillery1" />
-          <el-option label="火炮2" value="artillery2" />
-          <el-option label="火炮3" value="artillery3" />
+        <el-select 
+          v-model="selectedInstance" 
+          placeholder="选择火炮" 
+          style="width: 150px;"
+          :disabled="!selectedGroup || artilleryOptions.length === 0"
+          clearable
+        >
+          <el-option 
+            v-for="artillery in artilleryOptions" 
+            :key="artillery.value"
+            :label="artillery.label" 
+            :value="artillery.value" 
+          />
         </el-select>
         <el-input v-model="operatorName" placeholder="操作人" style="width: 120px;" />
         <el-button type="primary" @click="connectToSimulation" :disabled="connectionStatus.isConnected">
           {{ connectionStatus.isConnected ? '已连接' : '连接' }}
         </el-button>
-        <div class="ml-auto">
+        <div class="ml-auto flex items-center gap-4">
+          <div class="text-xs text-gray-600">
+            <div>平台数据: {{ platforms.length }} 个平台</div>
+            <div>火炮数量: {{ artilleryOptions.length }} 个</div>
+          </div>
           <span class="text-sm" :class="connectionStatus.isConnected ? 'text-green-600' : 'text-red-600'">
             {{ connectionStatus.isConnected ? '● 已连接到仿真端' : '○ 未连接' }}
           </span>
@@ -164,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 
 // 连接状态接口
@@ -204,15 +226,54 @@ interface CoordinationStatus {
   targetSharing: string;
 }
 
+// 平台信息接口
+interface Platform {
+  base: {
+    name: string;
+    type: string;
+    side: string;
+    group: string;
+    broken: boolean;
+    location: {
+      longitude: number;
+      latitude: number;
+      altitude: number;
+    };
+    roll: number;
+    pitch: number;
+    yaw: number;
+    speed: number;
+  };
+  updateTime: number;
+  // 其他字段...
+}
+
+// 分组选项接口
+interface GroupOption {
+  label: string;
+  value: string;
+}
+
+// 火炮选项接口
+interface ArtilleryOption {
+  label: string;
+  value: string;
+  platform: Platform;
+}
+
 // 响应式数据
-const selectedGroup = ref('group1');
-const selectedInstance = ref('artillery1');
+const selectedGroup = ref('');
+const selectedInstance = ref('');
 const operatorName = ref('');
 const ammunitionCount = ref(12);
 const targetDroneId = ref('UAV-001');
 const fireStatus = ref('待发射');
 const weaponName = ref('155毫米榆弹炮'); // 武器名称，默认值
 const targetName = ref('无人机-001'); // 目标名称，默认值
+
+// 平台数据
+const platforms = ref<Platform[]>([]);
+const lastUpdateTime = ref<number>(0);
 
 const connectionStatus = reactive<ConnectionStatus>({
   isConnected: false,
@@ -245,6 +306,50 @@ const coordinationStatus = reactive<CoordinationStatus>({
   dataLink: '正常',
   targetSharing: '已共享'
 });
+
+// 计算属性：可用的分组选项
+const groupOptions = computed<GroupOption[]>(() => {
+  const groups = new Set<string>();
+  
+  platforms.value.forEach(platform => {
+    if (platform.base?.group && platform.base?.type === 'ROCKET_LAUNCHER') {
+      groups.add(platform.base.group);
+    }
+  });
+  
+  return Array.from(groups).map(group => ({
+    label: group,
+    value: group
+  }));
+});
+
+// 计算属性：当前分组下的火炮选项
+const artilleryOptions = computed<ArtilleryOption[]>(() => {
+  if (!selectedGroup.value) {
+    return [];
+  }
+  
+  return platforms.value
+    .filter(platform => 
+      platform.base?.group === selectedGroup.value && 
+      platform.base?.type === 'ROCKET_LAUNCHER' &&
+      !platform.base?.broken
+    )
+    .map(platform => ({
+      label: platform.base.name || '未命名火炮',
+      value: platform.base.name || '',
+      platform: platform
+    }));
+});
+
+// 监听分组变化，重置火炮选择
+const onGroupChange = () => {
+  selectedInstance.value = '';
+  if (artilleryOptions.value.length === 1) {
+    // 如果只有一个火炮，自动选择
+    selectedInstance.value = artilleryOptions.value[0].value;
+  }
+};
 
 // 连接到仿真端
 const connectToSimulation = () => {
@@ -346,11 +451,53 @@ const fireAtDrone = async () => {
   // TODO: 实际的发射逻辑和防空报文发送
 };
 
+// 处理平台状态数据包
+const handlePlatformStatus = (packet: any) => {
+  try {
+    if (packet.parsedPacket?.packageType === 0x29) {
+      const parsedData = packet.parsedPacket.parsedData;
+      
+      if (parsedData?.platform && Array.isArray(parsedData.platform)) {
+        // 更新平台数据
+        platforms.value = parsedData.platform;
+        lastUpdateTime.value = Date.now();
+        
+        console.log('[ArtilleryPage] 收到平台状态数据:', {
+          平台数量: parsedData.platform.length,
+          火炮数量: parsedData.platform.filter((p: any) => p.base?.type === 'ROCKET_LAUNCHER').length,
+          分组数量: groupOptions.value.length
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[ArtilleryPage] 处理平台状态数据失败:', error);
+  }
+};
+
 // 打开文档
 const openDocument = () => {
   ElMessage.info('打开任务文档功能待实现');
   // TODO: 实现打开Word文档的功能
 };
+
+// 生命周期钩子
+onMounted(() => {
+  // 监听平台状态数据
+  if (window.electronAPI?.multicast?.onPacket) {
+    window.electronAPI.multicast.onPacket(handlePlatformStatus);
+    console.log('[ArtilleryPage] 已开始监听平台状态数据');
+  } else {
+    console.warn('[ArtilleryPage] multicast API 不可用');
+  }
+});
+
+onUnmounted(() => {
+  // 清理监听器
+  if (window.electronAPI?.multicast?.removePacketListener) {
+    window.electronAPI.multicast.removePacketListener(handlePlatformStatus);
+    console.log('[ArtilleryPage] 已停止监听平台状态数据');
+  }
+});
 </script>
 
 <style scoped>

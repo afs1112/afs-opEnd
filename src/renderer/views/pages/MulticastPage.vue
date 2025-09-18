@@ -128,7 +128,7 @@
         <div v-if="showPlatformStatus" class="max-h-40 overflow-y-auto">
           <div class="text-xs text-gray-600 mb-2">最近的平台状态 (最多显示10个):</div>
           <div class="space-y-1">
-            <div v-for="(status, index) in platformStatusPackets.slice(-10)" :key="index"
+            <div v-for="(status, index) in platformStatusPackets.slice(-10).reverse()" :key="index"
               class="bg-white rounded p-2 text-xs flex justify-between items-center">
               <div class="flex gap-4">
                 <span>{{ formatTime(status.timestamp) }}</span>
@@ -193,7 +193,7 @@
         <div v-if="showPlatformCmd" class="max-h-40 overflow-y-auto">
           <div class="text-xs text-gray-600 mb-2">最近的平台命令 (最多显示10个):</div>
           <div class="space-y-1">
-            <div v-for="(cmd, index) in platformCmdPackets.slice(-10)" :key="index"
+            <div v-for="(cmd, index) in platformCmdPackets.slice(-10).reverse()" :key="index"
               class="bg-white rounded p-2 text-xs flex justify-between items-center">
               <div class="flex gap-4">
                 <span>{{ formatTime(cmd.timestamp) }}</span>
@@ -265,7 +265,7 @@
         <div v-if="showNavData" class="max-h-60 overflow-y-auto">
           <div class="text-xs text-gray-600 mb-2">最近的导航数据 (最多显示20个):</div>
           <div class="space-y-1">
-            <div v-for="(navData, index) in navDataPackets.slice(-20)" :key="index"
+            <div v-for="(navData, index) in navDataPackets.slice(-20).reverse()" :key="index"
               class="bg-white rounded p-2 text-xs flex justify-between items-center">
               <div class="flex gap-4">
                 <span>{{ formatTime(navData.timestamp) }}</span>
@@ -686,9 +686,10 @@ const handleBatchCopyCommand = (command: string) => {
 
   switch (command) {
     case 'all-parsed':
-      // 复制所有解析数据
+      // 复制所有解析数据（从新到旧排序）
       const parsedData = packets.value
         .filter(p => p.parsedPacket)
+        .reverse()
         .map((p, index) => ({
           序号: index + 1,
           时间: formatTime(p.timestamp),
@@ -699,8 +700,8 @@ const handleBatchCopyCommand = (command: string) => {
       break;
 
     case 'all-hex':
-      // 复制所有十六进制数据
-      const hexData = packets.value.map((p, index) => ({
+      // 复制所有十六进制数据（从新到旧排序）
+      const hexData = packets.value.slice().reverse().map((p, index) => ({
         序号: index + 1,
         时间: formatTime(p.timestamp),
         源地址: p.source,
@@ -710,8 +711,8 @@ const handleBatchCopyCommand = (command: string) => {
       break;
 
     case 'all-full':
-      // 复制所有完整信息
-      const allFullData = packets.value.map((p, index) => ({
+      // 复制所有完整信息（从新到旧排序）
+      const allFullData = packets.value.slice().reverse().map((p, index) => ({
         序号: index + 1,
         时间: formatTime(p.timestamp),
         源地址: p.source,
@@ -799,7 +800,7 @@ const copyPlatformStatusSummary = () => {
       持续时间: getPlatformStatusDuration(),
       来源列表: [...new Set(platformStatusPackets.value.map(p => extractSourceIP(p.source)))]
     },
-    最近状态: platformStatusPackets.value.slice(-5).map(p => ({
+    最近状态: platformStatusPackets.value.slice(-5).reverse().map(p => ({
       时间: formatTime(p.timestamp),
       源地址: p.source,
       平台数: p.parsedPacket?.parsedData?.platform?.length || 0
@@ -858,7 +859,7 @@ const copyPlatformCmdSummary = () => {
       持续时间: getPlatformCmdDuration(),
       来源列表: [...new Set(platformCmdPackets.value.map(p => extractSourceIP(p.source)))]
     },
-    最近命令: platformCmdPackets.value.slice(-5).map(p => ({
+    最近命令: platformCmdPackets.value.slice(-5).reverse().map(p => ({
       时间: formatTime(p.timestamp),
       源地址: p.source,
       平台: p.parsedPacket?.parsedData?.platformName || 'N/A',
@@ -916,7 +917,7 @@ const copyNavDataSummary = () => {
       持续时间: getNavDataDuration(),
       来源列表: [...new Set(navDataPackets.value.map(p => extractSourceIP(p.source)))]
     },
-    最近数据: navDataPackets.value.slice(-10).map(p => ({
+    最近数据: navDataPackets.value.slice(-10).reverse().map(p => ({
       时间: formatTime(p.timestamp),
       源地址: p.source,
       类型: getNavDataTypeName(p.parsedPacket?.packageType || 0),
@@ -1040,7 +1041,7 @@ const exportPackets = async () => {
           address: status.address,
           port: status.port
         },
-        packets: packets.value.map(packet => ({
+        packets: packets.value.slice().reverse().map(packet => ({
           timestamp: packet.timestamp,
           source: packet.source,
           dataString: packet.dataString,
