@@ -63,6 +63,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resetConfig: () => ipcRenderer.invoke("nav:resetConfig"),
     validateConfig: () => ipcRenderer.invoke("nav:validateConfig"),
     getNavPath: () => ipcRenderer.invoke("nav:getNavPath"),
+    getStatus: () => ipcRenderer.invoke("nav:getStatus"),
+    stopNavigation: () => ipcRenderer.invoke("nav:stopNavigation"),
   },
 
   // UavId相关

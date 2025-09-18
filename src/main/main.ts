@@ -9,6 +9,7 @@ import { multicastSenderService, PlatformCmdData } from "./services/multicast-se
 
 import { navConfigService } from "./services/nav-config.service";
 import { uavIdService } from "./services/uav-id.service";
+import { navProcessService } from "./services/nav-process.service";
 
 // 数据清理函数，移除不可序列化的内容
 function cleanDataForSerialization(obj: any): any {
@@ -1028,6 +1029,18 @@ ipcMain.handle("uav:disableAutoGenerate", () => {
 ipcMain.handle("uav:prepareForNavigation", () => {
   try {
     const result = uavIdService.prepareForNavigation();
+    
+    // 如果成功生成了新的 UavId，通知所有渲染进程
+    if (result.success && result.uavId) {
+      const allWindows = BrowserWindow.getAllWindows();
+      allWindows.forEach(window => {
+        window.webContents.send('nav:uavIdUpdated', {
+          uavId: result.uavId,
+          timestamp: Date.now()
+        });
+      });
+    }
+    
     return result;
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -1077,51 +1090,41 @@ ipcMain.handle("nav:openNavigation", async () => {
     // 获取启动选项
     const startupOptions = navConfigService.getStartupOptions();
     
-    // 构建 spawn 选项
-    const spawnOptions: any = {
-      detached: startupOptions.detached,
-      stdio: startupOptions.stdio,
-      windowsHide: startupOptions.windowsHide
-    };
+    // 使用进程管理服务启动导航软件
+    const startResult = navProcessService.startNavigation(
+      navExePath, 
+      navWorkingDir || undefined, 
+      startupOptions
+    );
     
-    // 设置工作目录为导航软件所在目录，这样Nav软件就能找到它的配置文件
-    if (navWorkingDir && startupOptions.setWorkingDirectory) {
-      spawnOptions.cwd = navWorkingDir;
-      console.log(`[Nav] 设置工作目录: ${navWorkingDir}`);
+    if (!startResult.success) {
+      return {
+        success: false,
+        error: startResult.error || "启动导航软件失败"
+      };
     }
     
-    // 继承环境变量
-    if (startupOptions.inheritEnv) {
-      spawnOptions.env = { ...process.env };
-      console.log(`[Nav] 继承环境变量`);
-    }
-    
-    // 启动导航软件
-    const child = spawn(navExePath, [], spawnOptions);
-    
-    // 监听启动错误
-    child.on('error', (error) => {
-      console.error(`[Nav] 启动错误: ${error.message}`);
-    });
-    
-    // 监听进程退出
-    child.on('exit', (code, signal) => {
-      console.log(`[Nav] 进程退出，退出码: ${code}, 信号: ${signal}`);
-    });
-    
-    // 如果配置为分离模式，分离子进程
-    if (startupOptions.detached) {
-      child.unref();
-    }
-    
-    console.log(`[Nav] 导航软件已启动，PID: ${child.pid}`);
-    console.log(`[Nav] 工作目录: ${spawnOptions.cwd || '默认'}`);
+    console.log(`[Nav] 导航软件处理完成，PID: ${startResult.pid}`);
+    console.log(`[Nav] 工作目录: ${navWorkingDir || '默认'}`);
     console.log(`[Nav] 使用UavId: ${prepareResult.uavId}`);
+    console.log(`[Nav] 是否为新进程: ${startResult.isNewProcess}`);
+    
+    // 通知所有渲染进程 UavId 已更新
+    const allWindows = BrowserWindow.getAllWindows();
+    allWindows.forEach(window => {
+      window.webContents.send('nav:uavIdUpdated', {
+        uavId: prepareResult.uavId,
+        timestamp: Date.now(),
+        isNewProcess: startResult.isNewProcess
+      });
+    });
     
     return { 
       success: true, 
-      message: "导航软件已启动",
-      uavId: prepareResult.uavId
+      message: startResult.isNewProcess ? "导航软件已启动" : "导航软件已恢复到前台",
+      uavId: prepareResult.uavId,
+      pid: startResult.pid,
+      isNewProcess: startResult.isNewProcess
     };
   } catch (error: any) {
     console.error("启动导航软件失败:", error);
@@ -1129,5 +1132,25 @@ ipcMain.handle("nav:openNavigation", async () => {
       success: false, 
       error: `启动失败: ${error.message}` 
     };
+  }
+});
+
+// 获取导航软件状态
+ipcMain.handle("nav:getStatus", () => {
+  try {
+    const status = navProcessService.getStatus();
+    return { success: true, status };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 停止导航软件
+ipcMain.handle("nav:stopNavigation", () => {
+  try {
+    const result = navProcessService.stopNavigation();
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 });

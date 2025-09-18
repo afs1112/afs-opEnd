@@ -10,6 +10,12 @@
             <span class="text-sm text-gray-600">当前ID:</span>
             <span class="text-lg font-bold text-blue-600">{{ currentUavId || '未设置' }}</span>
           </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">导航状态:</span>
+            <span class="text-sm font-medium" :class="navStatus.isRunning ? 'text-green-600' : 'text-gray-500'">
+              {{ navStatus.isRunning ? `运行中 (PID: ${navStatus.pid})` : '未运行' }}
+            </span>
+          </div>
           <div class="flex gap-2">
             <el-button size="small" @click="generateNewUavId" class="flex-1">
               生成新ID
@@ -126,8 +132,11 @@
           <el-button @click="returnToHome" class="w-full">
             返航
           </el-button>
-          <el-button type="success" @click="openNavigation" class="w-full">
-            打开导航软件
+          <el-button type="success" @click="openNavigation" class="w-full" :disabled="navStatus.isRunning">
+            {{ navStatus.isRunning ? '导航软件运行中' : '打开导航软件' }}
+          </el-button>
+          <el-button type="danger" @click="stopNavigation" class="w-full" :disabled="!navStatus.isRunning">
+            停止导航软件
           </el-button>
         </div>
       </div>
@@ -196,7 +205,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 interface UavStatus {
@@ -265,6 +274,14 @@ const flightParams = reactive<FlightParams>({
 
 const operationLogs = ref<OperationLog[]>([]);
 const currentUavId = ref<string>('');
+
+// 导航软件状态
+const navStatus = ref({
+  isRunning: false,
+  pid: null as number | null,
+  startTime: null as number | null,
+  uptime: null as number | null
+});
 
 // 添加操作日志
 const addLog = (type: OperationLog['type'], message: string) => {
@@ -421,17 +438,23 @@ const showUavIdHistory = async () => {
 
 const openNavigation = async () => {
   try {
-    addLog('info', '正在准备启动导航软件...');
+    addLog('info', '正在检查导航软件状态...');
     const result = await (window as any).electronAPI.nav.openNavigation();
     
     if (result.success) {
       if (result.uavId) {
         currentUavId.value = result.uavId;
-        addLog('success', `导航软件启动成功，使用UavId: ${result.uavId}`);
-        ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
+        
+        if (result.isNewProcess) {
+          addLog('success', `导航软件启动成功，PID: ${result.pid}，使用UavId: ${result.uavId}`);
+          ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
+        } else {
+          addLog('info', `导航软件已在运行，PID: ${result.pid}，已恢复到前台，UavId: ${result.uavId}`);
+          ElMessage.info(`导航软件已恢复到前台，UavId: ${result.uavId}`);
+        }
       } else {
-        addLog('success', '导航软件启动成功');
-        ElMessage.success('导航软件已启动');
+        addLog('success', result.message || '导航软件处理成功');
+        ElMessage.success(result.message || '导航软件已就绪');
       }
     } else {
       addLog('error', `导航软件启动失败: ${result.error}`);
@@ -444,9 +467,72 @@ const openNavigation = async () => {
   }
 };
 
-// 组件挂载时加载当前UavId
+// 获取导航软件状态
+const loadNavStatus = async () => {
+  try {
+    const result = await (window as any).electronAPI.nav.getStatus();
+    if (result.success) {
+      navStatus.value = result.status;
+    }
+  } catch (error) {
+    console.error('获取导航状态失败:', error);
+  }
+};
+
+// 停止导航软件
+const stopNavigation = async () => {
+  try {
+    addLog('info', '正在停止导航软件...');
+    const result = await (window as any).electronAPI.nav.stopNavigation();
+    
+    if (result.success) {
+      addLog('success', '导航软件已停止');
+      ElMessage.success('导航软件已停止');
+      await loadNavStatus(); // 更新状态
+    } else {
+      addLog('error', `停止导航软件失败: ${result.error}`);
+      ElMessage.error(`停止失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `停止导航软件时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 监听导航软件启动事件，自动更新UavId显示
+const handleNavUavIdUpdated = (data: any) => {
+  console.log('[UavOperationPage] 导航软件启动，UavId已更新:', data.uavId);
+  currentUavId.value = data.uavId;
+  addLog('info', `导航软件启动，UavId已更新: ${data.uavId}`);
+  ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
+  
+  // 更新导航状态
+  loadNavStatus();
+};
+
+// 组件挂载时加载当前UavId并设置事件监听
 onMounted(() => {
   loadCurrentUavId();
+  loadNavStatus();
+  
+  // 监听导航启动事件
+  (window as any).electronAPI.ipcRenderer.on('nav:uavIdUpdated', (_, data: any) => {
+    handleNavUavIdUpdated(data);
+  });
+  
+  // 定期更新导航状态
+  const statusInterval = setInterval(loadNavStatus, 5000);
+  
+  // 保存定时器引用以便清理
+  (window as any).__navStatusInterval = statusInterval;
+});
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if ((window as any).__navStatusInterval) {
+    clearInterval((window as any).__navStatusInterval);
+  }
 });
 </script>
 

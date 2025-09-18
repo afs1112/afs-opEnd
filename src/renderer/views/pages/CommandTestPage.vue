@@ -1214,6 +1214,16 @@ onMounted(() => {
     (window as any).electronAPI.ipcRenderer.send('route:selectedPlatformResponse', selectedPlatform.value);
   });
 
+  // 监听导航软件启动事件，自动更新UavId显示
+  (window as any).electronAPI.ipcRenderer.on('nav:uavIdUpdated', (_, data: any) => {
+    console.log('[CommandTestPage] 导航软件启动，UavId已更新:', data.uavId);
+    currentUavId.value = data.uavId;
+    systemUavId.value = data.uavId;
+    updateSyncStatus();
+    addLog('info', `导航软件启动，UavId已更新: ${data.uavId}`);
+    ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
+  });
+
   // 监听平台数据请求
   (window as any).electronAPI.ipcRenderer.on('route:requestSelectedPlatformData', () => {
     console.log('[CommandTestPage] 收到平台数据请求，当前选择:', selectedPlatform.value);

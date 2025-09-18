@@ -441,6 +441,8 @@ export class MulticastSenderService {
         pitch: platformBase.pitch || 0,
         yaw: platformBase.yaw || 0,
         speed: platformBase.speed || 0,
+        indicatedAirspeed: (platformBase.speed || 0) * 0.95, // 指示空速略小于地速
+        groundSpeed: platformBase.speed || 0,  // 地速：从platforms里拿到的speed转换为groundSpeed
         height: coord.altitude
       };
       
@@ -550,6 +552,8 @@ export class MulticastSenderService {
           pitch: Math.sin(Date.now() * 0.0008) * 1,  // 轻微俯仰 ±1°
           yaw: 45 + Math.random() * 90,              // 随机航向
           speed: 120,
+          indicatedAirspeed: 114,                    // 指示空速略小于地速
+          groundSpeed: 120,                          // 地速：模拟数据中的固定值
           height: 1000 + Math.random() * 200
         },
         cylinderTemperatureInfo: {
