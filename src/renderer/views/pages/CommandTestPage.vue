@@ -1206,12 +1206,29 @@ onMounted(() => {
     console.log('[CommandTestPage] 未选择平台:', data);
   });
 
-  // 监听平台名称请求
+  // 监听平台名称请求（保持向后兼容）
   (window as any).electronAPI.ipcRenderer.on('route:requestSelectedPlatform', () => {
     console.log('[CommandTestPage] 收到平台名称请求，当前选择:', selectedPlatform.value);
     
     // 响应当前选择的平台名称
     (window as any).electronAPI.ipcRenderer.send('route:selectedPlatformResponse', selectedPlatform.value);
+  });
+
+  // 监听平台数据请求
+  (window as any).electronAPI.ipcRenderer.on('route:requestSelectedPlatformData', () => {
+    console.log('[CommandTestPage] 收到平台数据请求，当前选择:', selectedPlatform.value);
+    
+    // 获取当前选择平台的完整数据
+    const currentPlatform = platforms.value.find(p => p.name === selectedPlatform.value);
+    const platformData = {
+      name: selectedPlatform.value || '',
+      speed: currentPlatform?.base?.speed || undefined
+    };
+    
+    console.log('[CommandTestPage] 响应平台数据:', platformData);
+    
+    // 响应当前选择的平台数据
+    (window as any).electronAPI.ipcRenderer.send('route:selectedPlatformDataResponse', platformData);
   });
 
   addLog('info', '命令测试页面已加载，开始监听组播数据');

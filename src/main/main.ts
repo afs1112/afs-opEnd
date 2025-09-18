@@ -330,29 +330,29 @@ async function handleRouteUpload(parsedPacket: any) {
       return;
     }
 
-    // 向渲染进程请求当前选择的平台名称
-    const selectedPlatform = await new Promise<string>((resolve) => {
+    // 向渲染进程请求当前选择的平台数据
+    const selectedPlatformData = await new Promise<{name: string, speed?: number}>((resolve) => {
       const window = allWindows[0];
       
       // 设置超时
       const timeout = setTimeout(() => {
-        resolve('');
+        resolve({name: ''});
       }, 5000);
 
       // 监听响应
-      const responseHandler = (event: any, platformName: string) => {
+      const responseHandler = (event: any, platformData: {name: string, speed?: number}) => {
         clearTimeout(timeout);
-        ipcMain.removeListener('route:selectedPlatformResponse', responseHandler);
-        resolve(platformName);
+        ipcMain.removeListener('route:selectedPlatformDataResponse', responseHandler);
+        resolve(platformData);
       };
 
-      ipcMain.once('route:selectedPlatformResponse', responseHandler);
+      ipcMain.once('route:selectedPlatformDataResponse', responseHandler);
       
-      // 请求平台名称
-      window.webContents.send('route:requestSelectedPlatform');
+      // 请求平台数据
+      window.webContents.send('route:requestSelectedPlatformData');
     });
 
-    if (!selectedPlatform) {
+    if (!selectedPlatformData.name) {
       console.log('[RouteConverter] ⚠️ 未选择平台，跳过航线转换');
       
       // 通知渲染进程需要选择平台
@@ -364,9 +364,12 @@ async function handleRouteUpload(parsedPacket: any) {
       return;
     }
 
-    console.log('[RouteConverter] 使用选择的平台名称:', selectedPlatform);
+    console.log('[RouteConverter] 使用选择的平台:', selectedPlatformData.name, '速度:', selectedPlatformData.speed);
 
     // 将UavNavMonitor.WayPoint转换为PublicStruct.WayPoint格式
+    const platformSpeed = selectedPlatformData.speed || 10; // 使用平台速度，如果没有则使用默认值10
+    console.log('[RouteConverter] 使用平台速度:', platformSpeed, 'm/s');
+    
     const convertedRoute = routeData.wayPointList.map((waypoint: any, index: number) => {
       const coord = waypoint.coord || {};
       return {
@@ -374,7 +377,7 @@ async function handleRouteUpload(parsedPacket: any) {
         latitude: coord.latitude || 0,
         altitude: coord.altitude || 0,
         labelName: `航点${index + 1}`, // 使用顺序号填充label
-        speed: 10 // 默认速度
+        speed: platformSpeed // 使用当前选择平台的速度
       };
     });
 
@@ -383,7 +386,7 @@ async function handleRouteUpload(parsedPacket: any) {
     // 构造PlatformCmd数据
     const platformCmdData = {
       commandID: Date.now(),
-      platformName: selectedPlatform, // 使用命令测试面板选择的平台名称
+      platformName: selectedPlatformData.name, // 使用命令测试面板选择的平台名称
       command: 6, // Uav_Nav
       navParam: {
         route: convertedRoute
