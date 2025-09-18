@@ -5,45 +5,21 @@
       <h2 class="text-xl font-semibold mb-4">组播配置</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <el-form-item label="组播地址">
-          <el-input 
-            v-model="config.address" 
-            placeholder="239.255.43.21"
-            :disabled="isListening"
-          />
+          <el-input v-model="config.address" placeholder="239.255.43.21" :disabled="isListening" />
         </el-form-item>
         <el-form-item label="端口">
-          <el-input-number 
-            v-model="config.port" 
-            :min="1024" 
-            :max="65535"
-            placeholder="10086"
-            :disabled="isListening"
-            style="width: 100%"
-          />
+          <el-input-number v-model="config.port" :min="1024" :max="65535" placeholder="10086" :disabled="isListening"
+            style="width: 100%" />
         </el-form-item>
         <el-form-item label="接口地址">
-          <el-input 
-            v-model="config.interfaceAddress" 
-            placeholder="0.0.0.0"
-            :disabled="isListening"
-          />
+          <el-input v-model="config.interfaceAddress" placeholder="0.0.0.0" :disabled="isListening" />
         </el-form-item>
       </div>
       <div class="flex gap-2 mt-4">
-        <el-button 
-          type="primary" 
-          @click="startListening"
-          :loading="starting"
-          :disabled="isListening"
-        >
+        <el-button type="primary" @click="startListening" :loading="starting" :disabled="isListening">
           开始监听
         </el-button>
-        <el-button 
-          type="danger" 
-          @click="stopListening"
-          :loading="stopping"
-          :disabled="!isListening"
-        >
+        <el-button type="danger" @click="stopListening" :loading="stopping" :disabled="!isListening">
           停止监听
         </el-button>
         <el-button @click="clearPackets">清空数据</el-button>
@@ -84,10 +60,6 @@
           <div class="text-2xl font-bold text-cyan-600">{{ platformCmdCount }}</div>
           <div class="text-sm text-gray-500">平台命令</div>
         </div>
-        <div class="text-center">
-          <div class="text-2xl font-bold text-gray-600">{{ heartbeatPackets.length }}</div>
-          <div class="text-sm text-gray-500">心跳包</div>
-        </div>
       </div>
     </div>
 
@@ -96,19 +68,11 @@
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold">接收到的数据包</h2>
         <div class="flex gap-2">
-          <el-switch 
-            v-model="autoScroll" 
-            active-text="自动滚动"
-            inactive-text="手动滚动"
-          />
-          <el-switch 
-            v-model="showHeartbeats" 
-            active-text="显示心跳"
-            inactive-text="隐藏心跳"
-          />
           <el-dropdown @command="handleBatchCopyCommand">
             <el-button size="small" type="primary" plain>
-              批量复制 <el-icon><ArrowDown /></el-icon>
+              批量复制 <el-icon>
+                <ArrowDown />
+              </el-icon>
             </el-button>
             <template #dropdown>
               <el-dropdown-menu>
@@ -122,241 +86,214 @@
           <el-button size="small" @click="exportPackets">导出数据</el-button>
         </div>
       </div>
-      
-      <!-- 心跳包汇聚显示 -->
-      <div v-if="heartbeatPackets.length > 0" class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
+
+
+
+      <!-- 平台状态包汇聚显示 -->
+      <div v-if="platformStatusPackets.length > 0" class="bg-orange-50 rounded-lg p-4 mb-4 border border-orange-200">
         <div class="flex justify-between items-center mb-2">
           <div class="flex items-center gap-2">
-            <div class="text-blue-700 font-semibold">💓 心跳包汇聚</div>
-            <el-tag size="small" type="info">{{ heartbeatPackets.length }} 个</el-tag>
-            <el-tag size="small" type="success" v-if="heartbeatPackets.length > 0">
-              最新: {{ formatTime(heartbeatPackets[heartbeatPackets.length - 1].timestamp) }}
+            <div class="text-orange-700 font-semibold">📊 平台状态汇聚</div>
+            <el-tag size="small" type="warning">{{ platformStatusPackets.length }} 个</el-tag>
+            <el-tag size="small" type="success" v-if="platformStatusPackets.length > 0">
+              最新: {{ formatTime(platformStatusPackets[platformStatusPackets.length - 1].timestamp) }}
             </el-tag>
           </div>
           <div class="flex gap-2">
-            <el-button size="small" @click="copyHeartbeatSummary">复制心跳摘要</el-button>
-            <el-button size="small" @click="clearHeartbeats">清空心跳</el-button>
-            <el-button size="small" @click="showHeartbeats = !showHeartbeats">
-              {{ showHeartbeats ? '隐藏详情' : '显示详情' }}
+            <el-button size="small" @click="copyPlatformStatusSummary">复制状态摘要</el-button>
+            <el-button size="small" @click="clearPlatformStatus">清空状态</el-button>
+            <el-button size="small" @click="showPlatformStatus = !showPlatformStatus">
+              {{ showPlatformStatus ? '隐藏详情' : '显示详情' }}
             </el-button>
           </div>
         </div>
-        
-        <!-- 心跳统计信息 -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
+
+        <!-- 平台状态统计信息 -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3 text-sm">
           <div class="bg-white rounded p-2 text-center">
-            <div class="text-lg font-bold text-blue-600">{{ heartbeatPackets.length }}</div>
-            <div class="text-gray-500">总心跳数</div>
+            <div class="text-lg font-bold text-orange-600">{{ platformStatusPackets.length }}</div>
+            <div class="text-gray-500">状态包数</div>
           </div>
           <div class="bg-white rounded p-2 text-center">
-            <div class="text-lg font-bold text-green-600">{{ getHeartbeatRate() }}</div>
-            <div class="text-gray-500">频率/分钟</div>
+            <div class="text-lg font-bold text-green-600">{{ getUniquePlatformCount() }}</div>
+            <div class="text-gray-500">平台数量</div>
           </div>
           <div class="bg-white rounded p-2 text-center">
-            <div class="text-lg font-bold text-purple-600">{{ getUniqueHeartbeatSources().length }}</div>
-            <div class="text-gray-500">来源数</div>
-          </div>
-          <div class="bg-white rounded p-2 text-center">
-            <div class="text-lg font-bold text-orange-600">{{ getHeartbeatDuration() }}</div>
+            <div class="text-lg font-bold text-purple-600">{{ getPlatformStatusDuration() }}</div>
             <div class="text-gray-500">持续时间</div>
           </div>
         </div>
 
-        <!-- 心跳详细列表 (可折叠) -->
-        <div v-if="showHeartbeats" class="max-h-40 overflow-y-auto">
-          <div class="text-xs text-gray-600 mb-2">最近的心跳包 (最多显示20个):</div>
+        <!-- 平台状态详细列表 (可折叠) -->
+        <div v-if="showPlatformStatus" class="max-h-40 overflow-y-auto">
+          <div class="text-xs text-gray-600 mb-2">最近的平台状态 (最多显示10个):</div>
           <div class="space-y-1">
-            <div 
-              v-for="(heartbeat, index) in heartbeatPackets.slice(-20)" 
-              :key="index"
-              class="bg-white rounded p-2 text-xs flex justify-between items-center"
-            >
+            <div v-for="(status, index) in platformStatusPackets.slice(-10)" :key="index"
+              class="bg-white rounded p-2 text-xs flex justify-between items-center">
               <div class="flex gap-4">
-                <span>{{ formatTime(heartbeat.timestamp) }}</span>
-                <span>{{ extractSourceIP(heartbeat.source) }}</span>
-                <span v-if="heartbeat.parsedPacket">
-                  软件ID: {{ heartbeat.parsedPacket.parsedData?.softwareID || 'N/A' }}
-                </span>
-                <span v-if="heartbeat.parsedPacket">
-                  状态: {{ heartbeat.parsedPacket.parsedData?.state || 'N/A' }}
+                <span>{{ formatTime(status.timestamp) }}</span>
+                <span>{{ extractSourceIP(status.source) }}</span>
+                <span v-if="status.parsedPacket">
+                  平台数: {{ status.parsedPacket.parsedData?.platform?.length || 0 }}
                 </span>
               </div>
-              <el-button 
-                size="small" 
-                type="text" 
-                @click="copyToClipboard(JSON.stringify(heartbeat.parsedPacket?.parsedData || {}, null, 2), '心跳数据')"
-              >
-                <el-icon><DocumentCopy /></el-icon>
-              </el-button>
+              <div class="flex gap-1">
+                <el-button size="small" type="success" plain
+                  @click="showPacketDetail(status, platformStatusPackets.indexOf(status))">
+                  详情
+                </el-button>
+                <el-button size="small" type="text"
+                  @click="copyToClipboard(JSON.stringify(status.parsedPacket?.parsedData || {}, null, 2), '平台状态数据')">
+                  <el-icon>
+                    <DocumentCopy />
+                  </el-icon>
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div 
-        ref="packetContainer"
-        class="border rounded-lg p-4 h-full overflow-y-auto bg-gray-50"
-        style="max-height: 400px;"
-      >
-        <div v-if="displayPackets.length === 0" class="text-center text-gray-500 py-8">
-          暂无数据包
+      <!-- 平台命令包汇聚显示 -->
+      <div v-if="platformCmdPackets.length > 0" class="bg-cyan-50 rounded-lg p-4 mb-4 border border-cyan-200">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-2">
+            <div class="text-cyan-700 font-semibold">🎮 平台命令汇聚</div>
+            <el-tag size="small" type="info">{{ platformCmdPackets.length }} 个</el-tag>
+            <el-tag size="small" type="success" v-if="platformCmdPackets.length > 0">
+              最新: {{ formatTime(platformCmdPackets[platformCmdPackets.length - 1].timestamp) }}
+            </el-tag>
+          </div>
+          <div class="flex gap-2">
+            <el-button size="small" @click="copyPlatformCmdSummary">复制命令摘要</el-button>
+            <el-button size="small" @click="clearPlatformCmd">清空命令</el-button>
+            <el-button size="small" @click="showPlatformCmd = !showPlatformCmd">
+              {{ showPlatformCmd ? '隐藏详情' : '显示详情' }}
+            </el-button>
+          </div>
         </div>
-        <div 
-          v-for="(packet, index) in displayPackets" 
-          :key="index"
-          class="bg-white rounded-lg p-4 mb-3 shadow-sm border"
-        >
-          <div class="flex justify-between items-start mb-2">
-            <div class="flex gap-4 text-sm text-gray-600">
-              <span>时间: {{ formatTime(packet.timestamp) }}</span>
-              <span>源IP: {{ extractSourceIP(packet.source) }}</span>
-              <span>端口: {{ extractSourcePort(packet.source) }}</span>
-              <span>大小: {{ packet.size }} 字节</span>
-            </div>
-            <div class="flex gap-2 items-center">
-              <el-dropdown @command="(command) => handleCopyCommand(command, packet, index)">
-                <el-button size="small" type="primary" plain>
-                  复制 <el-icon><ArrowDown /></el-icon>
+
+        <!-- 平台命令统计信息 -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3 text-sm">
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-cyan-600">{{ platformCmdPackets.length }}</div>
+            <div class="text-gray-500">命令包数</div>
+          </div>
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-green-600">{{ getUniqueCommandCount() }}</div>
+            <div class="text-gray-500">命令类型</div>
+          </div>
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-purple-600">{{ getPlatformCmdDuration() }}</div>
+            <div class="text-gray-500">持续时间</div>
+          </div>
+        </div>
+
+        <!-- 平台命令详细列表 (可折叠) -->
+        <div v-if="showPlatformCmd" class="max-h-40 overflow-y-auto">
+          <div class="text-xs text-gray-600 mb-2">最近的平台命令 (最多显示10个):</div>
+          <div class="space-y-1">
+            <div v-for="(cmd, index) in platformCmdPackets.slice(-10)" :key="index"
+              class="bg-white rounded p-2 text-xs flex justify-between items-center">
+              <div class="flex gap-4">
+                <span>{{ formatTime(cmd.timestamp) }}</span>
+                <span>{{ extractSourceIP(cmd.source) }}</span>
+                <span v-if="cmd.parsedPacket">
+                  平台: {{ cmd.parsedPacket.parsedData?.platformName || 'N/A' }}
+                </span>
+                <span v-if="cmd.parsedPacket">
+                  命令: {{ getCommandName(cmd.parsedPacket.parsedData?.command) }}
+                </span>
+              </div>
+              <div class="flex gap-1">
+                <el-button size="small" type="success" plain
+                  @click="showPacketDetail(cmd, platformCmdPackets.indexOf(cmd))">
+                  详情
                 </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="raw">复制原始数据</el-dropdown-item>
-                    <el-dropdown-item command="hex">复制十六进制</el-dropdown-item>
-                    <el-dropdown-item v-if="packet.parsedPacket" command="parsed">复制解析数据</el-dropdown-item>
-                    <el-dropdown-item command="full">复制完整信息</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-              <el-tag size="small" type="info">#{{ index + 1 }}</el-tag>
+                <el-button size="small" type="text"
+                  @click="copyToClipboard(JSON.stringify(cmd.parsedPacket?.parsedData || {}, null, 2), '平台命令数据')">
+                  <el-icon>
+                    <DocumentCopy />
+                  </el-icon>
+                </el-button>
+              </div>
             </div>
           </div>
-          <div class="bg-gray-100 rounded p-3 font-mono text-sm overflow-x-auto">
-            <div v-if="packet.parsedPacket" class="mb-4">
-              <div class="text-green-600 font-semibold mb-2">✅ 解析成功:</div>
-              <div class="bg-white rounded p-2 mb-2">
-                <div class="grid grid-cols-3 gap-2 text-xs">
-                  <div><strong>包类型:</strong> {{ packet.parsedPacket.packageTypeName }}</div>
-                  <div><strong>类型码:</strong> 0x{{ packet.parsedPacket.packageType.toString(16).padStart(2, '0') }}</div>
-                  <div><strong>协议ID:</strong> 0x{{ packet.parsedPacket.protocolID.toString(16).padStart(2, '0') }}</div>
-                  <div><strong>数据大小:</strong> {{ packet.parsedPacket.size }} 字节</div>
-                  <div><strong>源IP:</strong> {{ extractSourceIP(packet.source) }}</div>
-                  <div><strong>端口:</strong> {{ extractSourcePort(packet.source) }}</div>
-                </div>
-              </div>
-              
-              <!-- 平台状态特殊显示 -->
-              <div v-if="packet.parsedPacket.packageType === 0x29 && packet.parsedPacket.parsedData" class="bg-blue-50 rounded p-2 mb-2">
-                <div class="text-blue-700 font-semibold text-xs mb-1">🚁 平台状态信息:</div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                  <div><strong>平台ID:</strong> {{ packet.parsedPacket.parsedData.PlatformId }}</div>
-                  <div><strong>平台类型:</strong> {{ getPlatformTypeName(packet.parsedPacket.parsedData.type) }}</div>
-                  <div v-if="packet.parsedPacket.parsedData.coord">
-                    <strong>经度:</strong> {{ packet.parsedPacket.parsedData.coord.longitude?.toFixed(6) }}°
-                  </div>
-                  <div v-if="packet.parsedPacket.parsedData.coord">
-                    <strong>纬度:</strong> {{ packet.parsedPacket.parsedData.coord.latitude?.toFixed(6) }}°
-                  </div>
-                  <div v-if="packet.parsedPacket.parsedData.coord" class="col-span-2">
-                    <strong>高度:</strong> {{ packet.parsedPacket.parsedData.coord.altitude?.toFixed(1) }}m
-                  </div>
-                </div>
-              </div>
+        </div>
+      </div>
 
-              <!-- 平台控制命令特殊显示 -->
-              <div v-if="packet.parsedPacket.packageType === 0x2A && packet.parsedPacket.parsedData" class="bg-green-50 rounded p-2 mb-2">
-                <div class="text-green-700 font-semibold text-xs mb-1">🎮 平台控制命令:</div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                  <div><strong>命令ID:</strong> {{ packet.parsedPacket.parsedData.commandID }}</div>
-                  <div><strong>目标平台:</strong> {{ packet.parsedPacket.parsedData.platformName }}</div>
-                  <div><strong>命令类型:</strong> {{ getPlatformCommandName(packet.parsedPacket.parsedData.command) }}</div>
-                  <div><strong>命令码:</strong> {{ packet.parsedPacket.parsedData.command }}</div>
-                </div>
-                
-                <!-- 根据不同命令类型显示参数 -->
-                <div v-if="packet.parsedPacket.parsedData.sensorParam" class="bg-white rounded p-2 mt-2">
-                  <div class="text-blue-600 font-semibold text-xs mb-1">📡 传感器参数:</div>
-                  <div class="grid grid-cols-3 gap-2 text-xs">
-                    <div><strong>传感器:</strong> {{ packet.parsedPacket.parsedData.sensorParam.sensorName }}</div>
-                    <div><strong>方位角:</strong> {{ packet.parsedPacket.parsedData.sensorParam.azSlew }}°</div>
-                    <div><strong>俯仰角:</strong> {{ packet.parsedPacket.parsedData.sensorParam.elSlew }}°</div>
-                  </div>
-                </div>
-                
-                <div v-if="packet.parsedPacket.parsedData.fireParam" class="bg-white rounded p-2 mt-2">
-                  <div class="text-red-600 font-semibold text-xs mb-1">🔥 火力参数:</div>
-                  <div class="grid grid-cols-3 gap-2 text-xs">
-                    <div><strong>武器:</strong> {{ packet.parsedPacket.parsedData.fireParam.weaponName }}</div>
-                    <div><strong>目标:</strong> {{ packet.parsedPacket.parsedData.fireParam.targetName }}</div>
-                    <div><strong>发射次数:</strong> {{ packet.parsedPacket.parsedData.fireParam.quantity }}</div>
-                  </div>
-                </div>
-                
-                <div v-if="packet.parsedPacket.parsedData.navParam" class="bg-white rounded p-2 mt-2">
-                  <div class="text-purple-600 font-semibold text-xs mb-1">🗺️ 导航参数:</div>
-                  <div class="text-xs">
-                    <div><strong>航点数量:</strong> {{ packet.parsedPacket.parsedData.navParam.route?.length || 0 }}</div>
-                    <div v-if="packet.parsedPacket.parsedData.navParam.route && packet.parsedPacket.parsedData.navParam.route.length > 0" class="mt-1">
-                      <div class="font-semibold">航点列表:</div>
-                      <div v-for="(waypoint, idx) in packet.parsedPacket.parsedData.navParam.route.slice(0, 3)" :key="idx" class="ml-2">
-                        {{ idx + 1 }}. {{ waypoint.labelName }} ({{ waypoint.longitude }}, {{ waypoint.latitude }}, {{ waypoint.altitude }}m, {{ waypoint.speed }}m/s)
-                      </div>
-                      <div v-if="packet.parsedPacket.parsedData.navParam.route.length > 3" class="ml-2 text-gray-500">
-                        ... 还有 {{ packet.parsedPacket.parsedData.navParam.route.length - 3 }} 个航点
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div v-if="packet.parsedPacket.parsedData.targetSetParam" class="bg-white rounded p-2 mt-2">
-                  <div class="text-orange-600 font-semibold text-xs mb-1">🎯 目标装订参数:</div>
-                  <div class="text-xs">
-                    <div><strong>目标名称:</strong> {{ packet.parsedPacket.parsedData.targetSetParam.targetName }}</div>
-                  </div>
-                </div>
-                
-                <div v-if="packet.parsedPacket.parsedData.setSpeedParam" class="bg-white rounded p-2 mt-2">
-                  <div class="text-cyan-600 font-semibold text-xs mb-1">⚡ 速度设置参数:</div>
-                  <div class="text-xs">
-                    <div><strong>目标速度:</strong> {{ packet.parsedPacket.parsedData.setSpeedParam.speed }} m/s</div>
-                  </div>
-                </div>
+      <!-- 导航数据汇聚显示 -->
+      <div v-if="navDataPackets.length > 0" class="bg-indigo-50 rounded-lg p-4 mb-4 border border-indigo-200">
+        <div class="flex justify-between items-center mb-2">
+          <div class="flex items-center gap-2">
+            <div class="text-indigo-700 font-semibold">🛩️ 导航数据汇聚</div>
+            <el-tag size="small" type="primary">{{ navDataPackets.length }} 个</el-tag>
+            <el-tag size="small" type="success" v-if="navDataPackets.length > 0">
+              最新: {{ formatTime(navDataPackets[navDataPackets.length - 1].timestamp) }}
+            </el-tag>
+          </div>
+          <div class="flex gap-2">
+            <el-button size="small" @click="copyNavDataSummary">复制导航摘要</el-button>
+            <el-button size="small" @click="clearNavData">清空导航数据</el-button>
+            <el-button size="small" @click="showNavData = !showNavData">
+              {{ showNavData ? '隐藏详情' : '显示详情' }}
+            </el-button>
+          </div>
+        </div>
+
+        <!-- 导航数据统计信息 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-indigo-600">{{ navDataPackets.length }}</div>
+            <div class="text-gray-500">导航包数</div>
+          </div>
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-green-600">{{ getUavStatusCount() }}</div>
+            <div class="text-gray-500">状态包数</div>
+          </div>
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-blue-600">{{ getRouteUploadCount() }}</div>
+            <div class="text-gray-500">航线包数</div>
+          </div>
+          <div class="bg-white rounded p-2 text-center">
+            <div class="text-lg font-bold text-purple-600">{{ getNavDataDuration() }}</div>
+            <div class="text-gray-500">持续时间</div>
+          </div>
+        </div>
+
+        <!-- 导航数据详细列表 (可折叠) -->
+        <div v-if="showNavData" class="max-h-60 overflow-y-auto">
+          <div class="text-xs text-gray-600 mb-2">最近的导航数据 (最多显示20个):</div>
+          <div class="space-y-1">
+            <div v-for="(navData, index) in navDataPackets.slice(-20)" :key="index"
+              class="bg-white rounded p-2 text-xs flex justify-between items-center">
+              <div class="flex gap-4">
+                <span>{{ formatTime(navData.timestamp) }}</span>
+                <span>{{ extractSourceIP(navData.source) }}</span>
+                <span v-if="navData.parsedPacket">
+                  <el-tag size="small" :type="getNavDataTypeTag(navData.parsedPacket.packageType)">
+                    {{ getNavDataTypeName(navData.parsedPacket.packageType) }}
+                  </el-tag>
+                </span>
+                <span v-if="navData.parsedPacket && navData.parsedPacket.packageType === 0x1">
+                  UavID: {{ navData.parsedPacket.parsedData?.uavID || 'N/A' }}
+                </span>
+                <span v-if="navData.parsedPacket && navData.parsedPacket.packageType === 0x20">
+                  UavID: {{ navData.parsedPacket.parsedData?.uavID || 'N/A' }},
+                  航点: {{ navData.parsedPacket.parsedData?.wayPointSize || 0 }}个
+                </span>
               </div>
-              
-              <div class="text-xs">
-                <div class="flex justify-between items-center mb-1">
-                  <div class="text-gray-600 font-semibold">完整解析数据:</div>
-                  <el-button 
-                    size="small" 
-                    type="text" 
-                    @click="copyToClipboard(JSON.stringify(packet.parsedPacket.parsedData, null, 2), '解析数据')"
-                  >
-                    <el-icon><DocumentCopy /></el-icon>
-                  </el-button>
-                </div>
-                <pre class="bg-white rounded p-2 text-xs overflow-x-auto">{{ JSON.stringify(packet.parsedPacket.parsedData, null, 2) }}</pre>
-              </div>
-            </div>
-            
-            <div v-else class="mb-4">
-              <div class="text-red-600 font-semibold mb-2">❌ 未解析 (显示原始数据):</div>
-              <div class="bg-yellow-50 rounded p-2 text-xs">
-                <div><strong>可能原因:</strong> 包格式不匹配、protobuf定义未加载或数据损坏</div>
-              </div>
-            </div>
-            
-            <div class="mt-2">
-              <div class="flex justify-between items-center mb-1">
-                <div class="text-gray-600 font-semibold">原始十六进制数据:</div>
-                <el-button 
-                  size="small" 
-                  type="text" 
-                  @click="copyToClipboard(toHex(packet.data), '十六进制数据')"
-                >
-                  <el-icon><DocumentCopy /></el-icon>
+              <div class="flex gap-1">
+                <el-button size="small" type="success" plain
+                  @click="showPacketDetail(navData, navDataPackets.indexOf(navData))">
+                  详情
                 </el-button>
-              </div>
-              <div class="bg-white rounded p-2">
-                <pre class="text-xs break-all">{{ toHex(packet.data) }}</pre>
+                <el-button size="small" type="text"
+                  @click="copyToClipboard(JSON.stringify(navData.parsedPacket?.parsedData || {}, null, 2), '导航数据')">
+                  <el-icon>
+                    <DocumentCopy />
+                  </el-icon>
+                </el-button>
               </div>
             </div>
           </div>
@@ -364,6 +301,134 @@
       </div>
     </div>
   </div>
+
+  <!-- 数据包详情弹窗 -->
+  <el-dialog v-model="detailDialogVisible" :title="`数据包详情 #${selectedPacketIndex + 1}`" width="80%"
+    :close-on-click-modal="false" destroy-on-close>
+    <div v-if="selectedPacket" class="space-y-4">
+      <!-- 基本信息 -->
+      <div class="bg-gray-50 rounded-lg p-4">
+        <h3 class="text-lg font-semibold mb-3 text-gray-800">📋 基本信息</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">接收时间</div>
+            <div class="font-mono">{{ formatTime(selectedPacket.timestamp) }}</div>
+          </div>
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">源地址</div>
+            <div class="font-mono">{{ extractSourceIP(selectedPacket.source) }}</div>
+          </div>
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">源端口</div>
+            <div class="font-mono">{{ extractSourcePort(selectedPacket.source) }}</div>
+          </div>
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">数据大小</div>
+            <div class="font-mono">{{ selectedPacket.size }} 字节</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 解析信息 -->
+      <div v-if="selectedPacket.parsedPacket" class="bg-green-50 rounded-lg p-4">
+        <h3 class="text-lg font-semibold mb-3 text-green-800">✅ 解析信息</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">包类型</div>
+            <div class="font-mono">{{ selectedPacket.parsedPacket.packageTypeName }}</div>
+          </div>
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">类型码</div>
+            <div class="font-mono">0x{{ selectedPacket.parsedPacket.packageType.toString(16).padStart(2, '0') }}</div>
+          </div>
+          <div class="bg-white rounded p-3">
+            <div class="text-gray-500 text-xs">协议ID</div>
+            <div class="font-mono">0x{{ selectedPacket.parsedPacket.protocolID.toString(16).padStart(2, '0') }}</div>
+          </div>
+        </div>
+
+        <!-- 解析数据 -->
+        <div class="bg-white rounded-lg p-4">
+          <div class="flex justify-between items-center mb-2">
+            <h4 class="font-semibold text-gray-700">🔍 解析数据</h4>
+            <el-button size="small" type="primary"
+              @click="copyToClipboard(JSON.stringify(selectedPacket.parsedPacket.parsedData, null, 2), '解析数据')">
+              复制解析数据
+            </el-button>
+          </div>
+          <pre class="bg-gray-100 rounded p-3 text-xs overflow-auto max-h-60 font-mono">{{
+            JSON.stringify(selectedPacket.parsedPacket.parsedData, null, 2) }}</pre>
+        </div>
+      </div>
+
+      <!-- 未解析提示 -->
+      <div v-else class="bg-yellow-50 rounded-lg p-4">
+        <h3 class="text-lg font-semibold mb-3 text-yellow-800">⚠️ 未解析</h3>
+        <div class="bg-white rounded p-3 text-sm">
+          <div class="text-yellow-700">
+            <strong>可能原因:</strong> 包格式不匹配、protobuf定义未加载或数据损坏
+          </div>
+        </div>
+      </div>
+
+      <!-- 原始数据 -->
+      <div class="bg-blue-50 rounded-lg p-4">
+        <h3 class="text-lg font-semibold mb-3 text-blue-800">📦 原始数据</h3>
+
+        <!-- 十六进制数据 -->
+        <div class="bg-white rounded-lg p-4 mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <h4 class="font-semibold text-gray-700">🔢 十六进制格式</h4>
+            <el-button size="small" type="primary" @click="copyToClipboard(toHex(selectedPacket.data), '十六进制数据')">
+              复制十六进制
+            </el-button>
+          </div>
+          <pre class="bg-gray-100 rounded p-3 text-xs overflow-auto max-h-40 font-mono break-all">{{
+            toHex(selectedPacket.data) }}</pre>
+        </div>
+
+        <!-- Base64数据 -->
+        <div class="bg-white rounded-lg p-4">
+          <div class="flex justify-between items-center mb-2">
+            <h4 class="font-semibold text-gray-700">📝 Base64格式</h4>
+            <el-button size="small" type="primary"
+              @click="copyToClipboard(getBase64Data(selectedPacket.data), 'Base64数据')">
+              复制Base64
+            </el-button>
+          </div>
+          <pre class="bg-gray-100 rounded p-3 text-xs overflow-auto max-h-40 font-mono break-all">{{
+            getBase64Data(selectedPacket.data) }}</pre>
+        </div>
+      </div>
+
+      <!-- 完整信息 -->
+      <div class="bg-purple-50 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-lg font-semibold text-purple-800">📄 完整信息</h3>
+          <el-button size="small" type="primary" @click="copyFullPacketInfo()">
+            复制完整信息
+          </el-button>
+        </div>
+        <div class="bg-white rounded p-3 text-xs">
+          <div class="text-gray-600">包含基本信息、解析数据、原始数据的完整JSON格式</div>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-between">
+        <div class="flex gap-2">
+          <el-button size="small" :disabled="selectedPacketIndex <= 0" @click="showPreviousPacket">
+            ← 上一个
+          </el-button>
+          <el-button size="small" :disabled="selectedPacketIndex >= displayPackets.length - 1" @click="showNextPacket">
+            下一个 →
+          </el-button>
+        </div>
+        <el-button type="primary" @click="detailDialogVisible = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
@@ -398,11 +463,18 @@ interface MulticastStatus {
 const isListening = ref(false);
 const starting = ref(false);
 const stopping = ref(false);
-const autoScroll = ref(true);
 const packets = ref<MulticastPacket[]>([]);
-const heartbeatPackets = ref<MulticastPacket[]>([]);
-const showHeartbeats = ref(false);
-const packetContainer = ref<HTMLElement>();
+const platformStatusPackets = ref<MulticastPacket[]>([]);
+const platformCmdPackets = ref<MulticastPacket[]>([]);
+const navDataPackets = ref<MulticastPacket[]>([]);
+const showPlatformStatus = ref(false);
+const showPlatformCmd = ref(false);
+const showNavData = ref(false);
+
+// 详情弹窗相关
+const detailDialogVisible = ref(false);
+const selectedPacket = ref<MulticastPacket | null>(null);
+const selectedPacketIndex = ref(0);
 
 const status = reactive<MulticastStatus>({
   isListening: false,
@@ -422,16 +494,17 @@ const parsedPacketsCount = computed(() => {
 });
 
 const platformStatusCount = computed(() => {
-  return packets.value.filter(p => p.parsedPacket?.packageType === 0x29).length;
+  return platformStatusPackets.value.length;
 });
 
 const platformCmdCount = computed(() => {
-  return packets.value.filter(p => p.parsedPacket?.packageType === 0x2A).length;
+  return platformCmdPackets.value.length;
 });
 
-// 显示的数据包列表（排除心跳包）
+// 显示的数据包列表（排除汇聚显示的包类型）
 const displayPackets = computed(() => {
-  return packets.value.filter(p => p.parsedPacket?.packageType !== 0x02);
+  const excludedTypes = [0x1, 0x20, 0x29, 0x2A]; // 导航状态、航线上传、平台状态、平台命令
+  return packets.value.filter(p => !excludedTypes.includes(p.parsedPacket?.packageType));
 });
 
 // 格式化时间
@@ -498,6 +571,70 @@ const copyToClipboard = async (text: string, description: string = '数据') => 
   }
 };
 
+// 显示数据包详情
+const showPacketDetail = (packet: MulticastPacket, index: number) => {
+  selectedPacket.value = packet;
+  // 对于汇聚区域的数据包，我们需要在所有数据包中找到正确的索引
+  const allPacketsIndex = packets.value.findIndex(p =>
+    p.timestamp === packet.timestamp &&
+    p.source === packet.source &&
+    p.size === packet.size
+  );
+  selectedPacketIndex.value = allPacketsIndex >= 0 ? allPacketsIndex : index;
+  detailDialogVisible.value = true;
+};
+
+// 显示上一个数据包
+const showPreviousPacket = () => {
+  if (selectedPacketIndex.value > 0) {
+    selectedPacketIndex.value--;
+    selectedPacket.value = displayPackets.value[selectedPacketIndex.value];
+  }
+};
+
+// 显示下一个数据包
+const showNextPacket = () => {
+  if (selectedPacketIndex.value < displayPackets.value.length - 1) {
+    selectedPacketIndex.value++;
+    selectedPacket.value = displayPackets.value[selectedPacketIndex.value];
+  }
+};
+
+// 获取Base64数据
+const getBase64Data = (buffer: Buffer | Uint8Array | number[]): string => {
+  if (!buffer) return '';
+  return btoa(String.fromCharCode(...Array.from(buffer)));
+};
+
+// 复制完整数据包信息
+const copyFullPacketInfo = () => {
+  if (!selectedPacket.value) return;
+
+  const fullInfo = {
+    序号: selectedPacketIndex.value + 1,
+    基本信息: {
+      接收时间: formatTime(selectedPacket.value.timestamp),
+      源地址: selectedPacket.value.source,
+      源IP: extractSourceIP(selectedPacket.value.source),
+      源端口: extractSourcePort(selectedPacket.value.source),
+      数据大小: selectedPacket.value.size
+    },
+    解析信息: selectedPacket.value.parsedPacket ? {
+      包类型: selectedPacket.value.parsedPacket.packageTypeName,
+      类型码: `0x${selectedPacket.value.parsedPacket.packageType.toString(16).padStart(2, '0')}`,
+      协议ID: `0x${selectedPacket.value.parsedPacket.protocolID.toString(16).padStart(2, '0')}`,
+      解析数据: selectedPacket.value.parsedPacket.parsedData
+    } : '未解析',
+    原始数据: {
+      十六进制: toHex(selectedPacket.value.data),
+      Base64: getBase64Data(selectedPacket.value.data)
+    },
+    导出时间: new Date().toLocaleString('zh-CN')
+  };
+
+  copyToClipboard(JSON.stringify(fullInfo, null, 2), '完整数据包信息');
+};
+
 // 处理复制命令
 const handleCopyCommand = (command: string, packet: MulticastPacket, index: number) => {
   switch (command) {
@@ -506,19 +643,19 @@ const handleCopyCommand = (command: string, packet: MulticastPacket, index: numb
       const base64Data = btoa(String.fromCharCode(...Array.from(packet.data)));
       copyToClipboard(base64Data, '原始数据(Base64)');
       break;
-      
+
     case 'hex':
       // 复制十六进制数据
       copyToClipboard(toHex(packet.data), '十六进制数据');
       break;
-      
+
     case 'parsed':
       // 复制解析后的数据
       if (packet.parsedPacket) {
         copyToClipboard(JSON.stringify(packet.parsedPacket.parsedData, null, 2), '解析数据');
       }
       break;
-      
+
     case 'full':
       // 复制完整的数据包信息
       const fullInfo = {
@@ -560,7 +697,7 @@ const handleBatchCopyCommand = (command: string) => {
         }));
       copyToClipboard(JSON.stringify(parsedData, null, 2), `${parsedData.length}个解析数据包`);
       break;
-      
+
     case 'all-hex':
       // 复制所有十六进制数据
       const hexData = packets.value.map((p, index) => ({
@@ -571,7 +708,7 @@ const handleBatchCopyCommand = (command: string) => {
       }));
       copyToClipboard(JSON.stringify(hexData, null, 2), `${hexData.length}个数据包的十六进制数据`);
       break;
-      
+
     case 'all-full':
       // 复制所有完整信息
       const allFullData = packets.value.map((p, index) => ({
@@ -589,7 +726,7 @@ const handleBatchCopyCommand = (command: string) => {
       }));
       copyToClipboard(JSON.stringify(allFullData, null, 2), `${allFullData.length}个完整数据包信息`);
       break;
-      
+
     case 'summary':
       // 复制数据包摘要
       const summary = {
@@ -628,64 +765,173 @@ const getPacketTypeStatistics = () => {
   return stats;
 };
 
-// 心跳包相关方法
-const getHeartbeatRate = () => {
-  if (heartbeatPackets.value.length < 2) return '0';
-  
-  const firstTime = heartbeatPackets.value[0].timestamp;
-  const lastTime = heartbeatPackets.value[heartbeatPackets.value.length - 1].timestamp;
-  const durationMinutes = (lastTime - firstTime) / (1000 * 60);
-  
-  if (durationMinutes === 0) return '0';
-  
-  const rate = heartbeatPackets.value.length / durationMinutes;
-  return rate.toFixed(1);
+
+
+// 平台状态相关方法
+const getUniquePlatformCount = () => {
+  const platforms = new Set();
+  platformStatusPackets.value.forEach(p => {
+    const platformData = p.parsedPacket?.parsedData?.platform;
+    if (platformData && Array.isArray(platformData)) {
+      platformData.forEach(platform => {
+        if (platform.base?.name) {
+          platforms.add(platform.base.name);
+        }
+      });
+    }
+  });
+  return platforms.size;
 };
 
-const getUniqueHeartbeatSources = () => {
-  const sources = new Set(heartbeatPackets.value.map(p => extractSourceIP(p.source)));
-  return Array.from(sources);
+const getPlatformStatusDuration = () => {
+  if (platformStatusPackets.value.length < 2) return '0秒';
+  const first = platformStatusPackets.value[0].timestamp;
+  const last = platformStatusPackets.value[platformStatusPackets.value.length - 1].timestamp;
+  const duration = Math.floor((last - first) / 1000);
+  return duration > 60 ? `${Math.floor(duration / 60)}分${duration % 60}秒` : `${duration}秒`;
 };
 
-const getHeartbeatDuration = () => {
-  if (heartbeatPackets.value.length < 2) return '0秒';
-  
-  const firstTime = heartbeatPackets.value[0].timestamp;
-  const lastTime = heartbeatPackets.value[heartbeatPackets.value.length - 1].timestamp;
-  const durationSeconds = Math.floor((lastTime - firstTime) / 1000);
-  
-  if (durationSeconds < 60) return `${durationSeconds}秒`;
-  if (durationSeconds < 3600) return `${Math.floor(durationSeconds / 60)}分${durationSeconds % 60}秒`;
-  
-  const hours = Math.floor(durationSeconds / 3600);
-  const minutes = Math.floor((durationSeconds % 3600) / 60);
-  return `${hours}时${minutes}分`;
-};
-
-const copyHeartbeatSummary = () => {
+const copyPlatformStatusSummary = () => {
   const summary = {
-    心跳包统计: {
-      总数: heartbeatPackets.value.length,
-      频率: `${getHeartbeatRate()}/分钟`,
-      来源数: getUniqueHeartbeatSources().length,
-      持续时间: getHeartbeatDuration(),
-      来源列表: getUniqueHeartbeatSources()
+    平台状态统计: {
+      总数: platformStatusPackets.value.length,
+      平台数量: getUniquePlatformCount(),
+      持续时间: getPlatformStatusDuration(),
+      来源列表: [...new Set(platformStatusPackets.value.map(p => extractSourceIP(p.source)))]
     },
-    最近心跳: heartbeatPackets.value.slice(-10).map(p => ({
+    最近状态: platformStatusPackets.value.slice(-5).map(p => ({
       时间: formatTime(p.timestamp),
       源地址: p.source,
-      软件ID: p.parsedPacket?.parsedData?.softwareID,
-      状态: p.parsedPacket?.parsedData?.state
+      平台数: p.parsedPacket?.parsedData?.platform?.length || 0
+    }))
+  };
+
+  copyToClipboard(JSON.stringify(summary, null, 2), '平台状态摘要');
+};
+
+const clearPlatformStatus = () => {
+  platformStatusPackets.value = [];
+  ElMessage.success('平台状态已清空');
+};
+
+// 平台命令相关方法
+const getUniqueCommandCount = () => {
+  const commands = new Set();
+  platformCmdPackets.value.forEach(p => {
+    const command = p.parsedPacket?.parsedData?.command;
+    if (command !== undefined) {
+      commands.add(command);
+    }
+  });
+  return commands.size;
+};
+
+const getPlatformCmdDuration = () => {
+  if (platformCmdPackets.value.length < 2) return '0秒';
+  const first = platformCmdPackets.value[0].timestamp;
+  const last = platformCmdPackets.value[platformCmdPackets.value.length - 1].timestamp;
+  const duration = Math.floor((last - first) / 1000);
+  return duration > 60 ? `${Math.floor(duration / 60)}分${duration % 60}秒` : `${duration}秒`;
+};
+
+const getCommandName = (command: number) => {
+  const commandNames: { [key: number]: string } = {
+    0: '无效命令',
+    1: '传感器开',
+    2: '传感器关',
+    3: '传感器转向',
+    4: '激光照射',
+    5: '停止照射',
+    6: '航线规划',
+    7: '目标装订',
+    8: '火炮发射',
+    9: '设置速度'
+  };
+  return commandNames[command] || `未知命令(${command})`;
+};
+
+const copyPlatformCmdSummary = () => {
+  const summary = {
+    平台命令统计: {
+      总数: platformCmdPackets.value.length,
+      命令类型数: getUniqueCommandCount(),
+      持续时间: getPlatformCmdDuration(),
+      来源列表: [...new Set(platformCmdPackets.value.map(p => extractSourceIP(p.source)))]
+    },
+    最近命令: platformCmdPackets.value.slice(-5).map(p => ({
+      时间: formatTime(p.timestamp),
+      源地址: p.source,
+      平台: p.parsedPacket?.parsedData?.platformName || 'N/A',
+      命令: getCommandName(p.parsedPacket?.parsedData?.command)
+    }))
+  };
+
+  copyToClipboard(JSON.stringify(summary, null, 2), '平台命令摘要');
+};
+
+const clearPlatformCmd = () => {
+  platformCmdPackets.value = [];
+  ElMessage.success('平台命令已清空');
+};
+
+// 导航数据相关方法
+const getUavStatusCount = () => {
+  return navDataPackets.value.filter(p => p.parsedPacket?.packageType === 0x1).length;
+};
+
+const getRouteUploadCount = () => {
+  return navDataPackets.value.filter(p => p.parsedPacket?.packageType === 0x20).length;
+};
+
+const getNavDataDuration = () => {
+  if (navDataPackets.value.length < 2) return '0秒';
+  const first = navDataPackets.value[0].timestamp;
+  const last = navDataPackets.value[navDataPackets.value.length - 1].timestamp;
+  const duration = Math.floor((last - first) / 1000);
+  return duration > 60 ? `${Math.floor(duration / 60)}分${duration % 60}秒` : `${duration}秒`;
+};
+
+const getNavDataTypeName = (packageType: number) => {
+  const typeNames: { [key: number]: string } = {
+    0x1: '状态信息',
+    0x20: '航线上传'
+  };
+  return typeNames[packageType] || `未知(0x${packageType.toString(16)})`;
+};
+
+const getNavDataTypeTag = (packageType: number) => {
+  const tagTypes: { [key: number]: string } = {
+    0x1: 'success',
+    0x20: 'primary'
+  };
+  return tagTypes[packageType] || 'info';
+};
+
+const copyNavDataSummary = () => {
+  const summary = {
+    导航数据统计: {
+      总数: navDataPackets.value.length,
+      状态包数: getUavStatusCount(),
+      航线包数: getRouteUploadCount(),
+      持续时间: getNavDataDuration(),
+      来源列表: [...new Set(navDataPackets.value.map(p => extractSourceIP(p.source)))]
+    },
+    最近数据: navDataPackets.value.slice(-10).map(p => ({
+      时间: formatTime(p.timestamp),
+      源地址: p.source,
+      类型: getNavDataTypeName(p.parsedPacket?.packageType || 0),
+      UavID: p.parsedPacket?.parsedData?.uavID,
+      数据: p.parsedPacket?.parsedData
     })),
     统计时间: new Date().toLocaleString('zh-CN')
   };
-  
-  copyToClipboard(JSON.stringify(summary, null, 2), '心跳包摘要');
+
+  copyToClipboard(JSON.stringify(summary, null, 2), '导航数据摘要');
 };
 
-const clearHeartbeats = () => {
-  heartbeatPackets.value = [];
-  ElMessage.success('心跳包已清空');
+const clearNavData = () => {
+  navDataPackets.value = [];
+  ElMessage.success('导航数据已清空');
 };
 
 // 开始监听
@@ -697,7 +943,7 @@ const startListening = async () => {
       config.port,
       config.interfaceAddress
     );
-    
+
     if (result.success) {
       const startResult = await window.electronAPI.multicast.start();
       if (startResult.success) {
@@ -758,7 +1004,10 @@ const updateStatus = async () => {
 // 清空数据包
 const clearPackets = () => {
   packets.value = [];
-  heartbeatPackets.value = [];
+  platformStatusPackets.value = [];
+  platformCmdPackets.value = [];
+  navDataPackets.value = [];
+  ElMessage.success('数据已清空');
 };
 
 // 导出数据包
@@ -817,30 +1066,52 @@ const exportPackets = async () => {
   }
 };
 
-// 自动滚动到底部
-const scrollToBottom = async () => {
-  if (autoScroll.value && packetContainer.value) {
-    await nextTick();
-    packetContainer.value.scrollTop = packetContainer.value.scrollHeight;
-  }
-};
+
 
 // 监听数据包
 const handlePacket = (packet: MulticastPacket) => {
-  // 检查是否为心跳包 (PackType_HeartbeatInternal = 0x02)
-  if (packet.parsedPacket?.packageType === 0x02) {
-    heartbeatPackets.value.push(packet);
-    
-    // 限制心跳包数量，避免内存占用过多
-    if (heartbeatPackets.value.length > 1000) {
-      heartbeatPackets.value = heartbeatPackets.value.slice(-500); // 保留最新的500个
+  const packageType = packet.parsedPacket?.packageType;
+
+  // 根据包类型进行归拢处理
+  if (packageType === 0x02) {
+    // 心跳包 (PackType_HeartbeatInternal) - 跳过处理，不解析不展示
+    return;
+  } else if (packageType === 0x1) {
+    // 无人机状态信息 (UavFlyStatusInfo) - 系统向导航软件同步
+    navDataPackets.value.push(packet);
+
+    // 保留最近的50条导航数据
+    if (navDataPackets.value.length > 50) {
+      navDataPackets.value = navDataPackets.value.slice(-50);
+    }
+  } else if (packageType === 0x20) {
+    // 航线上传信息 (UavRouteUpload) - 导航软件发送回系统
+    navDataPackets.value.push(packet);
+
+    // 保留最近的50条导航数据
+    if (navDataPackets.value.length > 50) {
+      navDataPackets.value = navDataPackets.value.slice(-50);
+    }
+  } else if (packageType === 0x29) {
+    // 平台状态包 (PackageType_PlatformStatus)
+    platformStatusPackets.value.push(packet);
+
+    // 只保留最近的10条平台状态
+    if (platformStatusPackets.value.length > 10) {
+      platformStatusPackets.value = platformStatusPackets.value.slice(-10);
+    }
+  } else if (packageType === 0x2A) {
+    // 平台命令包 (PackageType_PlatformCommand)
+    platformCmdPackets.value.push(packet);
+
+    // 只保留最近的10条平台命令
+    if (platformCmdPackets.value.length > 10) {
+      platformCmdPackets.value = platformCmdPackets.value.slice(-10);
     }
   } else {
-    // 非心跳包正常显示
+    // 其他类型的包正常显示
     packets.value.push(packet);
   }
-  
-  scrollToBottom();
 };
 
 // 监听错误
@@ -848,19 +1119,16 @@ const handleError = (error: string) => {
   ElMessage.error(`组播错误: ${error}`);
 };
 
-// 监听数据包变化，自动滚动
-watch(packets, () => {
-  scrollToBottom();
-}, { deep: true });
+
 
 onMounted(async () => {
   // 设置事件监听
   window.electronAPI.multicast.onPacket(handlePacket);
   window.electronAPI.multicast.onError(handleError);
-  
+
   // 获取初始配置
   await loadConfig();
-  
+
   // 获取初始状态
   await updateStatus();
 });
@@ -876,4 +1144,4 @@ onUnmounted(() => {
 .el-form-item {
   margin-bottom: 0;
 }
-</style> 
+</style>

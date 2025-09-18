@@ -135,8 +135,8 @@ export class MulticastSenderService {
         throw new Error(`未找到protobuf定义目录，已尝试 ${pathList.length} 个路径: ${pathList.slice(0, 5).join(', ')}...`);
       }
 
-      // 加载 PlatformCmd 相关的protobuf定义
-      const requiredFiles = ['PublicStruct.proto', 'PlatformCmd.proto'];
+      // 加载 PlatformCmd 和 UavFlyStatusInfo 相关的protobuf定义
+      const requiredFiles = ['PublicStruct.proto', 'PlatformCmd.proto', 'UaviationSimulationStruct.proto'];
       const availableFiles: string[] = [];
 
       for (const file of requiredFiles) {
@@ -388,6 +388,236 @@ export class MulticastSenderService {
         }
       });
     });
+  }
+
+  public async syncTrajectoryWithPlatformData(data: { platformName: string; uavId: number; platformData: any }): Promise<void> {
+    try {
+      if (!this.root) {
+        throw new Error('Protobuf定义文件未加载，请先调用 initialize() 方法');
+      }
+
+      if (!this.socket) {
+        throw new Error('UDP socket未初始化，请先调用 initialize() 方法');
+      }
+
+      console.log('[MulticastSender] 开始同步轨迹数据 (使用平台数据):', data.platformName, 'UavId:', data.uavId);
+
+      // 查找 UavFlyStatusInfo 消息类型
+      let UavFlyStatusInfoType;
+      try {
+        UavFlyStatusInfoType = this.root.lookupType('UaviationSimulation.UavFlyStatusInfo');
+        console.log('[MulticastSender] ✅ 找到 UavFlyStatusInfoType');
+      } catch (e) {
+        console.error('[MulticastSender] ❌ 未找到 UavFlyStatusInfo 类型:', e);
+        throw new Error('未找到 UavFlyStatusInfo protobuf 定义，请确保加载了 UaviationSimulationStruct.proto');
+      }
+
+      // 从平台数据中提取位置和姿态信息
+      const platformData = data.platformData;
+      console.log('[MulticastSender] 接收到的平台数据:', JSON.stringify(platformData, null, 2));
+      
+      const platformBase = platformData.base || {};
+      console.log('[MulticastSender] 平台基础数据:', JSON.stringify(platformBase, null, 2));
+      
+      // 提取位置信息 (location字段)
+      const location = platformBase.location || {};
+      console.log('[MulticastSender] 位置信息:', JSON.stringify(location, null, 2));
+      
+      // 检查是否有有效的位置数据
+      if (!location.longitude || !location.latitude) {
+        console.log('[MulticastSender] ⚠️ 平台缺少有效的位置数据，跳过轨迹同步');
+        throw new Error('平台缺少有效的位置数据 (经纬度)');
+      }
+      
+      const coord = {
+        longitude: location.longitude,
+        latitude: location.latitude,
+        altitude: location.altitude || 0
+      };
+
+      // 提取姿态信息 (如果没有姿态数据，使用0作为默认值)
+      const attitudeInfo = {
+        roll: platformBase.roll || 0,
+        pitch: platformBase.pitch || 0,
+        yaw: platformBase.yaw || 0,
+        speed: platformBase.speed || 0,
+        height: coord.altitude
+      };
+      
+      console.log('[MulticastSender] ✅ 使用真实平台数据:', {
+        位置: coord,
+        姿态: attitudeInfo
+      });
+
+      // 创建飞行状态数据
+      const flyStatusData = {
+        uavID: data.uavId,
+        coord: coord,
+        attitudeInfo: attitudeInfo,
+        cylinderTemperatureInfo: {
+          temperature1: 85 + Math.random() * 2,
+          temperature2: 86 + Math.random() * 2,
+          temperature3: 84 + Math.random() * 2,
+          temperature4: 85 + Math.random() * 2
+        },
+        engineDisplay: {
+          throttle_butterfly: 75,
+          rotate_speed: 2500,
+          oil_quantity: 90 - (Date.now() % 100000) * 0.0001
+        },
+        flyWarningInfo: {
+          fly_stop_state: 0,
+          height_state: 0,
+          speed_state: 0,
+          atttiude_state: 0,
+          engine_state: 0
+        },
+        otherInfoExtra: {
+          currentExecuteState: `同步自${data.platformName}`,
+          satNavEnabled: true,
+          securityBoundaryEnabled: true
+        }
+      };
+
+      console.log('[MulticastSender] 创建飞行状态数据:', {
+        uavID: flyStatusData.uavID,
+        coord: flyStatusData.coord,
+        attitude: flyStatusData.attitudeInfo
+      });
+
+      // 创建并编码protobuf消息
+      const message = UavFlyStatusInfoType.create(flyStatusData);
+      const protobufBuffer = UavFlyStatusInfoType.encode(message).finish();
+      
+      console.log('[MulticastSender] Protobuf编码后大小:', protobufBuffer.length, '字节');
+
+      // 构造完整的数据包
+      const protocolID = 0x01;
+      const packageType = 0x01;
+      const size = protobufBuffer.length;
+
+      const header = Buffer.alloc(8);
+      header[0] = 0xAA;
+      header[1] = 0x55;
+      header[2] = protocolID;
+      header[3] = packageType;
+      header.writeUInt32LE(size, 4);
+
+      const fullPacket = Buffer.concat([header, protobufBuffer]);
+
+      // 发送数据包
+      await this.sendPacket(fullPacket);
+
+      console.log('[MulticastSender] ✅ 轨迹同步数据发送成功 (使用平台数据)');
+    } catch (error) {
+      console.error('[MulticastSender] ❌ 同步轨迹失败 (使用平台数据):', error);
+      throw error;
+    }
+  }
+
+  public async syncTrajectory(data: { platformName: string; uavId: number }): Promise<void> {
+    try {
+      if (!this.root) {
+        throw new Error('Protobuf定义文件未加载，请先调用 initialize() 方法');
+      }
+
+      if (!this.socket) {
+        throw new Error('UDP socket未初始化，请先调用 initialize() 方法');
+      }
+
+      console.log('[MulticastSender] 开始同步轨迹数据:', data);
+
+      // 查找 UavFlyStatusInfo 消息类型
+      let UavFlyStatusInfoType;
+      try {
+        UavFlyStatusInfoType = this.root.lookupType('UaviationSimulation.UavFlyStatusInfo');
+        console.log('[MulticastSender] ✅ 找到 UavFlyStatusInfoType');
+      } catch (e) {
+        console.error('[MulticastSender] ❌ 未找到 UavFlyStatusInfo 类型:', e);
+        throw new Error('未找到 UavFlyStatusInfo protobuf 定义，请确保加载了 UaviationSimulationStruct.proto');
+      }
+
+      // 创建模拟的飞行状态数据（基于测试脚本的格式）
+      const flyStatusData = {
+        uavID: data.uavId,
+        coord: {
+          longitude: 106.319248 + Math.random() * 0.01, // 模拟位置变化
+          latitude: 36.221109 + Math.random() * 0.01,
+          altitude: 1000 + Math.random() * 200
+        },
+        attitudeInfo: {
+          roll: Math.sin(Date.now() * 0.001) * 2,    // 轻微横滚 ±2°
+          pitch: Math.sin(Date.now() * 0.0008) * 1,  // 轻微俯仰 ±1°
+          yaw: 45 + Math.random() * 90,              // 随机航向
+          speed: 120,
+          height: 1000 + Math.random() * 200
+        },
+        cylinderTemperatureInfo: {
+          temperature1: 85 + Math.random() * 2,
+          temperature2: 86 + Math.random() * 2,
+          temperature3: 84 + Math.random() * 2,
+          temperature4: 85 + Math.random() * 2
+        },
+        engineDisplay: {
+          throttle_butterfly: 75,
+          rotate_speed: 2500,
+          oil_quantity: 90 - (Date.now() % 100000) * 0.0001 // 缓慢消耗
+        },
+        flyWarningInfo: {
+          fly_stop_state: 0,
+          height_state: 0,
+          speed_state: 0,
+          atttiude_state: 0,
+          engine_state: 0
+        },
+        otherInfoExtra: {
+          currentExecuteState: `同步自${data.platformName}`,
+          satNavEnabled: true,
+          securityBoundaryEnabled: true
+        }
+      };
+
+      console.log('[MulticastSender] 创建飞行状态数据:', flyStatusData);
+
+      // 创建并编码protobuf消息
+      const message = UavFlyStatusInfoType.create(flyStatusData);
+      const protobufBuffer = UavFlyStatusInfoType.encode(message).finish();
+      
+      console.log('[MulticastSender] Protobuf编码后大小:', protobufBuffer.length, '字节');
+
+      // 构造完整的数据包: 0xAA 0x55 + protocolID + packageType + size + protobufData
+      const protocolID = 0x01; // 协议ID
+      const packageType = 0x01; // 根据测试脚本，UavFlyStatusInfo 使用 0x01
+      const size = protobufBuffer.length;
+
+      // 创建包头
+      const header = Buffer.alloc(8);
+      header[0] = 0xAA; // 包头标识
+      header[1] = 0x55; // 包头标识
+      header[2] = protocolID; // 协议ID
+      header[3] = packageType; // 包类型
+      header.writeUInt32LE(size, 4); // protobuf数据长度（小端序）
+
+      // 组合完整数据包
+      const fullPacket = Buffer.concat([header, protobufBuffer]);
+
+      console.log('[MulticastSender] 轨迹数据包构造详情:', {
+        总长度: fullPacket.length,
+        包头: header.toString('hex'),
+        协议ID: `0x${protocolID.toString(16)}`,
+        包类型: `0x${packageType.toString(16)}`,
+        UavId: data.uavId,
+        平台名称: data.platformName
+      });
+
+      // 发送数据包
+      await this.sendPacket(fullPacket);
+
+      console.log('[MulticastSender] ✅ 轨迹同步数据发送成功');
+    } catch (error) {
+      console.error('[MulticastSender] ❌ 同步轨迹失败:', error);
+      throw error;
+    }
   }
 
   public close(): void {

@@ -63,8 +63,8 @@ message WayPointList{
 message  UavRouteUpload{	                     
 	required  int32  uavID              = 1;           //无人机ID
 	required  RouteType routeType       = 2;           //航线类型[巡航航线、回收航线、安全边界]
-        required  int32  wayPointSize       = 3;           //上传航点数量
-        repeated  WayPoint wayPointList     = 4;           //航点列表
+    required  int32  wayPointSize       = 3;           //上传航点数量
+    repeated  WayPoint wayPointList     = 4;           //航点列表
 };
 
 
@@ -145,7 +145,7 @@ message UavNavReplyInfo
 message UavRouteUploadReply 
 {
 	required int32  uavID            = 1;               //无人机ID
-        required RouteType routeType     = 2;               //航线类型[巡航航线、回收航线、安全边界、定点导航]
+    required RouteType routeType     = 2;               //航线类型[巡航航线、回收航线、安全边界、定点导航]
 	required bool   result           = 3;               //结果
 }
 

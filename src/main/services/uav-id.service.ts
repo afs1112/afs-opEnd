@@ -139,6 +139,12 @@ class UavIdService {
       // 更新当前ID
       config.currentId = id;
       
+      // 当手动设置UavId时，禁用自动生成
+      if (description && !description.includes('自动生成')) {
+        config.settings.autoGenerate = false;
+        console.log('[UavId] 手动设置UavId，已禁用自动生成');
+      }
+      
       // 添加到历史记录
       const record: UavIdRecord = {
         id,
@@ -157,6 +163,38 @@ class UavIdService {
       return this.saveConfig();
     } catch (error) {
       console.error('[UavId] 设置UavId失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 启用自动生成模式
+   */
+  public enableAutoGenerate(): boolean {
+    try {
+      const config = this.getConfig();
+      config.settings.autoGenerate = true;
+      this.config = config;
+      console.log('[UavId] 已启用自动生成模式');
+      return this.saveConfig();
+    } catch (error) {
+      console.error('[UavId] 启用自动生成失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 禁用自动生成模式
+   */
+  public disableAutoGenerate(): boolean {
+    try {
+      const config = this.getConfig();
+      config.settings.autoGenerate = false;
+      this.config = config;
+      console.log('[UavId] 已禁用自动生成模式');
+      return this.saveConfig();
+    } catch (error) {
+      console.error('[UavId] 禁用自动生成失败:', error);
       return false;
     }
   }

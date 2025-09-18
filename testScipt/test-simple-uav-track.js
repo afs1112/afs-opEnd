@@ -30,7 +30,7 @@ async function loadProtobuf() {
       path.join(protobufPath, 'PublicStruct.proto'),
       path.join(protobufPath, 'UaviationSimulationStruct.proto')
     ]);
-    
+
     UavFlyStatusInfo = root.lookupType('UaviationSimulation.UavFlyStatusInfo');
     console.log('✓ Protobuf加载成功');
   } catch (error) {
@@ -43,7 +43,7 @@ async function loadProtobuf() {
 function getCurrentPosition() {
   const current = flightPath[currentWaypointIndex];
   const next = flightPath[(currentWaypointIndex + 1) % flightPath.length];
-  
+
   return {
     latitude: current.lat + (next.lat - current.lat) * progress,
     longitude: current.lon + (next.lon - current.lon) * progress,
@@ -54,7 +54,7 @@ function getCurrentPosition() {
 // 更新航迹进度
 function updateProgress() {
   progress += 0.05; // 每次增加5%
-  
+
   if (progress >= 1.0) {
     progress = 0;
     currentWaypointIndex = (currentWaypointIndex + 1) % flightPath.length;
@@ -65,26 +65,26 @@ function updateProgress() {
 // 创建符合协议格式的数据包
 function createProtocolPacket(protobufData, packageType = 0x01, protocolID = 0x01) {
   const dataLength = protobufData.length;
-  
+
   // 创建协议头: AA55 + 协议ID + 包类型 + 数据长度(4字节小端序) + 数据
   const packet = Buffer.allocUnsafe(8 + dataLength);
-  
+
   packet[0] = 0xAA;  // 协议头1
   packet[1] = 0x55;  // 协议头2
   packet[2] = protocolID;  // 协议ID
   packet[3] = packageType; // 包类型
   packet.writeUInt32LE(dataLength, 4); // 数据长度(小端序)
-  
+
   // 复制protobuf数据
   protobufData.copy(packet, 8);
-  
+
   return packet;
 }
 
 // 创建飞行状态数据
 function createFlyStatusMessage() {
   const position = getCurrentPosition();
-  
+
   const data = {
     uavID: 0,
     coord: {
@@ -126,7 +126,7 @@ function createFlyStatusMessage() {
 
   const message = UavFlyStatusInfo.create(data);
   const protobufBuffer = UavFlyStatusInfo.encode(message).finish();
-  
+
   // 创建符合协议格式的完整数据包
   return createProtocolPacket(protobufBuffer, 0x01, 0x01);
 }
@@ -134,9 +134,9 @@ function createFlyStatusMessage() {
 // 发送数据
 function sendData() {
   updateProgress();
-  
+
   const packet = createFlyStatusMessage(); // 已经包含完整协议格式
-  
+
   sender.send(packet, MULTICAST_PORT, MULTICAST_ADDRESS, (err) => {
     if (err) {
       console.error('✗ 发送失败:', err);
@@ -152,7 +152,7 @@ function sendData() {
 
 async function main() {
   await loadProtobuf();
-  
+
   console.log('🚁 无人机航迹模拟器启动');
   console.log(`📡 组播地址: ${MULTICAST_ADDRESS}:${MULTICAST_PORT}`);
   console.log(`🆔 无人机ID: 1`);
@@ -162,7 +162,7 @@ async function main() {
 
   // 立即发送一次
   sendData();
-  
+
   // 每2秒发送一次
   const timer = setInterval(sendData, 2000);
 

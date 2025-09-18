@@ -40,6 +40,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     updateConfig: (address: string, port: number, interfaceAddr: string) => 
       ipcRenderer.invoke("multicast:updateConfig", address, port, interfaceAddr),
     sendPlatformCmd: (data: any) => ipcRenderer.invoke("multicast:sendPlatformCmd", data),
+    syncTrajectory: (data: { platformName: string; uavId: number }) => 
+      ipcRenderer.invoke("multicast:syncTrajectory", data),
+    syncTrajectoryWithPlatformData: (data: { platformName: string; uavId: number; platformData: any }) => 
+      ipcRenderer.invoke("multicast:syncTrajectoryWithPlatformData", data),
     onPacket: (callback: (packet: any) => void) => {
       ipcRenderer.on("multicast:packet", (_, packet) => callback(packet));
     },
@@ -69,7 +73,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("uav:setCurrentId", uavId, description),
     getHistory: () => ipcRenderer.invoke("uav:getHistory"),
     prepareForNavigation: () => ipcRenderer.invoke("uav:prepareForNavigation"),
+    enableAutoGenerate: () => ipcRenderer.invoke("uav:enableAutoGenerate"),
+    disableAutoGenerate: () => ipcRenderer.invoke("uav:disableAutoGenerate"),
   },
+
+  // 暴露ipcRenderer用于监听事件
+  ipcRenderer: {
+    on: (channel: string, listener: (...args: any[]) => void) => {
+      ipcRenderer.on(channel, listener);
+    },
+    send: (channel: string, ...args: any[]) => {
+      ipcRenderer.send(channel, ...args);
+    },
+    removeAllListeners: (channel: string) => {
+      ipcRenderer.removeAllListeners(channel);
+    }
+  }
 });
 
 function ensureSerializable(data: any): any {

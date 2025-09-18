@@ -217,8 +217,60 @@ ipcMain.handle("multicast:sendPlatformCmd", async (_, data: PlatformCmdData) => 
   }
 });
 
+// 同步轨迹数据
+ipcMain.handle("multicast:syncTrajectory", async (_, data: { platformName: string; uavId: number }) => {
+  try {
+    // 检查服务是否已初始化
+    if (!multicastSenderService.isInitialized()) {
+      console.log('[Main] MulticastSender未初始化，尝试重新初始化...');
+      try {
+        await multicastSenderService.initialize();
+        console.log('[Main] ✅ MulticastSender重新初始化成功');
+      } catch (initError) {
+        console.error('[Main] ❌ MulticastSender重新初始化失败:', initError);
+        return { success: false, error: `初始化失败: ${initError instanceof Error ? initError.message : String(initError)}` };
+      }
+    }
+    
+    await multicastSenderService.syncTrajectory(data);
+    return { success: true };
+  } catch (error: any) {
+    console.error('同步轨迹失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 使用平台数据同步轨迹
+ipcMain.handle("multicast:syncTrajectoryWithPlatformData", async (_, data: { platformName: string; uavId: number; platformData: any }) => {
+  try {
+    // 检查服务是否已初始化
+    if (!multicastSenderService.isInitialized()) {
+      console.log('[Main] MulticastSender未初始化，尝试重新初始化...');
+      try {
+        await multicastSenderService.initialize();
+        console.log('[Main] ✅ MulticastSender重新初始化成功');
+      } catch (initError) {
+        console.error('[Main] ❌ MulticastSender重新初始化失败:', initError);
+        return { success: false, error: `初始化失败: ${initError instanceof Error ? initError.message : String(initError)}` };
+      }
+    }
+    
+    await multicastSenderService.syncTrajectoryWithPlatformData(data);
+    return { success: true };
+  } catch (error: any) {
+    console.error('同步轨迹失败:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // 监听组播数据包并转发给渲染进程
 multicastService.on('packet', (packet: MulticastPacket) => {
+  // 检查是否为航线上传数据包 (0x20)
+  if (packet.parsedPacket && packet.parsedPacket.packageType === 0x20) {
+    console.log('[Main] 🛩️ 接收到航线上传数据包，开始转换...');
+    handleRouteUpload(packet.parsedPacket);
+  }
+  
   const windows = BrowserWindow.getAllWindows();
   windows.forEach(window => {
     window.webContents.send('multicast:packet', packet);
@@ -231,6 +283,146 @@ multicastService.on('error', (error) => {
     window.webContents.send('multicast:error', error.message);
   });
 });
+
+// 处理航线上传数据包，转换为PlatformCmd格式
+async function handleRouteUpload(parsedPacket: any) {
+  // 获取所有窗口，避免重复声明
+  const allWindows = BrowserWindow.getAllWindows();
+  
+  try {
+    const routeData = parsedPacket.parsedData;
+    console.log('[RouteConverter] 航线数据:', JSON.stringify(routeData, null, 2));
+    
+    if (!routeData || !routeData.wayPointList || routeData.wayPointList.length === 0) {
+      console.log('[RouteConverter] ⚠️ 航线数据为空，跳过转换');
+      return;
+    }
+
+    // 获取系统当前的UavId
+    const currentUavIdResult = uavIdService.getCurrentUavId();
+    const currentUavId = parseInt(currentUavIdResult);
+    const routeUavId = routeData.uavID;
+
+    console.log('[RouteConverter] UavId验证:', {
+      系统UavId: currentUavId,
+      航线UavId: routeUavId,
+      匹配: currentUavId === routeUavId
+    });
+
+    // 只有UavId匹配时才进行转换
+    if (currentUavId !== routeUavId) {
+      console.log('[RouteConverter] ⚠️ UavId不匹配，跳过航线转换');
+      console.log(`[RouteConverter] 系统UavId: ${currentUavId}, 航线UavId: ${routeUavId}`);
+      
+      // 通知渲染进程UavId不匹配
+      allWindows.forEach(window => {
+        window.webContents.send('route:uavIdMismatch', {
+          systemUavId: currentUavId,
+          routeUavId: routeUavId
+        });
+      });
+      return;
+    }
+
+    // 请求渲染进程提供当前选择的平台名称
+    if (allWindows.length === 0) {
+      console.log('[RouteConverter] ⚠️ 没有活动窗口，无法获取选择的平台');
+      return;
+    }
+
+    // 向渲染进程请求当前选择的平台名称
+    const selectedPlatform = await new Promise<string>((resolve) => {
+      const window = allWindows[0];
+      
+      // 设置超时
+      const timeout = setTimeout(() => {
+        resolve('');
+      }, 5000);
+
+      // 监听响应
+      const responseHandler = (event: any, platformName: string) => {
+        clearTimeout(timeout);
+        ipcMain.removeListener('route:selectedPlatformResponse', responseHandler);
+        resolve(platformName);
+      };
+
+      ipcMain.once('route:selectedPlatformResponse', responseHandler);
+      
+      // 请求平台名称
+      window.webContents.send('route:requestSelectedPlatform');
+    });
+
+    if (!selectedPlatform) {
+      console.log('[RouteConverter] ⚠️ 未选择平台，跳过航线转换');
+      
+      // 通知渲染进程需要选择平台
+      allWindows.forEach(window => {
+        window.webContents.send('route:noPlatformSelected', {
+          uavId: routeUavId
+        });
+      });
+      return;
+    }
+
+    console.log('[RouteConverter] 使用选择的平台名称:', selectedPlatform);
+
+    // 将UavNavMonitor.WayPoint转换为PublicStruct.WayPoint格式
+    const convertedRoute = routeData.wayPointList.map((waypoint: any, index: number) => {
+      const coord = waypoint.coord || {};
+      return {
+        longitude: coord.longitude || 0,
+        latitude: coord.latitude || 0,
+        altitude: coord.altitude || 0,
+        labelName: `航点${index + 1}`, // 使用顺序号填充label
+        speed: 10 // 默认速度
+      };
+    });
+
+    console.log('[RouteConverter] 转换后的航点:', JSON.stringify(convertedRoute, null, 2));
+
+    // 构造PlatformCmd数据
+    const platformCmdData = {
+      commandID: Date.now(),
+      platformName: selectedPlatform, // 使用命令测试面板选择的平台名称
+      command: 6, // Uav_Nav
+      navParam: {
+        route: convertedRoute
+      }
+    };
+
+    console.log('[RouteConverter] 准备发送PlatformCmd:', JSON.stringify(platformCmdData, null, 2));
+
+    // 检查发送服务是否已初始化
+    if (!multicastSenderService.isInitialized()) {
+      console.log('[RouteConverter] MulticastSender未初始化，尝试初始化...');
+      await multicastSenderService.initialize();
+    }
+
+    // 发送转换后的航线命令
+    await multicastSenderService.sendPlatformCmd(platformCmdData);
+    
+    console.log('[RouteConverter] ✅ 航线转换并发送成功');
+    
+    // 通知渲染进程显示转换成功消息
+    allWindows.forEach(window => {
+      window.webContents.send('route:converted', {
+        uavId: routeData.uavID,
+        waypointCount: convertedRoute.length,
+        routeType: routeData.routeType
+      });
+    });
+
+  } catch (error) {
+    console.error('[RouteConverter] ❌ 航线转换失败:', error);
+    
+    // 通知渲染进程转换失败
+    allWindows.forEach(window => {
+      window.webContents.send('route:convertError', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    });
+  }
+}
 
 ipcMain.handle("database:query", (_, sql, params) => {
   const stmt = dbService.db.prepare(sql);
@@ -807,6 +999,24 @@ ipcMain.handle("uav:getHistory", () => {
   try {
     const history = uavIdService.getHistory();
     return { success: true, history };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("uav:enableAutoGenerate", () => {
+  try {
+    const success = uavIdService.enableAutoGenerate();
+    return { success, message: success ? "自动生成已启用" : "启用自动生成失败" };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("uav:disableAutoGenerate", () => {
+  try {
+    const success = uavIdService.disableAutoGenerate();
+    return { success, message: success ? "自动生成已禁用" : "禁用自动生成失败" };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

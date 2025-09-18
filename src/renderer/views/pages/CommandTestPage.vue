@@ -7,91 +7,78 @@
         <!-- 平台选择 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">平台</label>
-          <el-select 
-            v-model="selectedPlatform" 
-            placeholder="选择平台"
-            @change="onPlatformChange"
-            class="w-full"
-          >
-            <el-option
-              v-for="platform in platforms"
-              :key="platform.name"
-              :label="platform.name"
-              :value="platform.name"
-            />
+          <el-select v-model="selectedPlatform" placeholder="选择平台" @change="onPlatformChange" class="w-full">
+            <el-option v-for="platform in platforms" :key="platform.name" :label="platform.name"
+              :value="platform.name" />
           </el-select>
         </div>
 
         <!-- 通信组件选择 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">通信组件</label>
-          <el-select 
-            v-model="selectedComm" 
-            placeholder="选择通信组件"
-            class="w-full"
-            :disabled="!selectedPlatform"
-          >
-            <el-option
-              v-for="comm in currentComms"
-              :key="comm.name"
-              :label="comm.name"
-              :value="comm.name"
-            />
+          <el-select v-model="selectedComm" placeholder="选择通信组件" class="w-full" :disabled="!selectedPlatform">
+            <el-option v-for="comm in currentComms" :key="comm.name" :label="comm.name" :value="comm.name" />
           </el-select>
         </div>
 
         <!-- 传感器选择 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">传感器</label>
-          <el-select 
-            v-model="selectedSensor" 
-            placeholder="选择传感器"
-            class="w-full"
-            :disabled="!selectedPlatform"
-          >
-            <el-option
-              v-for="sensor in currentSensors"
-              :key="sensor.name"
-              :label="sensor.name"
-              :value="sensor.name"
-            />
+          <el-select v-model="selectedSensor" placeholder="选择传感器" class="w-full" :disabled="!selectedPlatform">
+            <el-option v-for="sensor in currentSensors" :key="sensor.name" :label="sensor.name" :value="sensor.name" />
           </el-select>
         </div>
 
         <!-- 武器选择 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">武器</label>
-          <el-select 
-            v-model="selectedWeapon" 
-            placeholder="选择武器"
-            class="w-full"
-            :disabled="!selectedPlatform"
-          >
-            <el-option
-              v-for="weapon in currentWeapons"
-              :key="weapon.name"
-              :label="weapon.name"
-              :value="weapon.name"
-            />
+          <el-select v-model="selectedWeapon" placeholder="选择武器" class="w-full" :disabled="!selectedPlatform">
+            <el-option v-for="weapon in currentWeapons" :key="weapon.name" :label="weapon.name" :value="weapon.name" />
           </el-select>
         </div>
 
         <!-- 目标选择 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">目标</label>
-          <el-select 
-            v-model="selectedTarget" 
-            placeholder="选择目标"
-            class="w-full"
-            :disabled="!selectedPlatform"
-          >
-            <el-option
-              v-for="track in currentTracks"
-              :key="track.targetName"
-              :label="track.targetName"
-              :value="track.targetName"
-            />
+          <el-select v-model="selectedTarget" placeholder="选择目标" class="w-full" :disabled="!selectedPlatform">
+            <el-option v-for="track in currentTracks" :key="track.targetName" :label="track.targetName"
+              :value="track.targetName" />
           </el-select>
+        </div>
+
+      </div>
+
+      <!-- UavId设置区域 -->
+      <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium text-gray-700">
+              UavId设置 
+              <span class="text-xs text-gray-500">(系统: {{ systemUavId || '未设置' }})</span>
+            </label>
+            <div class="flex gap-2">
+              <el-input 
+                v-model="currentUavId" 
+                placeholder="输入4位数ID" 
+                style="width: 120px"
+                maxlength="4"
+                @input="validateUavId"
+              />
+              <el-button size="small" @click="generateNewUavId" title="生成新ID">
+                🎲
+              </el-button>
+              <el-button size="small" @click="syncUavId" title="同步到系统"
+                :disabled="!currentUavId || currentUavId.length !== 4">
+                🔄
+              </el-button>
+              <el-button size="small" @click="loadSystemUavId" title="从系统加载">
+                📥
+              </el-button>
+            </div>
+          </div>
+          <div class="text-xs" :class="uavIdSyncStatus.color">
+            {{ uavIdSyncStatus.message }}
+          </div>
         </div>
       </div>
 
@@ -99,11 +86,12 @@
       <div class="mt-4 p-3 bg-gray-50 rounded-lg">
         <div class="text-sm text-gray-600">
           <span class="font-medium">当前选择：</span>
-          平台: {{ selectedPlatform || '未选择' }} | 
-          通信: {{ selectedComm || '未选择' }} | 
-          传感器: {{ selectedSensor || '未选择' }} | 
-          武器: {{ selectedWeapon || '未选择' }} | 
-          目标: {{ selectedTarget || '未选择' }}
+          平台: {{ selectedPlatform || '未选择' }} |
+          通信: {{ selectedComm || '未选择' }} |
+          传感器: {{ selectedSensor || '未选择' }} |
+          武器: {{ selectedWeapon || '未选择' }} |
+          目标: {{ selectedTarget || '未选择' }} |
+          UavId: {{ currentUavId || '未设置' }}
         </div>
       </div>
     </div>
@@ -111,7 +99,7 @@
     <!-- 命令控制区域 -->
     <div class="bg-white rounded-lg shadow-md p-6 flex-1">
       <h3 class="text-lg font-semibold mb-4 text-gray-800">平台命令控制</h3>
-      
+
       <div class="grid grid-cols-3 gap-6">
         <!-- 传感器控制命令 -->
         <div class="border rounded-lg p-4">
@@ -119,33 +107,21 @@
           <div class="space-y-2">
             <div class="text-xs text-gray-500 mb-2">
               当前传感器: {{ selectedSensor || '未选择' }}
-              <span v-if="selectedSensor" class="ml-2 px-2 py-1 rounded text-xs" 
-                    :class="isLaserSensor ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'">
+              <span v-if="selectedSensor" class="ml-2 px-2 py-1 rounded text-xs"
+                :class="isLaserSensor ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'">
                 {{ getCurrentSensorType() }}
               </span>
             </div>
-            <el-button 
-              type="primary" 
-              @click="sendSensorCommand('Uav_Sensor_On')"
-              :disabled="!selectedPlatform || !selectedSensor"
-              class="w-full"
-            >
+            <el-button type="primary" @click="sendSensorCommand('Uav_Sensor_On')"
+              :disabled="!selectedPlatform || !selectedSensor" class="w-full">
               传感器开启
             </el-button>
-            <el-button 
-              type="warning" 
-              @click="sendSensorCommand('Uav_Sensor_Off')"
-              :disabled="!selectedPlatform || !selectedSensor"
-              class="w-full"
-            >
+            <el-button type="warning" @click="sendSensorCommand('Uav_Sensor_Off')"
+              :disabled="!selectedPlatform || !selectedSensor" class="w-full">
               传感器关闭
             </el-button>
-            <el-button 
-              type="info" 
-              @click="showSensorParamDialog('Uav_Sensor_Turn')"
-              :disabled="!selectedPlatform || !selectedSensor"
-              class="w-full"
-            >
+            <el-button type="info" @click="showSensorParamDialog('Uav_Sensor_Turn')"
+              :disabled="!selectedPlatform || !selectedSensor" class="w-full">
               传感器转向
             </el-button>
           </div>
@@ -158,20 +134,12 @@
             <div class="text-xs text-gray-500 mb-2">
               {{ isLaserSensor ? '激光传感器已选择' : '需要选择激光传感器' }}
             </div>
-            <el-button 
-              type="success" 
-              @click="sendLaserCommand('Uav_LazerPod_Lasing')"
-              :disabled="!selectedPlatform || !selectedSensor || !isLaserSensor"
-              class="w-full"
-            >
+            <el-button type="success" @click="sendLaserCommand('Uav_LazerPod_Lasing')"
+              :disabled="!selectedPlatform || !selectedSensor || !isLaserSensor" class="w-full">
               激光照射
             </el-button>
-            <el-button 
-              type="danger" 
-              @click="sendLaserCommand('Uav_LazerPod_Cease')"
-              :disabled="!selectedPlatform || !selectedSensor || !isLaserSensor"
-              class="w-full"
-            >
+            <el-button type="danger" @click="sendLaserCommand('Uav_LazerPod_Cease')"
+              :disabled="!selectedPlatform || !selectedSensor || !isLaserSensor" class="w-full">
               停止照射
             </el-button>
           </div>
@@ -181,21 +149,18 @@
         <div class="border rounded-lg p-4">
           <h4 class="font-medium text-gray-700 mb-3">导航控制</h4>
           <div class="space-y-2">
-            <el-button 
-              type="primary" 
-              @click="showNavParamDialog()"
-              :disabled="!selectedPlatform"
-              class="w-full"
-            >
+            <el-button type="primary" @click="showNavParamDialog()" :disabled="!selectedPlatform" class="w-full">
               航线规划
             </el-button>
-            <el-button 
-              type="success" 
-              @click="showSetSpeedDialog()"
-              :disabled="!selectedPlatform"
-              class="w-full"
-            >
+            <el-button type="success" @click="showSetSpeedDialog()" :disabled="!selectedPlatform" class="w-full">
               设置速度
+            </el-button>
+            <el-button type="info" @click="openNavigation" class="w-full">
+              打开导航软件
+            </el-button>
+            <el-button :type="isSyncingTrajectory ? 'danger' : 'warning'" @click="toggleTrajectorySync"
+              :disabled="!selectedPlatform" class="w-full">
+              {{ isSyncingTrajectory ? '停止同步' : '同步轨迹' }}
             </el-button>
           </div>
         </div>
@@ -204,20 +169,12 @@
         <div class="border rounded-lg p-4">
           <h4 class="font-medium text-gray-700 mb-3">火炮控制</h4>
           <div class="space-y-2">
-            <el-button 
-              type="success" 
-              @click="showTargetSetDialog()"
-              :disabled="!selectedPlatform || !selectedTarget"
-              class="w-full"
-            >
+            <el-button type="success" @click="showTargetSetDialog()" :disabled="!selectedPlatform || !selectedTarget"
+              class="w-full">
               目标装订
             </el-button>
-            <el-button 
-              type="danger" 
-              @click="showFireParamDialog()"
-              :disabled="!selectedPlatform || !selectedWeapon || !selectedTarget"
-              class="w-full"
-            >
+            <el-button type="danger" @click="showFireParamDialog()"
+              :disabled="!selectedPlatform || !selectedWeapon || !selectedTarget" class="w-full">
               火炮发射
             </el-button>
           </div>
@@ -344,13 +301,7 @@
           <el-input :value="selectedPlatform" disabled />
         </el-form-item>
         <el-form-item label="目标速度">
-          <el-input-number 
-            v-model="setSpeedForm.speed" 
-            :min="1" 
-            :max="100" 
-            :step="1"
-            class="w-full"
-          />
+          <el-input-number v-model="setSpeedForm.speed" :min="1" :max="100" :step="1" class="w-full" />
           <div class="text-xs text-gray-500 mt-1">单位: m/s，范围: 1-100</div>
         </el-form-item>
       </el-form>
@@ -371,6 +322,7 @@ interface Platform {
   type: string;
   side: string;
   group: string;
+  base:Object;
   comms: Array<{ name: string; type: string; }>;
   sensors: Array<{ name: string; type: string; }>;
   weapons: Array<{ name: string; type: string; quantity: number; }>;
@@ -390,7 +342,20 @@ const selectedComm = ref<string>('');
 const selectedSensor = ref<string>('');
 const selectedWeapon = ref<string>('');
 const selectedTarget = ref<string>('');
+const currentUavId = ref<string>('');
+const systemUavId = ref<string>('');
 const commandLogs = ref<CommandLog[]>([]);
+
+// 轨迹同步状态
+const isSyncingTrajectory = ref<boolean>(false);
+const syncTimer = ref<NodeJS.Timeout | null>(null);
+const hasRealPlatformData = ref<boolean>(false);
+
+// UavId同步状态
+const uavIdSyncStatus = reactive({
+  message: '输入4位数字自动同步',
+  color: 'text-gray-500'
+});
 
 // 对话框状态
 const sensorParamDialogVisible = ref(false);
@@ -450,8 +415,14 @@ const currentWeapons = computed(() => {
 });
 
 const currentTracks = computed(() => {
-  const platform = platforms.value.find(p => p.name === selectedPlatform.value);
-  return platform?.tracks || [];
+  // 忽略前提限制，展示所有 side=blue 的 platform 作为目标
+  return platforms.value
+    .filter(p => p.side?.toLowerCase() === 'blue')
+    .map(p => ({
+      sensorName: 'All',
+      targetName: p.name,
+      targetType: p.type
+    }));
 });
 
 // 判断当前选择的传感器是否为激光传感器
@@ -475,7 +446,7 @@ const onPlatformChange = () => {
   selectedSensor.value = '';
   selectedWeapon.value = '';
   selectedTarget.value = '';
-  
+
   addLog('info', `选择平台: ${selectedPlatform.value}`);
 };
 
@@ -485,7 +456,7 @@ const addLog = (type: CommandLog['type'], message: string) => {
     type,
     message
   });
-  
+
   // 保持最多50条记录
   if (commandLogs.value.length > 50) {
     commandLogs.value.pop();
@@ -535,10 +506,10 @@ const sendCommand = async (command: string) => {
 
     addLog('info', `发送命令: ${command} (${commandEnum}) 到平台 ${selectedPlatform.value}`);
     console.log('发送命令数据:', commandData);
-    
+
     // 发送组播命令
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `命令 ${command} 发送成功`);
       ElMessage.success(`命令发送成功: ${command}`);
@@ -574,9 +545,9 @@ const sendSensorCommand = async (command: string) => {
 
     addLog('info', `发送传感器命令: ${command} 到传感器 ${selectedSensor.value}`);
     console.log('发送传感器命令数据:', commandData);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `传感器命令 ${command} 发送成功`);
       ElMessage.success(`传感器命令发送成功: ${command}`);
@@ -612,9 +583,9 @@ const sendLaserCommand = async (command: string) => {
 
     addLog('info', `发送激光命令: ${command} 到传感器 ${selectedSensor.value}`);
     console.log('发送激光命令数据:', commandData);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `激光命令 ${command} 发送成功`);
       ElMessage.success(`激光命令发送成功: ${command}`);
@@ -658,9 +629,9 @@ const sendSensorParamCommand = async () => {
 
     addLog('info', `发送传感器转向命令: ${currentCommand.value}, 传感器: ${sensorParamForm.sensorName}, 方位角: ${sensorParamForm.azSlew}°, 俯仰角: ${sensorParamForm.elSlew}°`);
     console.log('发送传感器转向命令数据:', commandData);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `传感器转向命令发送成功`);
       ElMessage.success('传感器转向命令发送成功');
@@ -687,7 +658,7 @@ const showFireParamDialog = () => {
 const sendFireCommand = async () => {
   try {
     const commandEnum = PlatformCommandEnum['Arty_Fire'];
-    
+
     const commandData = {
       commandID: Date.now(),
       platformName: String(selectedPlatform.value),
@@ -700,9 +671,9 @@ const sendFireCommand = async () => {
     };
 
     addLog('info', `发送火力命令: 武器 ${fireParamForm.weaponName} 攻击目标 ${fireParamForm.targetName}, 发射 ${fireParamForm.quantity} 次`);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `火力命令发送成功`);
       ElMessage.success('火力命令发送成功');
@@ -727,7 +698,7 @@ const showTargetSetDialog = () => {
 const sendTargetSetCommand = async () => {
   try {
     const commandEnum = PlatformCommandEnum['Arty_Target_Set'];
-    
+
     const commandData = {
       commandID: Date.now(),
       platformName: String(selectedPlatform.value),
@@ -738,9 +709,9 @@ const sendTargetSetCommand = async () => {
     };
 
     addLog('info', `发送目标装订命令: 目标 ${targetSetForm.targetName}`);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `目标装订命令发送成功`);
       ElMessage.success('目标装订命令发送成功');
@@ -788,7 +759,7 @@ const sendNavCommand = async () => {
     }
 
     const commandEnum = PlatformCommandEnum['Uav_Nav'];
-    
+
     // 深度克隆航点数据，避免传递响应式对象
     const routeData = navParamForm.route.map(waypoint => ({
       longitude: Number(waypoint.longitude),
@@ -797,7 +768,7 @@ const sendNavCommand = async () => {
       labelName: String(waypoint.labelName),
       speed: Number(waypoint.speed)
     }));
-    
+
     const commandData = {
       commandID: Date.now(),
       platformName: selectedPlatform.value,
@@ -808,9 +779,9 @@ const sendNavCommand = async () => {
     };
 
     addLog('info', `发送导航命令: ${navParamForm.route.length} 个航点`);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `导航命令发送成功`);
       ElMessage.success('导航命令发送成功');
@@ -835,7 +806,7 @@ const showSetSpeedDialog = () => {
 const sendSetSpeedCommand = async () => {
   try {
     const commandEnum = PlatformCommandEnum['Uav_Set_Speed'];
-    
+
     const commandData = {
       commandID: Date.now(),
       platformName: String(selectedPlatform.value),
@@ -846,9 +817,9 @@ const sendSetSpeedCommand = async () => {
     };
 
     addLog('info', `发送速度设置命令: 平台 ${selectedPlatform.value} 设置速度为 ${setSpeedForm.speed} m/s`);
-    
+
     const result = await (window as any).electronAPI.multicast.sendPlatformCmd(commandData);
-    
+
     if (result.success) {
       addLog('success', `速度设置命令发送成功`);
       ElMessage.success('速度设置命令发送成功');
@@ -864,22 +835,282 @@ const sendSetSpeedCommand = async () => {
   }
 };
 
+// UavId相关方法
+const validateUavId = (value: string) => {
+  // 只允许数字输入
+  const numericValue = value.replace(/\D/g, '');
+  if (numericValue.length <= 4) {
+    currentUavId.value = numericValue;
+    
+    // 更新同步状态显示
+    updateSyncStatus();
+    
+    // 双向绑定：当输入4位数字时自动同步到系统UavId (异步执行，不阻塞输入)
+    if (numericValue.length === 4) {
+      autoSyncToSystem(numericValue);
+    }
+  }
+};
+
+// 自动同步到系统 (异步执行，不阻塞UI)
+const autoSyncToSystem = async (uavId: string) => {
+  try {
+    await (window as any).electronAPI.uav.setCurrentId(uavId, '测试页面手动设置');
+    systemUavId.value = uavId;
+    console.log(`[UavId双向绑定] 已同步到系统: ${uavId}`);
+    addLog('info', `UavId已自动同步: ${uavId}`);
+    updateSyncStatus();
+  } catch (error) {
+    console.error('[UavId双向绑定] 同步失败:', error);
+    updateSyncStatus();
+  }
+};
+
+const generateNewUavId = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.generateId();
+    if (result.success) {
+      currentUavId.value = result.uavId;
+      systemUavId.value = result.uavId;
+      addLog('success', `生成新的UavId: ${result.uavId}`);
+      ElMessage.success(`新UavId已生成: ${result.uavId}`);
+
+      // 设置为当前ID
+      await (window as any).electronAPI.uav.setCurrentId(result.uavId, '手动生成');
+      updateSyncStatus();
+    } else {
+      addLog('error', `生成UavId失败: ${result.error}`);
+      ElMessage.error(`生成失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `生成UavId时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+const loadCurrentUavId = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.getCurrentId();
+    if (result.success && result.uavId) {
+      currentUavId.value = result.uavId;
+      systemUavId.value = result.uavId;
+      updateSyncStatus();
+    }
+  } catch (error) {
+    console.error('加载当前UavId失败:', error);
+  }
+};
+
+// 手动同步UavId到系统
+const syncUavId = async () => {
+  if (!currentUavId.value || currentUavId.value.length !== 4) {
+    ElMessage.warning('请输入4位数字的UavId');
+    return;
+  }
+
+  try {
+    await (window as any).electronAPI.uav.setCurrentId(currentUavId.value, '测试页面手动设置');
+    systemUavId.value = currentUavId.value;
+    updateSyncStatus();
+    addLog('success', `UavId已手动同步: ${currentUavId.value}`);
+    ElMessage.success(`UavId已同步到系统: ${currentUavId.value}`);
+  } catch (error: any) {
+    addLog('error', `UavId同步失败: ${error.message}`);
+    ElMessage.error(`同步失败: ${error.message}`);
+  }
+};
+
+// 从系统加载UavId
+const loadSystemUavId = async () => {
+  try {
+    const result = await (window as any).electronAPI.uav.getCurrentId();
+    if (result.success && result.uavId) {
+      currentUavId.value = result.uavId;
+      systemUavId.value = result.uavId;
+      updateSyncStatus();
+      addLog('info', `从系统加载UavId: ${result.uavId}`);
+      ElMessage.success(`已从系统加载UavId: ${result.uavId}`);
+    } else {
+      ElMessage.warning('系统中没有设置UavId');
+    }
+  } catch (error: any) {
+    addLog('error', `加载系统UavId失败: ${error.message}`);
+    ElMessage.error(`加载失败: ${error.message}`);
+  }
+};
+
+// 更新同步状态显示
+const updateSyncStatus = () => {
+  if (!currentUavId.value) {
+    uavIdSyncStatus.message = '输入4位数字自动同步';
+    uavIdSyncStatus.color = 'text-gray-500';
+  } else if (currentUavId.value.length !== 4) {
+    uavIdSyncStatus.message = '需要4位数字';
+    uavIdSyncStatus.color = 'text-orange-500';
+  } else if (currentUavId.value === systemUavId.value) {
+    uavIdSyncStatus.message = '✓ 已同步';
+    uavIdSyncStatus.color = 'text-green-500';
+  } else {
+    uavIdSyncStatus.message = '⚠ 未同步到系统';
+    uavIdSyncStatus.color = 'text-red-500';
+  }
+};
+
+// 打开导航软件
+const openNavigation = async () => {
+  try {
+    addLog('info', '正在准备启动导航软件...');
+    const result = await (window as any).electronAPI.nav.openNavigation();
+
+    if (result.success) {
+      if (result.uavId) {
+        addLog('success', `导航软件启动成功，使用UavId: ${result.uavId}`);
+        ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
+      } else {
+        addLog('success', '导航软件启动成功');
+        ElMessage.success('导航软件已启动');
+      }
+    } else {
+      addLog('error', `导航软件启动失败: ${result.error}`);
+      ElMessage.error(`启动失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `启动导航软件时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 切换轨迹同步状态
+const toggleTrajectorySync = () => {
+  if (isSyncingTrajectory.value) {
+    stopTrajectorySync();
+  } else {
+    startTrajectorySync();
+  }
+};
+
+// 开始轨迹同步
+const startTrajectorySync = async () => {
+  try {
+    if (!selectedPlatform.value) {
+      ElMessage.warning('请先选择平台');
+      return;
+    }
+
+    if (!hasRealPlatformData.value) {
+      ElMessage.warning('请等待接收到真实的平台状态数据后再启动轨迹同步');
+      addLog('warning', '尚未接收到真实平台数据，无法启动轨迹同步');
+      return;
+    }
+
+    // 验证UavId
+    let uavId = 0;
+    if (currentUavId.value) {
+      uavId = parseInt(currentUavId.value);
+    } else {
+      // 如果没有编辑的UavId，尝试从系统获取
+      const uavIdResult = await (window as any).electronAPI.uav.getCurrentId();
+      if (uavIdResult.success && uavIdResult.uavId) {
+        uavId = parseInt(uavIdResult.uavId);
+        currentUavId.value = uavIdResult.uavId;
+      } else {
+        ElMessage.warning('请先设置UavId或点击生成按钮');
+        return;
+      }
+    }
+
+    isSyncingTrajectory.value = true;
+    addLog('info', `开始持续同步平台 ${selectedPlatform.value} 的轨迹数据，UavId: ${uavId}`);
+    ElMessage.success(`轨迹同步已启动，UavId: ${uavId}`);
+
+    // 立即发送一次
+    await sendTrajectoryData();
+
+    // 设置定时器，每2秒发送一次
+    syncTimer.value = setInterval(async () => {
+      await sendTrajectoryData();
+    }, 2000);
+
+  } catch (error: any) {
+    const errorMsg = `启动轨迹同步时发生错误: ${error.message}`;
+    addLog('error', errorMsg);
+    ElMessage.error(errorMsg);
+    isSyncingTrajectory.value = false;
+  }
+};
+
+// 停止轨迹同步
+const stopTrajectorySync = () => {
+  if (syncTimer.value) {
+    clearInterval(syncTimer.value);
+    syncTimer.value = null;
+  }
+
+  isSyncingTrajectory.value = false;
+  addLog('info', `停止轨迹同步`);
+  ElMessage.info('轨迹同步已停止');
+};
+
+// 发送轨迹数据
+const sendTrajectoryData = async () => {
+  try {
+    if (!selectedPlatform.value || !currentUavId.value) {
+      return;
+    }
+
+    // 获取当前选择的平台数据
+    const platform = platforms.value.find(p => p.name === selectedPlatform.value);
+    if (!platform) {
+      console.log('[轨迹同步] 未找到平台数据，跳过本次发送');
+      return;
+    }
+
+    // 检查平台是否有真实的基础数据（包含位置信息）
+    if (!platform.base || !platform.base.location) {
+      console.log('[轨迹同步] 平台缺少位置数据，跳过本次发送');
+      return;
+    }
+
+    const uavId = parseInt(currentUavId.value);
+
+    // 将响应式对象转换为普通对象，避免IPC序列化问题
+    const platformDataPlain = JSON.parse(JSON.stringify(platform));
+
+    // 发送轨迹同步数据，传递平台数据用于提取位置和姿态信息
+    const result = await (window as any).electronAPI.multicast.syncTrajectoryWithPlatformData({
+      platformName: selectedPlatform.value,
+      uavId: uavId,
+      platformData: platformDataPlain
+    });
+
+    if (result.success) {
+      console.log(`[轨迹同步] 发送成功，UavId: ${uavId}`);
+    } else {
+      console.error(`[轨迹同步] 发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    console.error(`[轨迹同步] 发送数据时发生错误: ${error.message}`);
+  }
+};
+
 // 处理接收到的平台状态数据
 const handlePlatformStatus = (packet: any) => {
   try {
     console.log('[CommandTestPage] 收到组播数据包:', packet);
-    
+
     // 检查是否有解析后的protobuf数据
     if (packet.parsedPacket) {
       console.log('[CommandTestPage] 数据包类型:', `0x${packet.parsedPacket.packageType.toString(16)} (${packet.parsedPacket.packageTypeName})`);
     } else {
       console.log('[CommandTestPage] 数据包未解析或解析失败');
     }
-    
+
     if (packet.parsedPacket && packet.parsedPacket.packageType === 0x29) {
       const parsedData = packet.parsedPacket.parsedData;
       console.log('解析到平台状态数据:', parsedData);
-      
+
       if (parsedData && parsedData.platform && Array.isArray(parsedData.platform)) {
         // 更新平台列表
         const newPlatforms: Platform[] = parsedData.platform.map((platformData: any) => {
@@ -902,22 +1133,24 @@ const handlePlatformStatus = (packet: any) => {
             targetName: track.targetName || 'Unknown',
             targetType: track.targetType || 'Unknown'
           }));
-          
+
           return {
             name: base.name || 'Unknown',
             type: base.type || 'Unknown',
             side: base.side || 'Unknown',
             group: base.group || 'Unknown',
+            base:base,
             comms,
             sensors,
             weapons,
             tracks
           };
         });
-        
+
         platforms.value = newPlatforms;
+        hasRealPlatformData.value = true; // 标记已接收到真实平台数据
         addLog('success', `更新平台数据: ${newPlatforms.length} 个平台`);
-        
+
         console.log('[CommandTestPage] 平台列表已更新:', platforms.value);
         console.log('[CommandTestPage] 当前平台选项:', newPlatforms.map(p => p.name));
       }
@@ -930,69 +1163,69 @@ const handlePlatformStatus = (packet: any) => {
   }
 };
 
-// 初始化模拟数据
+// 初始化空的平台数据，等待真实数据
 const initMockData = () => {
-  platforms.value = [
-    {
-      name: 'UAV-001',
-      type: 'Drone',
-      side: 'Blue',
-      group: 'Alpha',
-      comms: [
-        { name: 'Radio-1', type: 'VHF' },
-        { name: 'DataLink-1', type: 'Tactical' }
-      ],
-      sensors: [
-        { name: 'EO-Pod-1', type: 'Electro-Optical' },
-        { name: 'Laser-Pod-1', type: 'Laser-Designator' },
-        { name: 'IR-Sensor-1', type: 'Infrared' }
-      ],
-      weapons: [
-        { name: 'Missile-1', type: 'Air-to-Ground', quantity: 4 },
-        { name: 'Gun-1', type: 'Cannon', quantity: 200 }
-      ],
-      tracks: [
-        { sensorName: 'EO-Pod-1', targetName: 'Target-001', targetType: 'Vehicle' },
-        { sensorName: 'Laser-Pod-1', targetName: 'Target-002', targetType: 'Building' },
-        { sensorName: 'IR-Sensor-1', targetName: 'Target-004', targetType: 'Personnel' }
-      ]
-    },
-    {
-      name: 'ARTY-001',
-      type: 'Artillery',
-      side: 'Blue',
-      group: 'Bravo',
-      comms: [
-        { name: 'Radio-2', type: 'HF' }
-      ],
-      sensors: [
-        { name: 'Fire-Control-Radar', type: 'Fire-Control' },
-        { name: 'Laser-Rangefinder', type: 'Laser-Rangefinder' }
-      ],
-      weapons: [
-        { name: 'Howitzer-1', type: '155mm', quantity: 50 }
-      ],
-      tracks: [
-        { sensorName: 'Fire-Control-Radar', targetName: 'Target-003', targetType: 'Infantry' }
-      ]
-    }
-  ];
+  platforms.value = [];
+  hasRealPlatformData.value = false;
+  addLog('info', '等待接收平台状态数据...');
 };
 
 // 组件挂载
 onMounted(() => {
   initMockData();
-  
+  loadCurrentUavId();
+
   // 监听组播数据
   console.log('[CommandTestPage] 设置组播数据监听');
   (window as any).electronAPI.multicast.onPacket(handlePlatformStatus);
-  
+
+  // 监听航线转换消息
+  (window as any).electronAPI.ipcRenderer.on('route:converted', (_, data: any) => {
+    addLog('success', `航线已转换: UAV-${data.uavId}, ${data.waypointCount}个航点`);
+    ElMessage.success(`航线转换成功！UAV-${data.uavId} 包含${data.waypointCount}个航点`);
+    console.log('[CommandTestPage] 航线转换成功:', data);
+  });
+
+  (window as any).electronAPI.ipcRenderer.on('route:convertError', (_, data: any) => {
+    addLog('error', `航线转换失败: ${data.error}`);
+    ElMessage.error(`航线转换失败: ${data.error}`);
+    console.error('[CommandTestPage] 航线转换失败:', data);
+  });
+
+  // 监听UavId不匹配消息
+  (window as any).electronAPI.ipcRenderer.on('route:uavIdMismatch', (_, data: any) => {
+    addLog('warning', `航线UavId不匹配: 系统${data.systemUavId} vs 航线${data.routeUavId}`);
+    ElMessage.warning(`航线UavId不匹配！系统UavId: ${data.systemUavId}, 航线UavId: ${data.routeUavId}`);
+    console.log('[CommandTestPage] UavId不匹配:', data);
+  });
+
+  // 监听未选择平台消息
+  (window as any).electronAPI.ipcRenderer.on('route:noPlatformSelected', (_, data: any) => {
+    addLog('warning', `接收到航线数据但未选择平台，UavId: ${data.uavId}`);
+    ElMessage.warning(`请先选择平台后再接收航线数据！UavId: ${data.uavId}`);
+    console.log('[CommandTestPage] 未选择平台:', data);
+  });
+
+  // 监听平台名称请求
+  (window as any).electronAPI.ipcRenderer.on('route:requestSelectedPlatform', () => {
+    console.log('[CommandTestPage] 收到平台名称请求，当前选择:', selectedPlatform.value);
+    
+    // 响应当前选择的平台名称
+    (window as any).electronAPI.ipcRenderer.send('route:selectedPlatformResponse', selectedPlatform.value);
+  });
+
   addLog('info', '命令测试页面已加载，开始监听组播数据');
   console.log('[CommandTestPage] 页面已挂载，初始平台数据:', platforms.value.map(p => p.name));
 });
 
 // 组件卸载
 onUnmounted(() => {
+  // 清理轨迹同步定时器
+  if (syncTimer.value) {
+    clearInterval(syncTimer.value);
+    syncTimer.value = null;
+  }
+
   (window as any).electronAPI.multicast.removeAllListeners('multicast:packet');
 });
 </script>
