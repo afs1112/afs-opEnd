@@ -14,6 +14,12 @@ enum PlatformCommand
   Arty_Target_Set = 7;  // 目标装订
   Arty_Fire = 8;        // 火炮发射
   Uav_Set_Speed = 9; //设定无人机速度
+  Uav_Lock_Target = 10;  //锁定目标
+}
+
+message LockParam {
+  optional string targetName = 1;
+  optional string sensorName = 2;
 }
 
 // 平台控制命令

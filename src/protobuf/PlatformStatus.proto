@@ -114,3 +114,9 @@ message Platforms
 	repeated Platform platform =1;
 	optional Environment evironment = 2;
 }	
+
+message PlatformDeleteParam
+{
+	optional string name = 1;
+	optional double updateTime = 2; 
+}
