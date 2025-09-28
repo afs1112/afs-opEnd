@@ -1,445 +1,452 @@
 <template>
-  <div class="flex flex-col h-full p-4 gap-4">
-    <!-- 顶部连接区域 -->
-    <div class="bg-white rounded-lg shadow-md p-4">
-      <div class="flex items-center gap-4">
-        <span class="text-lg font-semibold text-gray-800">操作模式-无人机</span>
-        <el-select v-model="selectedGroup" placeholder="选择分组" style="width: 150px;" @change="onGroupChange" clearable>
-          <el-option v-for="group in groupOptions" :key="group.value" :label="group.label" :value="group.value" />
-        </el-select>
-        <el-select v-model="selectedUav" placeholder="选择无人机" style="width: 150px;"
-          :disabled="!selectedGroup || uavOptions.length === 0" clearable>
-          <el-option v-for="uav in uavOptions" :key="uav.value" :label="uav.label" :value="uav.value" />
-        </el-select>
-        <el-input v-model="operatorName" placeholder="操作人" style="width: 120px;" />
-        <el-button type="primary" @click="connectToUav" :disabled="connectionStatus.isConnected">
-          {{ connectionStatus.isConnected ? '已连接' : '连接' }}
-        </el-button>
-        <div class="ml-auto flex items-center gap-4">
-          <div class="text-xs text-gray-600">
-            <div>平台数据: {{ platforms.length }} 个平台</div>
-            <div>无人机数量: {{ uavOptions.length }} 个</div>
+  <div class="uav-operation-page h-full p-4">
+    <!-- 顶部控制区域 -->
+    <div class="top-section mb-4">
+      <div class="top-content">
+        <!-- 操作按钮区域 -->
+        <div class="control-area">
+          <div class="control-row">
+            <!-- 左侧标题区域 -->
+            <div class="title-section">
+              <div class="seat-title">
+                无人机席位
+                <span v-if="isConnected" class="connected-info"
+                  >：已连接 {{ selectedUav }}</span
+                >
+              </div>
+            </div>
+
+            <!-- 中间演习时间 -->
+            <div class="exercise-time" v-if="isConnected">
+              演习时间：{{ environmentParams.exerciseTime }}
+            </div>
+
+            <!-- 右侧控制区域 -->
+            <div class="controls-section">
+              <el-select
+                v-model="selectedGroup"
+                placeholder="选择分组"
+                class="control-select short"
+                @change="handleSelectGroup"
+                clearable
+              >
+                <el-option
+                  v-for="group in groupOptions"
+                  :key="group.value"
+                  :label="group.label"
+                  :value="group.value"
+                />
+              </el-select>
+              <el-select
+                v-model="selectedUav"
+                placeholder="选择无人机"
+                class="control-select large"
+                @change="handleSelectUav"
+                :disabled="!selectedGroup"
+                clearable
+              >
+                <el-option
+                  v-for="uav in uavOptions"
+                  :key="uav.value"
+                  :label="uav.label"
+                  :value="uav.value"
+                />
+              </el-select>
+              <el-button
+                class="control-btn"
+                @click="handleConnectPlatform"
+                :type="isConnected ? 'warning' : 'primary'"
+              >
+                {{ isConnected ? "断开" : "连接平台" }}
+              </el-button>
+              <!-- 功能分隔符 -->
+              <div class="function-separator" v-if="isConnected"></div>
+              <el-button class="control-btn" @click="handleOpenSolution"
+                >打开方案</el-button
+              >
+            </div>
           </div>
-          <span class="text-sm" :class="connectionStatus.isConnected ? 'text-green-600' : 'text-red-600'">
-            {{ connectionStatus.isConnected ? '● 已连接到仿真端' : '○ 未连接' }}
-          </span>
         </div>
       </div>
     </div>
 
     <!-- 主要内容区域 -->
-    <div class="flex gap-4 flex-1">
+    <div class="main-content flex gap-4 flex-1">
       <!-- 左侧控制面板 -->
-      <div class="w-1/3 flex flex-col gap-4">
-        <!-- UavId 管理 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">UavId 管理</h3>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">当前ID:</span>
-              <span class="text-lg font-bold text-blue-600">{{ currentUavId || '未设置' }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">导航状态:</span>
-              <span class="text-sm font-medium" :class="navStatus.isRunning ? 'text-green-600' : 'text-gray-500'">
-                {{ navStatus.isRunning ? `运行中 (PID: ${navStatus.pid})` : '未运行' }}
-              </span>
-            </div>
-            <div class="flex gap-2">
-              <el-button size="small" @click="generateNewUavId" class="flex-1">
-                生成新ID
-              </el-button>
-              <el-button size="small" @click="showUavIdHistory" class="flex-1">
-                历史记录
-              </el-button>
-            </div>
-            <div class="text-xs text-gray-500 text-center">
-              启动导航软件时会自动生成并配置ID
-            </div>
-          </div>
-        </div>
-
-        <!-- 无人机状态 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">无人机状态</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold" :class="uavStatus.isConnected ? 'text-green-600' : 'text-red-600'">
-                {{ uavStatus.isConnected ? '已连接' : '未连接' }}
-              </div>
-              <div class="text-sm text-gray-500">连接状态</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600">{{ uavStatus.battery }}%</div>
-              <div class="text-sm text-gray-500">电池电量</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-purple-600">{{ uavStatus.altitude }}m</div>
-              <div class="text-sm text-gray-500">飞行高度</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-orange-600">{{ uavStatus.speed }}m/s</div>
-              <div class="text-sm text-gray-500">飞行速度</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 飞行控制 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行控制</h3>
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-2">
-              <el-button type="success" @click="takeOff" :disabled="!uavStatus.isConnected || uavStatus.isFlying">
-                起飞
-              </el-button>
-              <el-button type="warning" @click="land" :disabled="!uavStatus.isFlying">
-                降落
-              </el-button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <el-button type="info" @click="hover" :disabled="!uavStatus.isFlying">
-                悬停
-              </el-button>
-              <el-button type="danger" @click="emergencyStop">
-                紧急停止
-              </el-button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 飞行参数设置 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行参数</h3>
-          <div class="space-y-4">
-            <el-form-item label="目标高度 (m)">
-              <el-input-number v-model="flightParams.targetAltitude" :min="0" :max="1000" style="width: 100%" />
-            </el-form-item>
-            <el-form-item label="飞行速度 (m/s)">
-              <el-input-number v-model="flightParams.speed" :min="0.1" :max="20" :step="0.1" style="width: 100%" />
-            </el-form-item>
-            <el-form-item label="航向角 (°)">
-              <el-input-number v-model="flightParams.heading" :min="0" :max="360" style="width: 100%" />
-            </el-form-item>
-            <el-button type="primary" @click="setFlightParams" class="w-full">
-              设置参数
-            </el-button>
-          </div>
-        </div>
-
+      <div class="left-panel">
         <!-- 任务控制 -->
-        <div class="bg-white rounded-lg shadow-md p-6 flex-1">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">任务控制</h3>
-          <div class="space-y-2">
-            <el-button type="primary" @click="startMission" class="w-full" :disabled="!uavStatus.isConnected">
-              开始任务
+        <div class="task-control">
+          <div class="task-header">任务控制</div>
+
+          <!-- 航线规划 -->
+          <div class="control-group">
+            <el-button class="route-planning-btn" @click="handleRoutePlanning">
+              航线规划
             </el-button>
-            <el-button type="warning" @click="pauseMission" class="w-full">
-              暂停任务
-            </el-button>
-            <el-button type="info" @click="resumeMission" class="w-full">
-              恢复任务
-            </el-button>
-            <el-button type="danger" @click="abortMission" class="w-full">
-              终止任务
-            </el-button>
-            <el-button @click="returnToHome" class="w-full">
-              返航
-            </el-button>
-            <el-button type="success" @click="openNavigation" class="w-full" :disabled="navStatus.isRunning">
-              {{ navStatus.isRunning ? '导航软件运行中' : '打开导航软件' }}
-            </el-button>
-            <el-button type="danger" @click="stopNavigation" class="w-full" :disabled="!navStatus.isRunning">
-              停止导航软件
-            </el-button>
+          </div>
+          <div class="control-separator"></div>
+          <!-- 光电吊舱控制 -->
+          <div class="control-group">
+            <div class="control-item">
+              <span class="control-label">光电吊舱控制</span>
+              <div class="control-switch">
+                <span class="switch-label">关</span>
+                <el-switch
+                  v-model="optoElectronicPodEnabled"
+                  class="mx-2"
+                  @change="onOptoElectronicToggle"
+                />
+                <span class="switch-label">开</span>
+              </div>
+            </div>
+
+            <div class="control-item">
+              <span class="control-label">激光吊舱控制</span>
+              <div class="control-switch">
+                <span class="switch-label">关</span>
+                <el-switch
+                  v-model="laserPodEnabled"
+                  class="mx-2"
+                  @change="onLaserToggle"
+                />
+                <span class="switch-label">开</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作按钮组 -->
+          <div class="action-buttons">
+            <!-- 激光编码输入 -->
+            <div class="input-group mb-2">
+              <div class="input-wrapper">
+                <el-input
+                  v-model="laserCode"
+                  placeholder="请输入激光编码"
+                  :disabled="!isLaserCodeEditing"
+                  class="laser-input"
+                  @keyup.enter="handleInputLaserCode"
+                  @input="handleLaserCodeInput"
+                />
+                <el-button
+                  class="confirm-btn"
+                  @click="handleInputLaserCode"
+                  :type="isLaserCodeEditing ? 'primary' : 'default'"
+                >
+                  {{ isLaserCodeEditing ? "确定" : "编辑" }}
+                </el-button>
+              </div>
+            </div>
+
+            <!-- 激光倒计时输入 -->
+            <div class="input-group mb-2">
+              <div class="input-wrapper">
+                <el-input
+                  v-model="laserCountdown"
+                  placeholder="请输入倒计时(秒)"
+                  :disabled="!isCountdownEditing"
+                  class="laser-input"
+                  @keyup.enter="handleSetLaserCountdown"
+                  @input="handleCountdownInput"
+                />
+                <el-button
+                  class="confirm-btn"
+                  @click="handleSetLaserCountdown"
+                  :type="isCountdownEditing ? 'primary' : 'default'"
+                >
+                  {{ isCountdownEditing ? "确定" : "编辑" }}
+                </el-button>
+              </div>
+            </div>
+
+            <div class="button-row mb-2">
+              <el-button
+                class="action-btn"
+                @click="handleIrradiate"
+                :type="isIrradiating ? 'danger' : 'primary'"
+              >
+                <span v-if="isIrradiating"
+                  >照射 ({{ irradiationCountdown }})</span
+                >
+                <span v-else>照射</span>
+              </el-button>
+              <el-button class="action-btn" @click="handleStop">停止</el-button>
+            </div>
+
+            <!-- 转向按钮 -->
+            <div class="button-row mb-2">
+              <el-button class="action-btn full-width-btn" @click="handleTurn"
+                >转向</el-button
+              >
+            </div>
+
+            <!-- 照射控制与目标控制分隔符 -->
+            <div class="control-separator"></div>
+
+            <!-- 目标选择 -->
+            <div class="input-group mb-2">
+              <div class="target-select-wrapper">
+                <span class="target-label">选择目标：</span>
+                <el-select
+                  v-model="selectedTarget"
+                  placeholder="选择要锁定的目标"
+                  class="target-select"
+                  clearable
+                >
+                  <el-option
+                    v-for="target in targetOptions"
+                    :key="target.value"
+                    :label="target.label"
+                    :value="target.value"
+                  />
+                </el-select>
+              </div>
+            </div>
+
+            <!-- 锁定目标按钮 -->
+            <div class="button-row">
+              <el-button
+                class="action-btn full-width-btn"
+                @click="handleLockTarget"
+                :disabled="!selectedTarget"
+              >
+                锁定目标
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧显示区域 -->
-      <div class="flex-1 flex flex-col gap-4">
-        <!-- 实时数据显示 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">实时飞行数据</h3>
-          <div class="grid grid-cols-3 gap-6">
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-700">位置信息</div>
-              <div class="mt-2 space-y-1">
-                <div class="text-sm">经度: {{ uavStatus.position.longitude }}°</div>
-                <div class="text-sm">纬度: {{ uavStatus.position.latitude }}°</div>
-                <div class="text-sm">高度: {{ uavStatus.position.altitude }}m</div>
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-700">姿态信息</div>
-              <div class="mt-2 space-y-1">
-                <div class="text-sm">俯仰角: {{ uavStatus.attitude.pitch }}°</div>
-                <div class="text-sm">横滚角: {{ uavStatus.attitude.roll }}°</div>
-                <div class="text-sm">偏航角: {{ uavStatus.attitude.yaw }}°</div>
-              </div>
-            </div>
-            <div class="text-center">
-              <div class="text-lg font-semibold text-gray-700">速度信息</div>
-              <div class="mt-2 space-y-1">
-                <div class="text-sm">前向速度: {{ uavStatus.velocity.x }}m/s</div>
-                <div class="text-sm">右向速度: {{ uavStatus.velocity.y }}m/s</div>
-                <div class="text-sm">下向速度: {{ uavStatus.velocity.z }}m/s</div>
-              </div>
+      <!-- 右侧状态显示区域 -->
+      <div class="right-panel flex flex-col gap-4">
+        <!-- 气候环境 -->
+        <div class="status-card environment-status">
+          <div class="status-content">
+            <div class="status-title">气候环境</div>
+            <div class="status-info">
+              温度{{ environmentParams.temperature }}，气压{{
+                environmentParams.pressure
+              }}<br />
+              风力参数{{ environmentParams.windSpeed }}，降水参数{{
+                environmentParams.humidity
+              }}<br />
+              云层参数{{ environmentParams.cloudCover }}
             </div>
           </div>
         </div>
 
-        <!-- 地图显示区域 -->
-        <div class="bg-white rounded-lg shadow-md p-6 flex-1">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">飞行路径</h3>
-          <div class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
-            <div class="text-center text-gray-500">
-              <div class="text-6xl mb-4">🗺️</div>
-              <div class="text-lg">地图显示区域</div>
-              <div class="text-sm">(待实现)</div>
+        <!-- 平台状态 -->
+        <div class="status-card platform-status">
+          <div class="status-content">
+            <div class="status-title">平台状态</div>
+            <div class="status-info">
+              位置：{{ platformStatus.position.longitude }}
+              {{ platformStatus.position.latitude }}
+              {{ platformStatus.position.altitude }}<br />
+              姿态：俯仰{{ platformStatus.attitude.pitch }} 横滚{{
+                platformStatus.attitude.roll
+              }}
+              偏航{{ platformStatus.attitude.yaw }}
             </div>
           </div>
         </div>
 
-        <!-- 日志区域 -->
-        <div class="bg-white rounded-lg shadow-md p-6" style="height: 200px;">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">操作日志</h3>
-          <div class="h-32 overflow-y-auto bg-gray-50 rounded p-3 text-sm">
-            <div v-for="(log, index) in operationLogs" :key="index" class="mb-1">
-              <span class="text-gray-500">{{ formatTime(log.timestamp) }}</span>
-              <span class="ml-2" :class="getLogColor(log.type)">{{ log.message }}</span>
+        <!-- 载荷状态 -->
+        <div class="status-card payload-status">
+          <div class="status-content">
+            <div class="status-title">载荷状态</div>
+            <div class="status-info">
+              光电：{{ payloadStatus.optoElectronic.status }}、{{
+                payloadStatus.optoElectronic.power
+              }}、{{ payloadStatus.optoElectronic.type }}<br />
+              激光：{{ payloadStatus.laser.status }}、{{
+                payloadStatus.laser.power
+              }}、{{ payloadStatus.laser.type }}
             </div>
-            <div v-if="operationLogs.length === 0" class="text-gray-400 text-center py-4">
-              暂无操作记录
+          </div>
+        </div>
+
+        <!-- 目标状态 -->
+        <div class="status-card target-status">
+          <div class="status-content">
+            <div class="status-title">目标状态</div>
+            <div class="status-info">
+              名称：{{ targetStatus.name }}<br />
+              位置：{{ targetStatus.position.longitude }}
+              {{ targetStatus.position.latitude }}<br />
+              是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 底部协同报文区域 -->
+    <div class="bottom-panel mt-4">
+      <div class="report-header">
+        <el-button class="report-send-btn" @click="handleSendCooperationCommand"
+          >发送打击协同指令</el-button
+        >
+        <span class="report-title">报文面板</span>
+      </div>
+
+      <div class="report-content">
+        <div class="report-section">
+          <div class="report-messages">
+            <div
+              v-for="(msg, index) in cooperationMessages"
+              :key="index"
+              class="message-item"
+            >
+              {{ msg.time }} {{ msg.message }}
+            </div>
+            <div v-if="cooperationMessages.length === 0" class="message-item">
+              暂无协同报文
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
 
-interface UavStatus {
-  isConnected: boolean;
-  isFlying: boolean;
-  battery: number;
-  altitude: number;
-  speed: number;
+// 基础数据
+const optoElectronicPodEnabled = ref(false); // 光电吊舱控制开关
+const laserPodEnabled = ref(false); // 激光吊舱控制开关
+
+// 激光编码相关
+const laserCode = ref("");
+const isLaserCodeEditing = ref(true);
+
+// 激光倒计时相关
+const laserCountdown = ref("");
+const isCountdownEditing = ref(true);
+
+// 照射倒计时相关
+const isIrradiating = ref(false);
+const irradiationCountdown = ref(0);
+const irradiationTimer = ref<NodeJS.Timeout | null>(null);
+
+// 选择分组和无人机相关
+const selectedGroup = ref("");
+const selectedUav = ref("");
+const isConnected = ref(false); // 连接状态
+
+// 目标选择相关
+const selectedTarget = ref("");
+const targetOptions = ref([
+  { label: "敌方坦克-001", value: "tank_001" },
+  { label: "敌方装甲车-002", value: "apc_002" },
+  { label: "敌方雷达站-003", value: "radar_003" },
+  { label: "敌方指挥所-004", value: "hq_004" },
+  { label: "敌方防空阵地-005", value: "sam_005" },
+  { label: "敌方补给车-006", value: "supply_006" },
+]);
+const groupOptions = ref([
+  { label: "分组1", value: "group1" },
+  { label: "分组2", value: "group2" },
+  { label: "训练分组", value: "train_group" },
+]);
+const uavOptions = ref([
+  { label: "无人机-001", value: "uav001" },
+  { label: "无人机-002", value: "uav002" },
+  { label: "无人机-003", value: "uav003" },
+]);
+
+// 环境参数数据
+const environmentParams = reactive({
+  temperature: "25°C",
+  pressure: "1013hPa",
+  windSpeed: "3m/s",
+  humidity: "60%",
+  cloudCover: "20%",
+  exerciseTime: "14:30:25",
+});
+
+// 平台状态数据
+const platformStatus = reactive({
   position: {
-    longitude: number;
-    latitude: number;
-    altitude: number;
-  };
-  attitude: {
-    pitch: number;
-    roll: number;
-    yaw: number;
-  };
-  velocity: {
-    x: number;
-    y: number;
-    z: number;
-  };
-}
-
-interface FlightParams {
-  targetAltitude: number;
-  speed: number;
-  heading: number;
-}
-
-interface OperationLog {
-  timestamp: number;
-  type: 'info' | 'success' | 'warning' | 'error';
-  message: string;
-}
-
-// 平台信息接口
-interface Platform {
-  base: {
-    name: string;
-    type: string;
-    side: string;
-    group: string;
-    broken: boolean;
-    location: {
-      longitude: number;
-      latitude: number;
-      altitude: number;
-    };
-    roll: number;
-    pitch: number;
-    yaw: number;
-    speed: number;
-  };
-  updateTime: number;
-  // 其他字段...
-}
-
-// 分组选项接口
-interface GroupOption {
-  label: string;
-  value: string;
-}
-
-// 无人机选项接口
-interface UavOption {
-  label: string;
-  value: string;
-  platform: Platform;
-}
-
-// 连接状态接口
-interface ConnectionStatus {
-  isConnected: boolean;
-  simulationEndpoint: string;
-}
-
-const uavStatus = reactive<UavStatus>({
-  isConnected: false,
-  isFlying: false,
-  battery: 85,
-  altitude: 0,
-  speed: 0,
-  position: {
-    longitude: 116.397428,
-    latitude: 39.90923,
-    altitude: 0
+    longitude: "116.397428°",
+    latitude: "39.90923°",
+    altitude: "150m",
   },
   attitude: {
-    pitch: 0,
-    roll: 0,
-    yaw: 0
+    pitch: "5°",
+    roll: "2°",
+    yaw: "180°",
   },
-  velocity: {
-    x: 0,
-    y: 0,
-    z: 0
-  }
 });
 
-const flightParams = reactive<FlightParams>({
-  targetAltitude: 50,
-  speed: 5.0,
-  heading: 0
+// 载荷状态数据
+const payloadStatus = reactive({
+  optoElectronic: {
+    status: "正常",
+    power: "开",
+    type: "HD摄像头",
+  },
+  laser: {
+    status: "待机",
+    power: "关",
+    type: "测距激光",
+  },
 });
 
-const operationLogs = ref<OperationLog[]>([]);
-const currentUavId = ref<string>('');
-
-// 平台选择相关数据
-const selectedGroup = ref('');
-const selectedUav = ref('');
-const operatorName = ref('');
-const platforms = ref<Platform[]>([]);
-const lastUpdateTime = ref<number>(0);
-
-const connectionStatus = reactive<ConnectionStatus>({
-  isConnected: false,
-  simulationEndpoint: ''
+// 目标状态数据
+const targetStatus = reactive({
+  name: "目标-001",
+  position: {
+    longitude: "116.400000°",
+    latitude: "39.910000°",
+  },
+  destroyed: false,
 });
 
-// 导航软件状态
-const navStatus = ref({
-  isRunning: false,
-  pid: null as number | null,
-  startTime: null as number | null,
-  uptime: null as number | null
-});
+// 协同报文数据
+const cooperationMessages = ref([
+  {
+    time: "23:43:11",
+    message: "无人机发出协同打击报文",
+    type: "uav",
+  },
+  {
+    time: "23:48:22",
+    message: "火炮发出已打击报文",
+    type: "artillery",
+  },
+]);
 
-// 计算属性：可用的分组选项
-const groupOptions = computed<GroupOption[]>(() => {
-  const groups = new Set<string>();
+// 操作日志
+const operationLogs = ref<
+  {
+    timestamp: number;
+    type: "info" | "success" | "warning" | "error";
+    message: string;
+  }[]
+>([
+  {
+    timestamp: Date.now() - 300000,
+    type: "info" as const,
+    message: "系统初始化完成",
+  },
+  {
+    timestamp: Date.now() - 180000,
+    type: "success" as const,
+    message: "无人机连接成功",
+  },
+]);
 
-  platforms.value.forEach(platform => {
-    if (platform.base?.group && platform.base?.type === 'UAV01') {
-      groups.add(platform.base.group);
-    }
-  });
-
-  return Array.from(groups).map(group => ({
-    label: group,
-    value: group
-  }));
-});
-
-// 计算属性：当前分组下的无人机选项
-const uavOptions = computed<UavOption[]>(() => {
-  if (!selectedGroup.value) {
-    return [];
-  }
-
-  return platforms.value
-    .filter(platform =>
-      platform.base?.group === selectedGroup.value &&
-      platform.base?.type === 'UAV01' &&
-      !platform.base?.broken
-    )
-    .map(platform => ({
-      label: platform.base.name || '未命名无人机',
-      value: platform.base.name || '',
-      platform: platform
-    }));
-});
-
-// 监听分组变化，重置无人机选择
-const onGroupChange = () => {
-  selectedUav.value = '';
-  if (uavOptions.value.length === 1) {
-    // 如果只有一个无人机，自动选择
-    selectedUav.value = uavOptions.value[0].value;
-  }
-};
-
-// 连接到无人机
-const connectToUav = () => {
-  if (!selectedGroup.value || !selectedUav.value) {
-    ElMessage.warning('请选择分组和无人机');
-    return;
-  }
-
-  ElMessage.success(`正在连接到 ${selectedGroup.value} - ${selectedUav.value}`);
-  connectionStatus.isConnected = true;
-  connectionStatus.simulationEndpoint = `${selectedGroup.value}/${selectedUav.value}`;
-  uavStatus.isConnected = true;
-
-  addLog('success', `已连接到无人机: ${selectedUav.value} (分组: ${selectedGroup.value})`);
-
-  // TODO: 实际的连接逻辑
-};
-
-// 处理平台状态数据包
-const handlePlatformStatus = (packet: any) => {
-  try {
-    if (packet.parsedPacket?.packageType === 0x29) {
-      const parsedData = packet.parsedPacket.parsedData;
-
-      if (parsedData?.platform && Array.isArray(parsedData.platform)) {
-        // 更新平台数据
-        platforms.value = parsedData.platform;
-        lastUpdateTime.value = Date.now();
-
-        console.log('[UavOperationPage] 收到平台状态数据:', {
-          平台数量: parsedData.platform.length,
-          无人机数量: parsedData.platform.filter((p: any) => p.base?.type === 'UAV01').length,
-          分组数量: groupOptions.value.length
-        });
-      }
-    }
-  } catch (error) {
-    console.error('[UavOperationPage] 处理平台状态数据失败:', error);
-  }
-};
-
-// 添加操作日志
-const addLog = (type: OperationLog['type'], message: string) => {
+// 函数定义
+const addLog = (
+  type: "info" | "success" | "warning" | "error",
+  message: string
+) => {
   operationLogs.value.unshift({
     timestamp: Date.now(),
     type,
-    message
+    message,
   });
   // 保持最多50条记录
   if (operationLogs.value.length > 50) {
@@ -447,262 +454,720 @@ const addLog = (type: OperationLog['type'], message: string) => {
   }
 };
 
-// 格式化时间
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleTimeString();
 };
 
-// 获取日志颜色类
 const getLogColor = (type: string) => {
   switch (type) {
-    case 'success': return 'text-green-600';
-    case 'warning': return 'text-orange-600';
-    case 'error': return 'text-red-600';
-    default: return 'text-gray-700';
+    case "success":
+      return "text-green-600";
+    case "warning":
+      return "text-orange-600";
+    case "error":
+      return "text-red-600";
+    default:
+      return "text-gray-700";
   }
 };
 
-// 飞行控制函数
-const takeOff = () => {
-  addLog('info', '执行起飞指令');
-  ElMessage.success('起飞指令已发送');
-  // TODO: 实际的起飞逻辑
+// 按钮点击事件处理函数
+const handleSelectGroup = (value: string) => {
+  selectedGroup.value = value;
+  selectedUav.value = ""; // 重置无人机选择
+  addLog(
+    "info",
+    `选择分组: ${
+      groupOptions.value.find((g) => g.value === value)?.label || value
+    }`
+  );
+  ElMessage.info(
+    `已选择分组: ${
+      groupOptions.value.find((g) => g.value === value)?.label || value
+    }`
+  );
 };
 
-const land = () => {
-  addLog('info', '执行降落指令');
-  ElMessage.success('降落指令已发送');
-  // TODO: 实际的降落逻辑
+const handleSelectUav = (value: string) => {
+  selectedUav.value = value;
+  addLog(
+    "info",
+    `选择无人机: ${
+      uavOptions.value.find((u) => u.value === value)?.label || value
+    }`
+  );
+  ElMessage.info(
+    `已选择无人机: ${
+      uavOptions.value.find((u) => u.value === value)?.label || value
+    }`
+  );
 };
 
-const hover = () => {
-  addLog('info', '执行悬停指令');
-  ElMessage.success('悬停指令已发送');
-  // TODO: 实际的悬停逻辑
+const handleConnectPlatform = () => {
+  if (isConnected.value) {
+    // 断开连接
+    isConnected.value = false;
+    addLog(
+      "warning",
+      `已断开连接: ${selectedGroup.value} - ${selectedUav.value}`
+    );
+    ElMessage.warning("平台连接已断开");
+    return;
+  }
+
+  if (!selectedGroup.value || !selectedUav.value) {
+    ElMessage.warning("请先选择分组和无人机");
+    return;
+  }
+
+  isConnected.value = true;
+  addLog(
+    "success",
+    `已连接到平台: ${selectedGroup.value} - ${selectedUav.value}`
+  );
+  ElMessage.success("平台连接成功");
 };
 
-const emergencyStop = () => {
-  addLog('error', '执行紧急停止');
-  ElMessage.error('紧急停止指令已发送');
-  // TODO: 实际的紧急停止逻辑
+const handleOpenSolution = () => {
+  addLog("info", "点击打开方案按钮");
+  ElMessage.info("打开方案功能开发中...");
 };
 
-const setFlightParams = () => {
-  addLog('success', `设置飞行参数 - 高度:${flightParams.targetAltitude}m, 速度:${flightParams.speed}m/s, 航向:${flightParams.heading}°`);
-  ElMessage.success('飞行参数已设置');
-  // TODO: 实际的参数设置逻辑
+const handleRoutePlanning = () => {
+  addLog("info", "点击航线规划按钮");
+  ElMessage.info("航线规划功能开发中...");
 };
 
-// 任务控制函数
-const startMission = () => {
-  addLog('info', '开始执行任务');
-  ElMessage.success('任务已开始');
-  // TODO: 实际的任务开始逻辑
-};
-
-const pauseMission = () => {
-  addLog('warning', '暂停任务');
-  ElMessage.warning('任务已暂停');
-  // TODO: 实际的任务暂停逻辑
-};
-
-const resumeMission = () => {
-  addLog('info', '恢复任务');
-  ElMessage.success('任务已恢复');
-  // TODO: 实际的任务恢复逻辑
-};
-
-const abortMission = () => {
-  addLog('error', '终止任务');
-  ElMessage.error('任务已终止');
-  // TODO: 实际的任务终止逻辑
-};
-
-const returnToHome = () => {
-  addLog('info', '执行返航指令');
-  ElMessage.success('返航指令已发送');
-  // TODO: 实际的返航逻辑
-};
-
-// UavId 相关函数
-const loadCurrentUavId = async () => {
-  try {
-    const result = await (window as any).electronAPI.uav.getCurrentId();
-    if (result.success) {
-      currentUavId.value = result.uavId;
+const handleInputLaserCode = () => {
+  if (isLaserCodeEditing.value) {
+    // 确定模式
+    if (!laserCode.value.trim()) {
+      ElMessage.warning("请输入激光编码");
+      return;
     }
-  } catch (error) {
-    console.error('加载当前UavId失败:', error);
-  }
-};
-
-const generateNewUavId = async () => {
-  try {
-    const result = await (window as any).electronAPI.uav.generateId();
-    if (result.success) {
-      currentUavId.value = result.uavId;
-      addLog('success', `生成新的UavId: ${result.uavId}`);
-      ElMessage.success(`新UavId已生成: ${result.uavId}`);
-
-      // 设置为当前ID
-      await (window as any).electronAPI.uav.setCurrentId(result.uavId, '手动生成');
-    } else {
-      addLog('error', `生成UavId失败: ${result.error}`);
-      ElMessage.error(`生成失败: ${result.error}`);
-    }
-  } catch (error: any) {
-    const errorMsg = `生成UavId时发生错误: ${error.message}`;
-    addLog('error', errorMsg);
-    ElMessage.error(errorMsg);
-  }
-};
-
-const showUavIdHistory = async () => {
-  try {
-    const result = await (window as any).electronAPI.uav.getHistory();
-    if (result.success) {
-      const history = result.history || [];
-      if (history.length === 0) {
-        ElMessage.info('暂无历史记录');
-        return;
-      }
-
-      const historyText = history
-        .slice(0, 10) // 只显示最近10条
-        .map((record: any) => {
-          const date = new Date(record.generatedAt).toLocaleString();
-          const used = record.usedAt ? ' (已使用)' : '';
-          return `${record.id} - ${date}${used}`;
-        })
-        .join('\n');
-
-      ElMessageBox.alert(historyText, 'UavId 历史记录', {
-        confirmButtonText: '确定'
-      });
-    } else {
-      ElMessage.error(`获取历史记录失败: ${result.error}`);
-    }
-  } catch (error: any) {
-    ElMessage.error(`获取历史记录时发生错误: ${error.message}`);
-  }
-};
-
-const openNavigation = async () => {
-  try {
-    addLog('info', '正在检查导航软件状态...');
-    const result = await (window as any).electronAPI.nav.openNavigation();
-
-    if (result.success) {
-      if (result.uavId) {
-        currentUavId.value = result.uavId;
-
-        if (result.isNewProcess) {
-          addLog('success', `导航软件启动成功，PID: ${result.pid}，使用UavId: ${result.uavId}`);
-          ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
-        } else {
-          addLog('info', `导航软件已在运行，PID: ${result.pid}，已恢复到前台，UavId: ${result.uavId}`);
-          ElMessage.info(`导航软件已恢复到前台，UavId: ${result.uavId}`);
-        }
-      } else {
-        addLog('success', result.message || '导航软件处理成功');
-        ElMessage.success(result.message || '导航软件已就绪');
-      }
-    } else {
-      addLog('error', `导航软件启动失败: ${result.error}`);
-      ElMessage.error(`启动失败: ${result.error}`);
-    }
-  } catch (error: any) {
-    const errorMsg = `启动导航软件时发生错误: ${error.message}`;
-    addLog('error', errorMsg);
-    ElMessage.error(errorMsg);
-  }
-};
-
-// 获取导航软件状态
-const loadNavStatus = async () => {
-  try {
-    const result = await (window as any).electronAPI.nav.getStatus();
-    if (result.success) {
-      navStatus.value = result.status;
-    }
-  } catch (error) {
-    console.error('获取导航状态失败:', error);
-  }
-};
-
-// 停止导航软件
-const stopNavigation = async () => {
-  try {
-    addLog('info', '正在停止导航软件...');
-    const result = await (window as any).electronAPI.nav.stopNavigation();
-
-    if (result.success) {
-      addLog('success', '导航软件已停止');
-      ElMessage.success('导航软件已停止');
-      await loadNavStatus(); // 更新状态
-    } else {
-      addLog('error', `停止导航软件失败: ${result.error}`);
-      ElMessage.error(`停止失败: ${result.error}`);
-    }
-  } catch (error: any) {
-    const errorMsg = `停止导航软件时发生错误: ${error.message}`;
-    addLog('error', errorMsg);
-    ElMessage.error(errorMsg);
-  }
-};
-
-// 监听导航软件启动事件，自动更新UavId显示
-const handleNavUavIdUpdated = (data: any) => {
-  console.log('[UavOperationPage] 导航软件启动，UavId已更新:', data.uavId);
-  currentUavId.value = data.uavId;
-  addLog('info', `导航软件启动，UavId已更新: ${data.uavId}`);
-  ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
-
-  // 更新导航状态
-  loadNavStatus();
-};
-
-// 组件挂载时加载当前UavId并设置事件监听
-onMounted(() => {
-  loadCurrentUavId();
-  loadNavStatus();
-
-  // 监听平台状态数据
-  if (window.electronAPI?.multicast?.onPacket) {
-    window.electronAPI.multicast.onPacket(handlePlatformStatus);
-    console.log('[UavOperationPage] 已开始监听平台状态数据');
+    isLaserCodeEditing.value = false;
+    addLog("success", `激光编码已设置: ${laserCode.value}`);
+    ElMessage.success(`激光编码已设置: ${laserCode.value}`);
   } else {
-    console.warn('[UavOperationPage] multicast API 不可用');
+    // 编辑模式
+    isLaserCodeEditing.value = true;
+    addLog("info", "开始编辑激光编码");
+  }
+};
+
+const handleSetLaserCountdown = () => {
+  if (isCountdownEditing.value) {
+    // 确定模式
+    if (!laserCountdown.value.trim()) {
+      ElMessage.warning("请输入倒计时时间");
+      return;
+    }
+    isCountdownEditing.value = false;
+    addLog("success", `激光倒计时已设置: ${laserCountdown.value}秒`);
+    ElMessage.success(`激光倒计时已设置: ${laserCountdown.value}秒`);
+  } else {
+    // 编辑模式
+    isCountdownEditing.value = true;
+    addLog("info", "开始编辑激光倒计时");
+  }
+};
+
+const handleIrradiate = () => {
+  if (isIrradiating.value) {
+    // 当前正在照射，取消照射
+    if (irradiationTimer.value) {
+      clearInterval(irradiationTimer.value);
+      irradiationTimer.value = null;
+    }
+    isIrradiating.value = false;
+    irradiationCountdown.value = 0;
+    addLog("warning", "照射已取消");
+    ElMessage.warning("照射已取消");
+    return;
   }
 
-  // 监听导航启动事件
-  (window as any).electronAPI.ipcRenderer.on('nav:uavIdUpdated', (_, data: any) => {
-    handleNavUavIdUpdated(data);
+  // 检查是否设置了倒计时
+  if (!laserCountdown.value || parseInt(laserCountdown.value) <= 0) {
+    ElMessage.warning("请先设置激光倒计时");
+    return;
+  }
+
+  const countdownTime = parseInt(laserCountdown.value);
+  isIrradiating.value = true;
+  irradiationCountdown.value = countdownTime;
+
+  addLog("info", `开始照射倒计时: ${countdownTime}秒`);
+  ElMessage.info(`照射倒计时开始: ${countdownTime}秒`);
+
+  // 开始倒计时
+  irradiationTimer.value = setInterval(() => {
+    irradiationCountdown.value--;
+
+    if (irradiationCountdown.value <= 0) {
+      // 倒计时结束，发送照射命令
+      if (irradiationTimer.value) {
+        clearInterval(irradiationTimer.value);
+        irradiationTimer.value = null;
+      }
+      isIrradiating.value = false;
+
+      addLog("success", "照射命令已发送");
+      ElMessage.success("照射命令已发送！");
+
+      // TODO: 这里可以添加实际的照射命令发送逻辑
+    }
+  }, 1000);
+};
+
+const handleStop = () => {
+  addLog("warning", "点击停止按钮");
+  ElMessage.warning("停止功能开发中...");
+};
+
+const handleTurn = () => {
+  addLog("info", "点击转向按钮");
+  ElMessage.info("转向功能开发中...");
+};
+
+const handleLockTarget = () => {
+  if (!selectedTarget.value) {
+    ElMessage.warning("请先选择要锁定的目标");
+    return;
+  }
+
+  const targetLabel =
+    targetOptions.value.find((t) => t.value === selectedTarget.value)?.label ||
+    selectedTarget.value;
+  addLog("success", `已锁定目标：${targetLabel}`);
+  ElMessage.success(`已锁定目标：${targetLabel}`);
+
+  // 更新目标状态
+  targetStatus.name = targetLabel;
+};
+
+const handleSendCooperationCommand = () => {
+  addLog("success", "发送打击协同指令");
+  ElMessage.success("协同指令已发送");
+
+  // 添加新的协同报文
+  cooperationMessages.value.unshift({
+    time: new Date().toLocaleTimeString(),
+    message: "无人机发出协同打击报文",
+    type: "uav",
   });
+};
 
-  // 定期更新导航状态
-  const statusInterval = setInterval(loadNavStatus, 5000);
+// 监听开关变化
+const onOptoElectronicToggle = () => {
+  const status = optoElectronicPodEnabled.value ? "开启" : "关闭";
+  addLog("info", `光电吊舱控制已${status}`);
+  payloadStatus.optoElectronic.power = optoElectronicPodEnabled.value
+    ? "开"
+    : "关";
+  payloadStatus.optoElectronic.status = optoElectronicPodEnabled.value
+    ? "正常"
+    : "待机";
+};
 
-  // 保存定时器引用以便清理
-  (window as any).__navStatusInterval = statusInterval;
+const onLaserToggle = () => {
+  const status = laserPodEnabled.value ? "开启" : "关闭";
+  addLog("info", `激光吊舱控制已${status}`);
+  payloadStatus.laser.power = laserPodEnabled.value ? "开" : "关";
+  payloadStatus.laser.status = laserPodEnabled.value ? "正常" : "待机";
+};
+
+// 输入数字限制函数
+const onlyNumbers = (value: string) => {
+  return value.replace(/[^0-9]/g, "");
+};
+
+const handleLaserCodeInput = (value: string) => {
+  laserCode.value = onlyNumbers(value);
+};
+
+const handleCountdownInput = (value: string) => {
+  laserCountdown.value = onlyNumbers(value);
+};
+onMounted(() => {
+  addLog("success", "无人机操作页面加载完成");
+
+  // 模拟数据更新
+  setInterval(() => {
+    // 更新环境参数
+    environmentParams.exerciseTime = new Date().toLocaleTimeString();
+
+    // 模拟平台姿态变化
+    platformStatus.attitude.yaw =
+      (parseInt(platformStatus.attitude.yaw) + Math.random() * 2 - 1).toFixed(
+        0
+      ) + "°";
+  }, 1000);
 });
 
-// 组件卸载时清理定时器和监听器
 onUnmounted(() => {
-  if ((window as any).__navStatusInterval) {
-    clearInterval((window as any).__navStatusInterval);
-  }
+  addLog("info", "无人机操作页面已卸载");
 
-  // 清理平台状态监听器
-  if (window.electronAPI?.multicast?.removePacketListener) {
-    window.electronAPI.multicast.removePacketListener(handlePlatformStatus);
-    console.log('[UavOperationPage] 已停止监听平台状态数据');
+  // 清理照射倒计时定时器
+  if (irradiationTimer.value) {
+    clearInterval(irradiationTimer.value);
+    irradiationTimer.value = null;
   }
 });
 </script>
 
 <style scoped>
-.el-form-item {
+.uav-operation-page {
+  background-color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 顶部控制区域 */
+.top-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.top-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.control-area {
+  flex: 1;
+  position: relative;
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* 左侧标题区域 */
+.title-section {
+  flex: 0 0 auto;
+}
+
+/* 中间演习时间 */
+.exercise-time {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* 右侧控制区域 */
+.controls-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 席位标题 */
+.seat-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.connected-info {
+  color: #28a745;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* 控制按钮样式 */
+.control-btn {
+  height: 40px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 下拉框样式 */
+.control-select {
+  height: 40px;
+  min-width: 150px;
+}
+
+.control-select.short {
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.control-select.large {
+  flex: 1;
+  max-width: 300px;
+  min-width: 200px;
+}
+
+/* 功能分隔符 */
+.function-separator {
+  width: 1px;
+  height: 30px;
+  background-color: #d0d0d0;
+  margin: 0 8px;
+}
+
+/* 主要内容区域 */
+.main-content {
+  min-height: 500px;
+}
+
+/* 左侧控制面板 */
+.left-panel {
+  width: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 航线规划按钮（在任务控制内） */
+.route-planning-btn {
+  width: 100%;
+  height: 45px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.route-planning-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 任务控制区域 */
+.task-control {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  flex: 1;
+}
+
+.task-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+/* 控制组 */
+.control-group {
+  padding-bottom: 8px;
+}
+
+.control-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
+}
+
+.control-label {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.control-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group {
+  margin-bottom: 8px;
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.laser-input {
+  flex: 1;
+}
+
+.confirm-btn {
+  width: 60px;
+  height: 32px;
+  font-size: 13px;
+  padding: 0;
+}
+
+.control-separator {
+  height: 1px;
+  background-color: #ddd;
+  margin: 12px 0;
+  border-radius: 1px;
+}
+
+.button-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 12px 0;
+  border-radius: 1px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 36px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 全宽大按钮 */
+.full-width-btn {
+  width: 100%;
+  height: 40px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* 目标选择 */
+.target-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.target-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.target-select {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* 右侧状态面板 */
+.right-panel {
+  flex: 1;
+}
+
+/* 状态卡片 */
+.status-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  height: 120px;
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.status-info {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 底部协同报文区域 */
+.bottom-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  height: 200px;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.report-send-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-send-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-left: auto;
+}
+
+.report-content {
+  flex: 1;
+}
+
+.report-section {
+  height: 100%;
+}
+
+.report-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.report-messages {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 12px;
+  height: 120px;
+  overflow-y: auto;
+}
+
+.message-item {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding: 4px 0;
+}
+
+.message-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Element Plus 组件样式覆盖 */
+:deep(.el-switch) {
+  --el-switch-on-color: #007bff;
+  --el-switch-off-color: #dcdfe6;
+}
+
+:deep(.el-button) {
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  color: #333;
+}
+
+:deep(.el-button:hover) {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+:deep(.el-select) {
+  --el-select-border-color-hover: #007bff;
+  --el-select-input-color: #333;
+  --el-select-input-font-size: 14px;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border: 2px solid #d0d0d0;
+  border-radius: 6px;
+  background: #f8f9fa;
+  transition: all 0.2s;
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+:deep(.el-select .el-input__wrapper.is-focus) {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+:deep(.el-select.is-disabled .el-input__wrapper) {
+  background-color: #f5f5f5;
+  border-color: #e4e7ed;
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+:deep(.el-button.is-disabled) {
+  background-color: #f5f5f5;
+  border-color: #e4e7ed;
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+/* 响应式设计 */
+@media (max-width: 1080px) {
+  .main-content {
+    flex-direction: column;
+  }
+
+  .control-row {
+    flex-wrap: wrap;
+  }
+
+  .control-btn.large {
+    max-width: none;
+  }
 }
 </style>

@@ -32,6 +32,7 @@ message PlatformCmd {
   optional NavParam navParam = 6; // 导航附加参数
   optional TargetSetParam targetSetParam = 7; // 目标装订附加参数
   optional SetSpeedparam setSpeedParam =8; //速度设定参数
+  optional LockParam lockParam =9; //锁定目标参数
 };
 
 //武器发射参数

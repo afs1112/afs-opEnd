@@ -1,184 +1,290 @@
 <template>
-  <div class="flex flex-col h-full p-4 gap-4">
-    <!-- 顶部连接区域 -->
-    <div class="bg-white rounded-lg shadow-md p-4">
-      <div class="flex items-center gap-4">
-        <span class="text-lg font-semibold text-gray-800">操作模式-火炮</span>
-        <el-select 
-          v-model="selectedGroup" 
-          placeholder="选择分组" 
-          style="width: 150px;"
-          @change="onGroupChange"
-          clearable
-        >
-          <el-option 
-            v-for="group in groupOptions" 
-            :key="group.value"
-            :label="group.label" 
-            :value="group.value" 
-          />
-        </el-select>
-        <el-select 
-          v-model="selectedInstance" 
-          placeholder="选择火炮" 
-          style="width: 150px;"
-          :disabled="!selectedGroup || artilleryOptions.length === 0"
-          clearable
-        >
-          <el-option 
-            v-for="artillery in artilleryOptions" 
-            :key="artillery.value"
-            :label="artillery.label" 
-            :value="artillery.value" 
-          />
-        </el-select>
-        <el-input v-model="operatorName" placeholder="操作人" style="width: 120px;" />
-        <el-button type="primary" @click="connectToSimulation" :disabled="connectionStatus.isConnected">
-          {{ connectionStatus.isConnected ? '已连接' : '连接' }}
-        </el-button>
-        <div class="ml-auto flex items-center gap-4">
-          <div class="text-xs text-gray-600">
-            <div>平台数据: {{ platforms.length }} 个平台</div>
-            <div>火炮数量: {{ artilleryOptions.length }} 个</div>
+  <div class="artillery-operation-page h-full p-4">
+    <!-- 顶部控制区域 -->
+    <div class="top-section mb-4">
+      <div class="top-content">
+        <!-- 操作按钮区域 -->
+        <div class="control-area">
+          <div class="control-row">
+            <!-- 左侧标题区域 -->
+            <div class="title-section">
+              <div class="seat-title">
+                火炮席位
+                <span v-if="isConnected" class="connected-info"
+                  >：已连接 {{ selectedInstance }}</span
+                >
+              </div>
+            </div>
+
+            <!-- 中间演习时间 -->
+            <div class="exercise-time" v-if="isConnected">
+              演习时间：{{ environment.exerciseTime }}
+            </div>
+
+            <!-- 右侧控制区域 -->
+            <div class="controls-section">
+              <el-select
+                v-model="selectedGroup"
+                placeholder="选择分组"
+                class="control-select short"
+                @change="onGroupChange"
+                :disabled="isConnected"
+                clearable
+              >
+                <el-option
+                  v-for="group in groupOptions"
+                  :key="group.value"
+                  :label="group.label"
+                  :value="group.value"
+                />
+              </el-select>
+              <el-select
+                v-model="selectedInstance"
+                placeholder="选择火炮"
+                class="control-select large"
+                :disabled="
+                  !selectedGroup || artilleryOptions.length === 0 || isConnected
+                "
+                clearable
+              >
+                <el-option
+                  v-for="artillery in artilleryOptions"
+                  :key="artillery.value"
+                  :label="artillery.label"
+                  :value="artillery.value"
+                />
+              </el-select>
+              <el-button
+                class="control-btn"
+                @click="handleConnectPlatform"
+                :type="isConnected ? 'warning' : 'primary'"
+              >
+                {{ isConnected ? "断开" : "连接平台" }}
+              </el-button>
+              <!-- 功能分隔符 -->
+              <div class="function-separator" v-if="isConnected"></div>
+              <el-button class="control-btn" @click="openDocument"
+                >打开文档</el-button
+              >
+            </div>
           </div>
-          <span class="text-sm" :class="connectionStatus.isConnected ? 'text-green-600' : 'text-red-600'">
-            {{ connectionStatus.isConnected ? '● 已连接到仿真端' : '○ 未连接' }}
-          </span>
         </div>
       </div>
     </div>
 
-    <!-- 中间操作区域 -->
-    <div class="flex gap-4 flex-1">
-      <!-- 左侧操作面板 -->
-      <div class="w-1/2 flex flex-col gap-4">
-        <!-- 装填弹药操作 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">装填-穿甲弹</h3>
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="text-center">
-                <div class="text-xl font-bold text-blue-600">{{ ammunitionCount }}</div>
-                <div class="text-sm text-gray-500">弹药数量</div>
+    <!-- 主要内容区域 -->
+    <div class="main-content flex gap-4 flex-1">
+      <!-- 左侧控制面板 -->
+      <div class="left-panel">
+        <!-- 任务控制 -->
+        <div class="task-control">
+          <div class="task-header">任务控制</div>
+
+          <!-- 目标装订 -->
+          <div class="control-group mb-4">
+            <!-- 目标信息显示 -->
+            <div class="target-info-display mb-3">
+              <div class="target-info-item">
+                <span class="info-label">目标名称：</span>
+                <span class="info-value">{{ currentTarget.name }}</span>
               </div>
-              <div class="text-center">
-                <div class="text-xl font-bold" :class="artilleryStatus.isLoaded ? 'text-green-600' : 'text-orange-600'">
-                  {{ artilleryStatus.isLoaded ? '已装填' : '未装填' }}
-                </div>
-                <div class="text-sm text-gray-500">装填状态</div>
+              <div class="target-info-item">
+                <span class="info-label">目标坐标：</span>
+                <span class="info-value">{{ currentTarget.coordinates }}</span>
               </div>
             </div>
-            <el-button 
-              type="primary" 
-              @click="loadAmmunition" 
-              class="w-full" 
-              size="large"
-              :disabled="!connectionStatus.isConnected || artilleryStatus.isLoaded"
+
+            <el-button class="target-setting-btn" @click="handleTargetSetting">
+              目标装订
+            </el-button>
+          </div>
+
+          <!-- 弹药装载 -->
+          <div class="control-group mb-4">
+            <div class="control-item">
+              <span class="control-label">弹药类型</span>
+              <el-select
+                v-model="selectedAmmunitionType"
+                placeholder="选择弹药类型"
+                class="ammunition-select"
+                :disabled="isConnected && artilleryStatus.isLoaded"
+              >
+                <el-option
+                  v-for="ammo in ammunitionTypes"
+                  :key="ammo.value"
+                  :label="ammo.label"
+                  :value="ammo.value"
+                />
+              </el-select>
+            </div>
+
+            <div class="control-item">
+              <span class="control-label">剩余数量</span>
+              <div class="control-info">{{ currentAmmunitionCount }}发</div>
+            </div>
+
+            <div class="control-item">
+              <span class="control-label">装填状态</span>
+              <div
+                class="control-info"
+                :class="
+                  artilleryStatus.isLoaded
+                    ? 'text-green-600'
+                    : 'text-orange-600'
+                "
+              >
+                {{
+                  artilleryStatus.isLoaded
+                    ? `已装填: ${loadedAmmunitionType}`
+                    : "未装填"
+                }}
+              </div>
+            </div>
+
+            <el-button
+              class="target-setting-btn"
+              @click="loadAmmunition"
+              :disabled="!selectedAmmunitionType || artilleryStatus.isLoaded"
             >
               装填弹药
             </el-button>
           </div>
-        </div>
 
-        <!-- 发射操作 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-800">发射 (发射后自动发射防空报文给无人机)</h3>
-          <div class="space-y-4">
-            <!-- 武器和目标输入框 -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">武器名称</label>
-                <el-input 
-                  v-model="weaponName" 
-                  placeholder="输入武器名称"
-                  size="small"
+          <!-- 操作按钮组 -->
+          <div class="action-buttons">
+            <!-- 发射次数输入 -->
+            <div class="input-group mb-2" v-if="artilleryStatus.isLoaded">
+              <div class="input-wrapper">
+                <el-input-number
+                  v-model="fireCount"
+                  :min="1"
+                  :max="currentLoadedAmmunitionCount"
+                  :precision="0"
+                  :disabled="!isFireCountEditing"
+                  class="fire-count-input"
+                  controls-position="right"
                 />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">目标名称</label>
-                <el-input 
-                  v-model="targetName" 
-                  placeholder="输入目标名称"
-                  size="small"
-                />
+                <el-button
+                  class="confirm-btn"
+                  @click="handleSetFireCount"
+                  :type="isFireCountEditing ? 'primary' : 'default'"
+                >
+                  {{ isFireCountEditing ? "确定" : "编辑" }}
+                </el-button>
               </div>
             </div>
-            
-            <div class="text-center p-4 bg-gray-50 rounded">
-              <div class="text-sm text-gray-600 mb-2">目标: 无人机编号 {{ targetDroneId }}</div>
-              <div class="text-sm text-gray-600">状态: {{ fireStatus }}</div>
+
+            <div class="button-row mb-2">
+              <el-button
+                class="target-setting-btn"
+                @click="fireAtDrone"
+                :type="isFiring ? 'danger' : 'primary'"
+                :disabled="
+                  !isConnected ||
+                  !artilleryStatus.isLoaded ||
+                  !selectedStrikeCount ||
+                  selectedStrikeCount < 1
+                "
+              >
+                <span v-if="isFiring">开火中...</span>
+                <span v-else>开火</span>
+              </el-button>
             </div>
-            <el-button 
-              type="danger" 
-              @click="fireAtDrone" 
-              class="w-full" 
-              size="large"
-              :disabled="!connectionStatus.isConnected || !artilleryStatus.isLoaded || !weaponName || !targetName"
-            >
-              发射
-            </el-button>
           </div>
         </div>
       </div>
 
-      <!-- 右侧状态面板 -->
-      <div class="w-1/2 bg-white rounded-lg shadow-md p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-800">状态面板</h3>
-        <div class="space-y-4">
-          <div class="p-4 bg-gray-50 rounded">
-            <div class="text-sm font-semibold text-gray-700 mb-2">环境状态</div>
-            <div class="text-sm text-gray-600 space-y-1">
-              <div>温度: {{ environment.temperature }}°C</div>
-              <div>湿度: {{ environment.humidity }}%</div>
-              <div>风速: {{ environment.windSpeed }}m/s</div>
-              <div>能见度: {{ environment.visibility }}km</div>
+      <!-- 右侧状态显示区域 -->
+      <div class="right-panel flex flex-col gap-4">
+        <!-- 气候环境 -->
+        <div class="status-card environment-status">
+          <div class="status-content">
+            <div class="status-title">气候环境</div>
+            <div class="status-info">
+              温度{{ environment.temperature }}°C，气压{{ environment.pressure
+              }}<br />
+              风速{{ environment.windSpeed }}m/s，湿度{{
+                environment.humidity
+              }}%<br />
+              能见度{{ environment.visibility }}km
             </div>
           </div>
-          
-          <div class="p-4 bg-gray-50 rounded">
-            <div class="text-sm font-semibold text-gray-700 mb-2">目标状态</div>
-            <div class="text-sm text-gray-600 space-y-1">
-              <div>目标类型: {{ targetInfo.type }}</div>
-              <div>距离: {{ targetInfo.distance }}m</div>
-              <div>方位: {{ targetInfo.bearing }}°</div>
-              <div>高度: {{ targetInfo.altitude }}m</div>
+        </div>
+
+        <!-- 平台状态 -->
+        <div class="status-card platform-status">
+          <div class="status-content">
+            <div class="status-title">平台状态</div>
+            <div class="status-info">
+              射击准备：{{ artilleryStatus.isReady ? "就绪" : "未就绪" }}<br />
+              炮管温度：{{ artilleryStatus.temperature }}°C<br />
+              系统状态：{{ artilleryStatus.systemStatus }}
             </div>
           </div>
-          
-          <div class="p-4 bg-gray-50 rounded">
-            <div class="text-sm font-semibold text-gray-700 mb-2">火炮状态</div>
-            <div class="text-sm text-gray-600 space-y-1">
-              <div>炮管温度: {{ artilleryStatus.temperature }}°C</div>
-              <div>射击准备: {{ artilleryStatus.isReady ? '就绪' : '未就绪' }}</div>
-              <div>系统状态: {{ artilleryStatus.systemStatus }}</div>
+        </div>
+
+        <!-- 对目标状态 -->
+        <div class="status-card target-status">
+          <div class="status-content">
+            <div class="status-title">对目标状态</div>
+            <div class="status-info">
+              目标类型：{{ targetInfo.type }}<br />
+              距离：{{ targetInfo.distance }}m<br />
+              方位：{{ targetInfo.bearing }}°
             </div>
           </div>
-          
-          <div class="p-4 bg-gray-50 rounded">
-            <div class="text-sm font-semibold text-gray-700 mb-2">无人机打击协同状态</div>
-            <div class="text-sm text-gray-600 space-y-1">
-              <div>协同模式: {{ coordinationStatus.mode }}</div>
-              <div>数据链状态: {{ coordinationStatus.dataLink }}</div>
-              <div>目标共享: {{ coordinationStatus.targetSharing }}</div>
+        </div>
+
+        <!-- 炮弹状态 -->
+        <div class="status-card shell-status">
+          <div class="status-content">
+            <div class="status-title">炮弹状态</div>
+            <div class="status-info">
+              弹药数量：{{ ammunitionCount }}发<br />
+              装填状态：{{ artilleryStatus.isLoaded ? "已装填" : "未装填"
+              }}<br />
+              发射状态：{{ fireStatus }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 目标状态 -->
+        <div class="status-card coordination-status">
+          <div class="status-content">
+            <div class="status-title">目标状态</div>
+            <div class="status-info">
+              目标ID：{{ targetDroneId }}<br />
+              目标高度：{{ targetInfo.altitude }}m<br />
+              协同状态：{{ coordinationStatus.mode }}
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 底部文档浏览区域 -->
-    <div class="bg-white rounded-lg shadow-md p-6" style="height: 200px;">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-800">任务文档</h3>
-        <el-button @click="openDocument" size="small">
-          打开文档
-        </el-button>
+    <!-- 底部协同报文区域 -->
+    <div class="bottom-panel mt-4">
+      <div class="report-header">
+        <el-button class="report-send-btn" @click="handleSendCooperationCommand"
+          >发送协同指令</el-button
+        >
+        <span class="report-title">协同报文区域</span>
       </div>
-      <div class="h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-        <div class="text-center text-gray-500">
-          <div class="text-4xl mb-2">📄</div>
-          <div class="text-lg">展示文档内容 (支持doc, docx格式)</div>
-          <div class="text-sm">点击"打开文档"浏览任务相关文件</div>
+
+      <div class="report-content">
+        <div class="report-section">
+          <div class="report-messages">
+            <div
+              v-for="(msg, index) in cooperationMessages"
+              :key="index"
+              class="message-item"
+            >
+              {{ msg.time }} {{ msg.message }}
+            </div>
+            <div v-if="cooperationMessages.length === 0" class="message-item">
+              暂无协同报文
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -186,8 +292,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ElMessage } from "element-plus";
 
 // 连接状态接口
 interface ConnectionStatus {
@@ -211,12 +317,27 @@ interface TargetInfo {
   altitude: number;
 }
 
+// 当前目标信息接口
+interface CurrentTarget {
+  name: string;
+  coordinates: string;
+}
+
+// 弹药类型接口
+interface AmmunitionType {
+  label: string;
+  value: string;
+  count: number;
+}
+
 // 环境状态接口
 interface Environment {
   temperature: number;
   humidity: number;
   windSpeed: number;
   visibility: number;
+  pressure: string;
+  exerciseTime: string;
 }
 
 // 协同状态接口
@@ -262,14 +383,62 @@ interface ArtilleryOption {
 }
 
 // 响应式数据
-const selectedGroup = ref('');
-const selectedInstance = ref('');
-const operatorName = ref('');
+const selectedGroup = ref("");
+const selectedInstance = ref("");
+const operatorName = ref("");
 const ammunitionCount = ref(12);
-const targetDroneId = ref('UAV-001');
-const fireStatus = ref('待发射');
-const weaponName = ref('155毫米榆弹炮'); // 武器名称，默认值
-const targetName = ref('无人机-001'); // 目标名称，默认值
+const targetDroneId = ref("UAV-001");
+const fireStatus = ref("待发射");
+const weaponName = ref("155毫米榴弹炮"); // 武器名称，默认值
+const targetName = ref("无人机-001"); // 目标名称，默认值
+
+// 当前目标信息
+const currentTarget = reactive<CurrentTarget>({
+  name: "敌方无人机-001",
+  coordinates: "E115°30'12\" N39°45'36\"",
+});
+
+// 弹药类型选择
+const selectedAmmunitionType = ref("");
+const loadedAmmunitionType = ref(""); // 当前装填的弹药类型
+const ammunitionTypes = ref<AmmunitionType[]>([
+  { label: "155mm高爆弹", value: "HE_155", count: 20 },
+  { label: "155mm穿甲弹", value: "AP_155", count: 15 },
+  { label: "155mm烟雾弹", value: "SMOKE_155", count: 8 },
+  { label: "155mm照明弹", value: "ILLUM_155", count: 12 },
+  { label: "120mm迫击炮弹", value: "MORTAR_120", count: 25 },
+]);
+
+// 计算当前选中弹药的数量
+const currentAmmunitionCount = computed(() => {
+  if (!selectedAmmunitionType.value) return 0;
+  const selectedAmmo = ammunitionTypes.value.find(
+    (ammo) => ammo.value === selectedAmmunitionType.value
+  );
+  return selectedAmmo ? selectedAmmo.count : 0;
+});
+
+// 计算当前已装填弹药的数量（用于限制打击数量）
+const currentLoadedAmmunitionCount = computed(() => {
+  if (!artilleryStatus.isLoaded || !loadedAmmunitionType.value) return 0;
+  const loadedAmmo = ammunitionTypes.value.find(
+    (ammo) => ammo.label === loadedAmmunitionType.value
+  );
+  return loadedAmmo ? loadedAmmo.count + 1 : 1; // +1因为装填的那一发已经从库存中减去
+});
+
+// 打击数量选择（数字输入）
+const selectedStrikeCount = ref<number>(1);
+
+// 发射次数相关
+const fireCount = ref<number>(1);
+const isFireCountEditing = ref(false);
+
+// 新增缺失的变量
+const isConnected = ref(false);
+const isWeaponNameEditing = ref(true);
+const isTargetNameEditing = ref(true);
+const isFiring = ref(false);
 
 // 平台数据
 const platforms = ref<Platform[]>([]);
@@ -277,74 +446,132 @@ const lastUpdateTime = ref<number>(0);
 
 const connectionStatus = reactive<ConnectionStatus>({
   isConnected: false,
-  simulationEndpoint: ''
+  simulationEndpoint: "",
 });
 
 const artilleryStatus = reactive<ArtilleryStatus>({
   isReady: false,
   isLoaded: false,
   temperature: 32,
-  systemStatus: '正常'
+  systemStatus: "正常",
 });
 
 const targetInfo = reactive<TargetInfo>({
-  type: '无人机',
+  type: "无人机",
   distance: 3200,
   bearing: 45,
-  altitude: 1200
+  altitude: 1200,
 });
 
 const environment = reactive<Environment>({
   temperature: 25,
   humidity: 65,
   windSpeed: 3.2,
-  visibility: 12
+  visibility: 12,
+  pressure: "1013hPa",
+  exerciseTime: "14:30:25",
 });
 
 const coordinationStatus = reactive<CoordinationStatus>({
-  mode: '自主协同',
-  dataLink: '正常',
-  targetSharing: '已共享'
+  mode: "自主协同",
+  dataLink: "正常",
+  targetSharing: "已共享",
 });
 
-// 计算属性：可用的分组选项
+// 协同报文数据
+const cooperationMessages = ref([
+  { time: "23:43:11", message: "无人机发出协同打击报文", type: "uav" },
+  { time: "23:48:22", message: "火炮发出已打击报文", type: "artillery" },
+]);
+
+// 计算属性：可用的分组选项（包含假数据）
 const groupOptions = computed<GroupOption[]>(() => {
   const groups = new Set<string>();
-  
-  platforms.value.forEach(platform => {
-    if (platform.base?.group && platform.base?.type === 'ROCKET_LAUNCHER') {
+
+  // 从真实平台数据中获取分组
+  platforms.value.forEach((platform) => {
+    if (platform.base?.group && platform.base?.type === "ROCKET_LAUNCHER") {
       groups.add(platform.base.group);
     }
   });
-  
-  return Array.from(groups).map(group => ({
+
+  // 添加假数据分组
+  const fakeGroups = ["第一火炮营", "第二火炮营", "第三火炮营"];
+  fakeGroups.forEach((group) => groups.add(group));
+
+  return Array.from(groups).map((group) => ({
     label: group,
-    value: group
+    value: group,
   }));
 });
 
-// 计算属性：当前分组下的火炮选项
+// 计算属性：当前分组下的火炮选项（包含假数据）
 const artilleryOptions = computed<ArtilleryOption[]>(() => {
   if (!selectedGroup.value) {
     return [];
   }
-  
-  return platforms.value
-    .filter(platform => 
-      platform.base?.group === selectedGroup.value && 
-      platform.base?.type === 'ROCKET_LAUNCHER' &&
-      !platform.base?.broken
+
+  // 从真实平台数据中获取火炮
+  const realArtillery = platforms.value
+    .filter(
+      (platform) =>
+        platform.base?.group === selectedGroup.value &&
+        platform.base?.type === "ROCKET_LAUNCHER" &&
+        !platform.base?.broken
     )
-    .map(platform => ({
-      label: platform.base.name || '未命名火炮',
-      value: platform.base.name || '',
-      platform: platform
+    .map((platform) => ({
+      label: platform.base.name || "未命名火炮",
+      value: platform.base.name || "",
+      platform: platform,
     }));
+
+  // 添加假数据火炮
+  const fakeArtillery: ArtilleryOption[] = [];
+  if (selectedGroup.value === "第一火炮营") {
+    fakeArtillery.push(
+      {
+        label: "155mm榴弹炮-01",
+        value: "155mm榴弹炮-01",
+        platform: {} as Platform,
+      },
+      {
+        label: "155mm榴弹炮-02",
+        value: "155mm榴弹炮-02",
+        platform: {} as Platform,
+      },
+      {
+        label: "120mm迫击炮-01",
+        value: "120mm迫击炮-01",
+        platform: {} as Platform,
+      }
+    );
+  } else if (selectedGroup.value === "第二火炮营") {
+    fakeArtillery.push(
+      {
+        label: "203mm榴弹炮-01",
+        value: "203mm榴弹炮-01",
+        platform: {} as Platform,
+      },
+      {
+        label: "203mm榴弹炮-02",
+        value: "203mm榴弹炮-02",
+        platform: {} as Platform,
+      }
+    );
+  } else if (selectedGroup.value === "第三火炮营") {
+    fakeArtillery.push(
+      { label: "火箭炮-01", value: "火箭炮-01", platform: {} as Platform },
+      { label: "火箭炮-02", value: "火箭炮-02", platform: {} as Platform },
+      { label: "火箭炮-03", value: "火箭炮-03", platform: {} as Platform }
+    );
+  }
+
+  return [...realArtillery, ...fakeArtillery];
 });
 
 // 监听分组变化，重置火炮选择
 const onGroupChange = () => {
-  selectedInstance.value = '';
+  selectedInstance.value = "";
   if (artilleryOptions.value.length === 1) {
     // 如果只有一个火炮，自动选择
     selectedInstance.value = artilleryOptions.value[0].value;
@@ -354,29 +581,158 @@ const onGroupChange = () => {
 // 连接到仿真端
 const connectToSimulation = () => {
   if (!selectedGroup.value || !selectedInstance.value) {
-    ElMessage.warning('请选择组和实例');
+    ElMessage.warning("请选择组和实例");
     return;
   }
-  
-  ElMessage.success(`正在连接到 ${selectedGroup.value} - ${selectedInstance.value}`);
+
+  ElMessage.success(
+    `正在连接到 ${selectedGroup.value} - ${selectedInstance.value}`
+  );
   connectionStatus.isConnected = true;
   connectionStatus.simulationEndpoint = `${selectedGroup.value}/${selectedInstance.value}`;
   artilleryStatus.isReady = true;
-  
+
   // TODO: 实际的连接逻辑
+};
+
+// 处理连接平台
+const handleConnectPlatform = () => {
+  if (isConnected.value) {
+    // 断开连接
+    isConnected.value = false;
+    connectionStatus.isConnected = false;
+    ElMessage.warning("平台连接已断开");
+    return;
+  }
+
+  if (!selectedGroup.value || !selectedInstance.value) {
+    ElMessage.warning("请先选择分组和火炮");
+    return;
+  }
+
+  isConnected.value = true;
+  connectionStatus.isConnected = true;
+  ElMessage.success("平台连接成功");
+};
+
+// 目标装订
+const handleTargetSetting = () => {
+  // 模拟更新目标信息
+  const targetNames = [
+    "敌方无人机-001",
+    "敌方装甲车-002",
+    "敌方雷达站-003",
+    "敌方指挥所-004",
+  ];
+  const coordinates = [
+    "E115°30'12\" N39°45'36\"",
+    "E115°32'45\" N39°43'21\"",
+    "E115°35'18\" N39°41'55\"",
+    "E115°28'33\" N39°47'12\"",
+  ];
+
+  const randomIndex = Math.floor(Math.random() * targetNames.length);
+  currentTarget.name = targetNames[randomIndex];
+  currentTarget.coordinates = coordinates[randomIndex];
+
+  ElMessage.success(`目标装订完成：${currentTarget.name}`);
+};
+
+// 处理武器名称输入
+const handleInputWeaponName = () => {
+  if (isWeaponNameEditing.value) {
+    if (!weaponName.value.trim()) {
+      ElMessage.warning("请输入武器名称");
+      return;
+    }
+    isWeaponNameEditing.value = false;
+    ElMessage.success(`武器名称已设置: ${weaponName.value}`);
+  } else {
+    isWeaponNameEditing.value = true;
+  }
+};
+
+// 处理目标名称输入
+const handleInputTargetName = () => {
+  if (isTargetNameEditing.value) {
+    if (!targetName.value.trim()) {
+      ElMessage.warning("请输入目标名称");
+      return;
+    }
+    isTargetNameEditing.value = false;
+    ElMessage.success(`目标名称已设置: ${targetName.value}`);
+  } else {
+    isTargetNameEditing.value = true;
+  }
+};
+
+// 处理发射次数输入
+const handleSetFireCount = () => {
+  if (isFireCountEditing.value) {
+    // 确定模式
+    if (!fireCount.value || fireCount.value < 1) {
+      ElMessage.warning("请输入正确的发射次数");
+      return;
+    }
+    if (fireCount.value > currentLoadedAmmunitionCount.value) {
+      ElMessage.warning(
+        `发射次数不能超过${currentLoadedAmmunitionCount.value}发`
+      );
+      return;
+    }
+    selectedStrikeCount.value = fireCount.value;
+    isFireCountEditing.value = false;
+    ElMessage.success(`发射次数已设置: ${fireCount.value}次`);
+  } else {
+    // 编辑模式
+    isFireCountEditing.value = true;
+  }
+};
+
+// 发送协同指令
+const handleSendCooperationCommand = () => {
+  ElMessage.success("协同指令已发送");
+
+  // 添加新的协同报文
+  cooperationMessages.value.unshift({
+    time: new Date().toLocaleTimeString(),
+    message: "火炮发出协同打击报文",
+    type: "artillery",
+  });
 };
 
 // 装填弹药
 const loadAmmunition = () => {
-  if (ammunitionCount.value <= 0) {
-    ElMessage.error('弹药不足');
+  if (!selectedAmmunitionType.value) {
+    ElMessage.warning("请先选择弹药类型");
     return;
   }
-  
-  ElMessage.success('穿甲弹装填完成');
+
+  const selectedAmmo = ammunitionTypes.value.find(
+    (ammo) => ammo.value === selectedAmmunitionType.value
+  );
+  if (!selectedAmmo || selectedAmmo.count <= 0) {
+    ElMessage.error("该弹药库存不足");
+    return;
+  }
+
+  ElMessage.success(`${selectedAmmo.label}装填完成`);
   artilleryStatus.isLoaded = true;
-  ammunitionCount.value--;
-  
+
+  // 记录已装填的弹药类型
+  loadedAmmunitionType.value = selectedAmmo.label;
+
+  // 减少对应弹药数量
+  selectedAmmo.count--;
+
+  // 更新武器名称为当前装填的弹药
+  weaponName.value = selectedAmmo.label;
+
+  // 重置发射次数为1
+  selectedStrikeCount.value = 1;
+  fireCount.value = 1;
+  isFireCountEditing.value = false;
+
   // TODO: 实际的装填逻辑
 };
 
@@ -384,70 +740,78 @@ const loadAmmunition = () => {
 const fireAtDrone = async () => {
   try {
     // 检查必要参数
-    if (!weaponName.value.trim()) {
-      ElMessage.warning('请输入武器名称');
-      return;
-    }
-    
-    if (!targetName.value.trim()) {
-      ElMessage.warning('请输入目标名称');
+    if (!selectedStrikeCount.value || selectedStrikeCount.value < 1) {
+      ElMessage.warning("请设置正确的打击数量");
       return;
     }
 
-    ElMessage.success(`向目标 ${targetName.value} 发射 ${weaponName.value}`);
+    if (selectedStrikeCount.value > currentLoadedAmmunitionCount.value) {
+      ElMessage.warning("打击数量不能超过已装填弹药数量");
+      return;
+    }
+
+    ElMessage.success(
+      `向目标 ${currentTarget.name} 进行${selectedStrikeCount.value}次打击，使用 ${loadedAmmunitionType.value}`
+    );
     artilleryStatus.isLoaded = false;
-    fireStatus.value = '发射中...';
-    
+    fireStatus.value = "开火中...";
+
     // 构造 PlatformCmd 数据
     const platformCmdData = {
       commandID: Date.now(), // 使用时间戳作为命令ID
-      platformName: selectedInstance.value || 'artillery1', // 平台名称
+      platformName: selectedInstance.value || "artillery1", // 平台名称
       command: 8, // Arty_Fire = 8 (根据更新后的 PlatformCmd.proto)
       fireParam: {
-        weaponName: weaponName.value.trim(),
-        targetName: targetName.value.trim(),
-        quantity: 1
-      }
+        weaponName: loadedAmmunitionType.value,
+        targetName: currentTarget.name,
+        quantity: selectedStrikeCount.value, // 使用选中的打击数量
+      },
     };
 
-    console.log('发送 PlatformCmd 数据:', platformCmdData);
-    
+    console.log("发送 PlatformCmd 数据:", platformCmdData);
+
     // 发送 PlatformCmd 组播消息
-    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(platformCmdData);
-    
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      platformCmdData
+    );
+
     if (result.success) {
-      ElMessage.success('🚀 火炮控制命令发送成功');
-      fireStatus.value = '已发射';
-      
+      ElMessage.success("🚀 火炮控制命令发送成功");
+      fireStatus.value = "已发射";
+
+      // 发射后清空装填状态，需要重新装填
+      artilleryStatus.isLoaded = false;
+      loadedAmmunitionType.value = ""; // 清空已装填弹药类型
+
       // 模拟发射后自动发送防空报文
       setTimeout(() => {
-        ElMessage.info('已自动发送防空报文给无人机');
-        fireStatus.value = '防空报文已发送';
+        ElMessage.info("已自动发送防空报文给无人机");
+        fireStatus.value = "防空报文已发送";
       }, 1000);
-      
+
       // 重置状态
       setTimeout(() => {
-        fireStatus.value = '待发射';
+        fireStatus.value = "待发射";
         // 模拟目标变化
-        targetDroneId.value = `UAV-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`;
+        targetDroneId.value = `UAV-${String(
+          Math.floor(Math.random() * 999) + 1
+        ).padStart(3, "0")}`;
         // 清空输入框，准备下次操作
         // weaponName.value = '';
         // targetName.value = '';
       }, 3000);
-      
     } else {
       ElMessage.error(`发送失败: ${result.error}`);
-      fireStatus.value = '发送失败';
-      artilleryStatus.isLoaded = true; // 恢复装填状态
+      fireStatus.value = "发送失败";
+      // 发射失败时不清空装填状态
     }
-    
   } catch (error) {
-    console.error('发射操作失败:', error);
-    ElMessage.error('发射操作失败');
-    fireStatus.value = '操作失败';
-    artilleryStatus.isLoaded = true; // 恢复装填状态
+    console.error("发射操作失败:", error);
+    ElMessage.error("发射操作失败");
+    fireStatus.value = "操作失败";
+    // 操作失败时不清空装填状态
   }
-  
+
   // TODO: 实际的发射逻辑和防空报文发送
 };
 
@@ -456,27 +820,29 @@ const handlePlatformStatus = (packet: any) => {
   try {
     if (packet.parsedPacket?.packageType === 0x29) {
       const parsedData = packet.parsedPacket.parsedData;
-      
+
       if (parsedData?.platform && Array.isArray(parsedData.platform)) {
         // 更新平台数据
         platforms.value = parsedData.platform;
         lastUpdateTime.value = Date.now();
-        
-        console.log('[ArtilleryPage] 收到平台状态数据:', {
+
+        console.log("[ArtilleryPage] 收到平台状态数据:", {
           平台数量: parsedData.platform.length,
-          火炮数量: parsedData.platform.filter((p: any) => p.base?.type === 'ROCKET_LAUNCHER').length,
-          分组数量: groupOptions.value.length
+          火炮数量: parsedData.platform.filter(
+            (p: any) => p.base?.type === "ROCKET_LAUNCHER"
+          ).length,
+          分组数量: groupOptions.value.length,
         });
       }
     }
   } catch (error) {
-    console.error('[ArtilleryPage] 处理平台状态数据失败:', error);
+    console.error("[ArtilleryPage] 处理平台状态数据失败:", error);
   }
 };
 
 // 打开文档
 const openDocument = () => {
-  ElMessage.info('打开任务文档功能待实现');
+  ElMessage.info("打开任务文档功能待实现");
   // TODO: 实现打开Word文档的功能
 };
 
@@ -485,23 +851,460 @@ onMounted(() => {
   // 监听平台状态数据
   if (window.electronAPI?.multicast?.onPacket) {
     window.electronAPI.multicast.onPacket(handlePlatformStatus);
-    console.log('[ArtilleryPage] 已开始监听平台状态数据');
+    console.log("[ArtilleryPage] 已开始监听平台状态数据");
   } else {
-    console.warn('[ArtilleryPage] multicast API 不可用');
+    console.warn("[ArtilleryPage] multicast API 不可用");
   }
 });
 
 onUnmounted(() => {
   // 清理监听器
-  if (window.electronAPI?.multicast?.removePacketListener) {
-    window.electronAPI.multicast.removePacketListener(handlePlatformStatus);
-    console.log('[ArtilleryPage] 已停止监听平台状态数据');
+  if (window.electronAPI?.multicast?.removeAllListeners) {
+    window.electronAPI.multicast.removeAllListeners("packet");
+    console.log("[ArtilleryPage] 已停止监听平台状态数据");
   }
 });
 </script>
 
 <style scoped>
-.el-form-item {
+.artillery-operation-page {
+  background-color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 顶部控制区域 */
+.top-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.top-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.control-area {
+  flex: 1;
+  position: relative;
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* 左侧标题区域 */
+.title-section {
+  flex: 0 0 auto;
+}
+
+/* 中间演习时间 */
+.exercise-time {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* 右侧控制区域 */
+.controls-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.control-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 弹药选择框 */
+.ammunition-select {
+  width: 180px;
+}
+
+/* 打击次数选择 */
+.strike-count-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.strike-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.strike-select {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* 数字输入框 */
+.strike-input-number {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* 席位标题 */
+.seat-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.connected-info {
+  color: #28a745;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* 控制按钮样式 */
+.control-btn {
+  height: 40px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 下拉框样式 */
+.control-select {
+  height: 40px;
+  min-width: 150px;
+}
+
+.control-select.short {
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.control-select.large {
+  flex: 1;
+  max-width: 300px;
+  min-width: 200px;
+}
+
+/* 功能分隔符 */
+.function-separator {
+  width: 1px;
+  height: 30px;
+  background-color: #d0d0d0;
+  margin: 0 8px;
+}
+
+/* 主要内容区域 */
+.main-content {
+  min-height: 500px;
+}
+
+/* 左侧控制面板 */
+.left-panel {
+  width: 450px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 目标装订按钮 */
+.target-setting-btn {
+  width: 100%;
+  height: 45px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+
+.target-setting-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 目标信息显示 */
+.target-info-display {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.target-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.target-info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #333;
+  font-weight: 600;
+}
+
+/* 任务控制区域 */
+.task-control {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  flex: 1;
+}
+
+.task-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+/* 控制组 */
+.control-group {
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 16px;
+}
+
+.control-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
+}
+
+.control-label {
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.control-info {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  margin-top: 16px;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-group {
+  margin-bottom: 8px;
+}
+
+.input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.weapon-input {
+  flex: 1;
+}
+
+/* 发射次数输入框 */
+.fire-count-input {
+  flex: 1;
+}
+
+.confirm-btn {
+  width: 60px;
+  height: 32px;
+  font-size: 13px;
+  padding: 0;
+}
+
+.control-separator {
+  height: 1px;
+  background-color: #ddd;
+  margin: 12px 0;
+  border-radius: 1px;
+}
+
+.button-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 12px 0;
+  border-radius: 1px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 36px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.action-btn.full-width {
+  width: 100%;
+}
+
+/* 右侧状态面板 */
+.right-panel {
+  flex: 1;
+}
+
+/* 状态卡片 */
+.status-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  height: 120px;
+}
+
+.status-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.status-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.status-info {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 底部协同报文区域 */
+.bottom-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  height: 200px;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.report-send-btn {
+  height: 36px;
+  padding: 0 16px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-send-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-left: auto;
+}
+
+.report-content {
+  flex: 1;
+}
+
+.report-section {
+  height: 140px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.report-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-item {
+  font-size: 13px;
+  color: #666;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+}
+
+/* 颜色类 */
+.text-green-600 {
+  color: #16a085;
+}
+
+.text-orange-600 {
+  color: #f39c12;
+}
+
+.text-red-600 {
+  color: #e74c3c;
 }
 </style>

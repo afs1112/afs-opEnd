@@ -107,6 +107,7 @@ message Environment
  	optional double cloudUpperAlt = 4;
 	optional double rainUpperAlt = 5;
 	optional double rainRate = 6;
+	optional double temperature = 7;
 }
 //所有平台
 message Platforms
