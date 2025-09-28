@@ -265,10 +265,10 @@
               温度{{ environmentParams.temperature }}，气压{{
                 environmentParams.pressure
               }}<br />
-              风力参数{{ environmentParams.windSpeed }}，降水参数{{
+              风力{{ environmentParams.windSpeed }}，降水{{
                 environmentParams.humidity
               }}<br />
-              云层参数{{ environmentParams.cloudCover }}
+              云层{{ environmentParams.cloudCover }}
             </div>
           </div>
         </div>
@@ -327,9 +327,20 @@
     <!-- 底部协同报文区域 -->
     <div class="bottom-panel mt-4">
       <div class="report-header">
-        <el-button class="report-send-btn" @click="handleSendCooperationCommand"
-          >发送打击协同指令</el-button
+        <el-button
+          class="report-send-btn"
+          @click="handleSendCooperationCommand"
+          :disabled="!isConnected || !selectedTarget"
         >
+          发送打击协同指令{{
+            selectedTarget
+              ? `（目标: ${
+                  targetOptions.find((t) => t.value === selectedTarget)
+                    ?.label || selectedTarget
+                }）`
+              : "（请先选择目标）"
+          }}
+        </el-button>
         <span class="report-title">报文面板</span>
       </div>
 
@@ -670,6 +681,8 @@ const PlatformCommandEnum: { [key: string]: number } = {
   Arty_Fire: 8, // 火炮发射
   Uav_Set_Speed: 9, // 设定无人机速度
   Uav_Lock_Target: 10, // 锁定目标
+  Uav_Strike_Coordinate: 11, // 打击协同
+  Arty_Fire_Coordinate: 12, // 发射协同
 };
 
 // 获取光电传感器名称
@@ -725,6 +738,26 @@ const getTargetLocationInfo = (targetName: string) => {
   }
 
   return null;
+};
+
+// 获取同组火炮名称
+const getSameGroupArtilleryName = () => {
+  if (!connectedPlatform.value?.base?.group || !platforms.value) {
+    return null;
+  }
+
+  const currentGroup = connectedPlatform.value.base.group;
+
+  // 根据火炮类型识别规范，查找同组的火炮平台
+  const artilleryPlatform = platforms.value.find(
+    (platform: any) =>
+      platform.base?.group === currentGroup &&
+      (platform.base?.type === "Artillery" ||
+        platform.base?.type === "ROCKET_LAUNCHER" ||
+        platform.base?.type === "CANNON")
+  );
+
+  return artilleryPlatform?.base?.name || null;
 };
 
 // 传感器命令发送（不带参数）
@@ -919,6 +952,110 @@ const handlePlatformStatus = (packet: any) => {
         lastUpdateTime.value = Date.now();
         hasRealPlatformData.value = true; // 标记已接收到真实平台数据
 
+        // 更新环境参数（从 evironment 字段获取）
+        if (parsedData.evironment) {
+          const env = parsedData.evironment;
+          console.log("[UavPage] 收到原始环境数据:", env);
+
+          // 从平台数据中更新环境参数
+          if (env.temperature !== undefined) {
+            // 温度单位从开尔文(K)转换为摄氏度(°C)
+            const celsiusTemp = env.temperature - 273.15;
+            environmentParams.temperature = celsiusTemp.toFixed(1) + "°C";
+          }
+
+          if (env.windSpeed !== undefined) {
+            // 风速处理，考虑风向
+            let windDisplay = env.windSpeed.toFixed(1) + "m/s";
+
+            if (env.windDirection !== undefined) {
+              // 将风向角度转换为方位词
+              const windDir = env.windDirection;
+              let direction = "";
+              if (windDir >= 337.5 || windDir < 22.5) direction = "北";
+              else if (windDir >= 22.5 && windDir < 67.5) direction = "东北";
+              else if (windDir >= 67.5 && windDir < 112.5) direction = "东";
+              else if (windDir >= 112.5 && windDir < 157.5) direction = "东南";
+              else if (windDir >= 157.5 && windDir < 202.5) direction = "南";
+              else if (windDir >= 202.5 && windDir < 247.5) direction = "西南";
+              else if (windDir >= 247.5 && windDir < 292.5) direction = "西";
+              else if (windDir >= 292.5 && windDir < 337.5) direction = "西北";
+              windDisplay += " " + direction;
+            }
+
+            environmentParams.windSpeed = windDisplay;
+          }
+
+          // 云层覆盖率计算优化
+          if (
+            env.cloudLowerAlt !== undefined &&
+            env.cloudUpperAlt !== undefined
+          ) {
+            let cloudCover = 0;
+            if (
+              env.cloudLowerAlt >= 0 &&
+              env.cloudUpperAlt > env.cloudLowerAlt
+            ) {
+              // 基于云层厚度计算覆盖率，考虑实际气象规律
+              const cloudThickness = env.cloudUpperAlt - env.cloudLowerAlt;
+              // 云层厚度越大，覆盖率越高，但有上限
+              cloudCover = Math.min(100, (cloudThickness / 5000) * 100);
+            }
+            environmentParams.cloudCover = cloudCover.toFixed(0) + "%";
+          }
+
+          // 降水参数优化显示（单位从 m/s 转换为 mm/h）
+          if (env.rainRate !== undefined) {
+            // 将降水率从 m/s 转换为 mm/h
+            // 1 m/s = 1000 mm/s = 1000 * 3600 mm/h = 3,600,000 mm/h
+            const rainRateMMPerHour = env.rainRate * 3600000;
+
+            if (rainRateMMPerHour <= 0) {
+              environmentParams.humidity = "无降水";
+            } else if (rainRateMMPerHour < 2.5) {
+              environmentParams.humidity =
+                "小雨 " + rainRateMMPerHour.toFixed(1) + "mm/h";
+            } else if (rainRateMMPerHour < 8) {
+              environmentParams.humidity =
+                "中雨 " + rainRateMMPerHour.toFixed(1) + "mm/h";
+            } else if (rainRateMMPerHour < 16) {
+              environmentParams.humidity =
+                "大雨 " + rainRateMMPerHour.toFixed(1) + "mm/h";
+            } else {
+              environmentParams.humidity =
+                "暴雨 " + rainRateMMPerHour.toFixed(1) + "mm/h";
+            }
+          }
+
+          // 气压计算优化（基于海拔和温度的更精确计算）
+          if (
+            parsedData.platform.length > 0 &&
+            parsedData.platform[0].base?.location?.altitude
+          ) {
+            const altitude = parsedData.platform[0].base.location.altitude;
+            const tempK = env.temperature || 288.15; // 使用实际温度或标准温度
+            const tempC = tempK - 273.15;
+
+            // 考虑温度的气压计算（更精确的公式）
+            const pressure =
+              1013.25 *
+              Math.pow(
+                1 - (0.0065 * altitude) / tempK,
+                (9.80665 * 0.0289644) / (8.31447 * 0.0065)
+              );
+            environmentParams.pressure = pressure.toFixed(0) + "hPa";
+          }
+
+          console.log("[UavPage] 处理后的环境参数:", {
+            原始温度K: env.temperature,
+            转换温度: environmentParams.temperature,
+            风速风向: environmentParams.windSpeed,
+            云层覆盖: environmentParams.cloudCover,
+            降水状态: environmentParams.humidity,
+            气压: environmentParams.pressure,
+          });
+        }
+
         // 如果已连接，更新已连接平台的状态
         if (isConnected.value && connectedPlatformName.value) {
           const updatedPlatform = parsedData.platform.find(
@@ -953,11 +1090,14 @@ const handlePlatformStatus = (packet: any) => {
           无人机数量: uavPlatforms.length,
           无人机分组: Array.from(uavGroups),
           已连接平台: connectedPlatformName.value || "未连接",
+          环境参数: parsedData.evironment ? "已更新" : "未包含",
         });
 
         addLog(
           "success",
-          `更新平台数据: 发现${uavPlatforms.length}个无人机平台`
+          `更新平台数据: 发现${uavPlatforms.length}个无人机平台${
+            parsedData.evironment ? "，环境参数已更新" : ""
+          }`
         );
       }
     }
@@ -1604,16 +1744,90 @@ const sendLockTargetCommand = async (targetName: string) => {
   }
 };
 
-const handleSendCooperationCommand = () => {
-  addLog("success", "发送打击协同指令");
-  ElMessage.success("协同指令已发送");
+const handleSendCooperationCommand = async () => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
 
-  // 添加新的协同报文
-  cooperationMessages.value.unshift({
-    time: new Date().toLocaleTimeString(),
-    message: "无人机发出协同打击报文",
-    type: "uav",
-  });
+    if (!selectedTarget.value) {
+      ElMessage.warning("请先选择要协同打击的目标");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Strike_Coordinate"];
+    if (commandEnum === undefined) {
+      throw new Error("未知打击协同命令");
+    }
+
+    // 获取目标信息
+    const targetInfo = targetOptions.value.find(
+      (t) => t.value === selectedTarget.value
+    );
+    const targetName = targetInfo?.label || selectedTarget.value;
+
+    // 获取目标位置信息
+    const locationInfo = getTargetLocationInfo(targetName);
+
+    // 获取同组火炮名称
+    const artilleryName = getSameGroupArtilleryName();
+    if (!artilleryName) {
+      ElMessage.warning("未找到同组火炮平台，无法发送协同指令");
+      return;
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      strikeCoordinateParam: {
+        artyName: artilleryName,
+        targetName: targetName,
+        coordinate: locationInfo
+          ? {
+              longitude: parseFloat(locationInfo.longitude.replace("°", "")),
+              latitude: parseFloat(locationInfo.latitude.replace("°", "")),
+              altitude: parseFloat(locationInfo.altitude.replace("m", "")),
+            }
+          : undefined,
+      },
+    };
+
+    addLog(
+      "info",
+      `发送打击协同命令到平台 ${connectedPlatformName.value}，目标: ${targetName}，协同火炮: ${artilleryName}`
+    );
+    console.log("发送打击协同命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog(
+        "success",
+        `打击协同命令发送成功，目标: ${targetName}，协同火炮: ${artilleryName}`
+      );
+      ElMessage.success(
+        `打击协同指令已发送（目标: ${targetName}，火炮: ${artilleryName}）`
+      );
+
+      // 添加新的协同报文
+      cooperationMessages.value.unshift({
+        time: new Date().toLocaleTimeString(),
+        message: `无人机发出协同打击报文（目标: ${targetName}，火炮: ${artilleryName}）`,
+        type: "uav",
+      });
+    } else {
+      addLog("error", `打击协同命令发送失败: ${result.error}`);
+      ElMessage.error(`协同指令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送打击协同命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
 };
 
 // 监听开关变化
@@ -1767,14 +1981,16 @@ onMounted(() => {
 
   // 模拟数据更新
   setInterval(() => {
-    // 更新环境参数
+    // 只更新演习时间，环境参数从真实平台数据获取
     environmentParams.exerciseTime = new Date().toLocaleTimeString();
 
-    // 模拟平台姿态变化
-    platformStatus.attitude.yaw =
-      (parseInt(platformStatus.attitude.yaw) + Math.random() * 2 - 1).toFixed(
-        0
-      ) + "°";
+    // 模拟平台姿态变化（仅在未连接真实平台时）
+    if (!hasRealPlatformData.value || !connectedPlatform.value) {
+      platformStatus.attitude.yaw =
+        (parseInt(platformStatus.attitude.yaw) + Math.random() * 2 - 1).toFixed(
+          0
+        ) + "°";
+    }
   }, 1000);
 });
 

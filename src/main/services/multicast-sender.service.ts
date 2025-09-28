@@ -36,6 +36,15 @@ export interface PlatformCmdData {
     targetName?: string;
     sensorName?: string;
   };
+  strikeCoordinateParam?: {
+    artyName?: string;
+    targetName?: string;
+    coordinate?: {
+      longitude?: number;
+      latitude?: number;
+      altitude?: number;
+    };
+  };
 }
 
 export class MulticastSenderService {
@@ -265,7 +274,8 @@ export class MulticastSenderService {
         NavParamType,
         TargetSetParamType,
         SetSpeedParamType,
-        LockParamType;
+        LockParamType,
+        StrikeCoordinateParamType;
 
       try {
         FireParamType = this.root.lookupType("PlatformStatus.FireParam");
@@ -311,6 +321,18 @@ export class MulticastSenderService {
         console.log("[MulticastSender] ✅ 找到 LockParamType");
       } catch (e) {
         console.log("[MulticastSender] ⚠️ 未找到 LockParamType:", e);
+      }
+
+      try {
+        StrikeCoordinateParamType = this.root.lookupType(
+          "PlatformStatus.StrikeCoordinateParam"
+        );
+        console.log("[MulticastSender] ✅ 找到 StrikeCoordinateParamType");
+      } catch (e) {
+        console.log(
+          "[MulticastSender] ⚠️ 未找到 StrikeCoordinateParamType:",
+          e
+        );
       }
 
       console.log("[MulticastSender] 创建PlatformCmd消息:", data);
@@ -418,6 +440,37 @@ export class MulticastSenderService {
         cmdData.lockParam = {
           targetName: data.lockParam.targetName || "",
           sensorName: data.lockParam.sensorName || "",
+        };
+      }
+
+      // 如果有strikeCoordinateParam，添加到消息中
+      if (data.strikeCoordinateParam && StrikeCoordinateParamType) {
+        console.log(
+          "[MulticastSender] 添加strikeCoordinateParam:",
+          data.strikeCoordinateParam
+        );
+        const strikeCoordinateParam = StrikeCoordinateParamType.create({
+          artyName: data.strikeCoordinateParam.artyName || "",
+          targetName: data.strikeCoordinateParam.targetName || "",
+          coordinate: data.strikeCoordinateParam.coordinate
+            ? {
+                longitude: data.strikeCoordinateParam.coordinate.longitude || 0,
+                latitude: data.strikeCoordinateParam.coordinate.latitude || 0,
+                altitude: data.strikeCoordinateParam.coordinate.altitude || 0,
+              }
+            : undefined,
+        });
+        cmdData.strikeCoordinateParam = strikeCoordinateParam;
+      } else if (data.strikeCoordinateParam && !StrikeCoordinateParamType) {
+        console.log(
+          "[MulticastSender] ⚠️ strikeCoordinateParam数据存在但StrikeCoordinateParamType未找到，跳过"
+        );
+        console.log("[MulticastSender] 尝试直接使用原始数据...");
+        // 如果找不到类型，尝试直接使用原始数据
+        cmdData.strikeCoordinateParam = {
+          artyName: data.strikeCoordinateParam.artyName || "",
+          targetName: data.strikeCoordinateParam.targetName || "",
+          coordinate: data.strikeCoordinateParam.coordinate || undefined,
         };
       }
 

@@ -15,6 +15,8 @@ enum PlatformCommand
   Arty_Fire = 8;        // 火炮发射
   Uav_Set_Speed = 9; //设定无人机速度
   Uav_Lock_Target = 10;  //锁定目标
+  Uav_Strike_Coordinate = 11; //打击协同
+  Arty_Fire_Coordinate = 12; // 发射协同
 }
 
 message LockParam {
@@ -33,7 +35,15 @@ message PlatformCmd {
   optional TargetSetParam targetSetParam = 7; // 目标装订附加参数
   optional SetSpeedparam setSpeedParam =8; //速度设定参数
   optional LockParam lockParam =9; //锁定目标参数
+  optional StrikeCoordinateParam strikeCoordinateParam =10; //打击协同参数
 };
+
+message StrikeCoordinateParam
+{
+  optional string artyName = 1;
+  optional string targetName = 2;
+  optional PublicStruct.GeoCoordinate coordinate = 3;
+}
 
 //武器发射参数
 message FireParam

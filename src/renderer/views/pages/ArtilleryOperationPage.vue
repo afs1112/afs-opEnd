@@ -82,6 +82,51 @@
 
           <!-- 目标装订 -->
           <div class="control-group mb-4">
+            <!-- 协同命令目标信息显示 -->
+            <div
+              class="coordination-target-display mb-3"
+              v-if="receivedCoordinationTarget.name"
+            >
+              <div class="coordination-header">
+                <span class="coordination-title">协同目标信息</span>
+                <el-tag size="small" type="success">来自无人机协同</el-tag>
+              </div>
+              <div class="target-info-item">
+                <span class="info-label">目标名称：</span>
+                <span class="info-value">{{
+                  receivedCoordinationTarget.name
+                }}</span>
+              </div>
+              <div class="target-info-item">
+                <span class="info-label">目标坐标：</span>
+                <span class="info-value">{{
+                  receivedCoordinationTarget.coordinates
+                }}</span>
+              </div>
+              <div class="target-info-item">
+                <span class="info-label">协同平台：</span>
+                <span class="info-value">{{
+                  receivedCoordinationTarget.sourcePlatform
+                }}</span>
+              </div>
+              <div class="coordination-actions">
+                <el-button
+                  size="small"
+                  type="primary"
+                  @click="adoptCoordinationTarget"
+                >
+                  采用协同目标
+                </el-button>
+                <el-button
+                  size="small"
+                  type="default"
+                  @click="clearCoordinationTarget"
+                >
+                  清除
+                </el-button>
+              </div>
+            </div>
+
             <!-- 目标信息显示 -->
             <div class="target-info-display mb-3">
               <div class="target-info-item">
@@ -215,7 +260,19 @@
         <div class="status-card platform-status">
           <div class="status-content">
             <div class="status-title">平台状态</div>
-            <div class="status-info">
+            <div class="status-info" v-if="connectedPlatform">
+              位置：{{
+                formatCoordinate(connectedPlatform.base?.location?.longitude)
+              }}
+              {{ formatCoordinate(connectedPlatform.base?.location?.latitude)
+              }}<br />
+              高度：{{ connectedPlatform.base?.location?.altitude || 0 }}m<br />
+              姿态：俯仰{{ formatAngle(connectedPlatform.base?.pitch) }} 横滚{{
+                formatAngle(connectedPlatform.base?.roll)
+              }}
+              偏航{{ formatAngle(connectedPlatform.base?.yaw) }}
+            </div>
+            <div class="status-info" v-else>
               射击准备：{{ artilleryStatus.isReady ? "就绪" : "未就绪" }}<br />
               炮管温度：{{ artilleryStatus.temperature }}°C<br />
               系统状态：{{ artilleryStatus.systemStatus }}
@@ -366,8 +423,8 @@ interface AmmunitionType {
 interface Environment {
   temperature: number;
   humidity: number;
-  windSpeed: number;
-  visibility: number;
+  windSpeed: string;
+  visibility: string;
   pressure: string;
   exerciseTime: string;
 }
@@ -428,6 +485,22 @@ const targetName = ref("无人机-001"); // 目标名称，默认值
 const currentTarget = reactive<CurrentTarget>({
   name: "敌方无人机-001",
   coordinates: "E115°30'12\" N39°45'36\"",
+});
+
+// 接收到的协同目标信息
+interface CoordinationTarget {
+  name: string;
+  coordinates: string;
+  sourcePlatform: string;
+  longitude?: number;
+  latitude?: number;
+  altitude?: number;
+}
+
+const receivedCoordinationTarget = reactive<CoordinationTarget>({
+  name: "",
+  coordinates: "",
+  sourcePlatform: "",
 });
 
 // 弹药类型选择
@@ -498,6 +571,23 @@ const artilleryStatus = reactive<ArtilleryStatus>({
   systemStatus: "正常",
 });
 
+// 平台命令枚举映射（根据新的proto定义）
+const PlatformCommandEnum: { [key: string]: number } = {
+  Command_inValid: 0,
+  Uav_Sensor_On: 1, // 传感器开
+  Uav_Sensor_Off: 2, // 传感器关
+  Uav_Sensor_Turn: 3, // 传感器转向
+  Uav_LazerPod_Lasing: 4, // 激光吊舱照射
+  Uav_LazerPod_Cease: 5, // 激光吊舱停止照射
+  Uav_Nav: 6, // 无人机航线规划
+  Arty_Target_Set: 7, // 目标装订
+  Arty_Fire: 8, // 火炮发射
+  Uav_Set_Speed: 9, // 设定无人机速度
+  Uav_Lock_Target: 10, // 锁定目标
+  Uav_Strike_Coordinate: 11, // 打击协同
+  Arty_Fire_Coordinate: 12, // 发射协同
+};
+
 const targetInfo = reactive<TargetInfo>({
   type: "无人机",
   distance: 3200,
@@ -508,8 +598,8 @@ const targetInfo = reactive<TargetInfo>({
 const environment = reactive<Environment>({
   temperature: 25,
   humidity: 65,
-  windSpeed: 3.2,
-  visibility: 12,
+  windSpeed: "3.2",
+  visibility: "12",
   pressure: "1013hPa",
   exerciseTime: "14:30:25",
 });
@@ -660,6 +750,20 @@ const connectToSimulation = () => {
   // TODO: 实际的连接逻辑
 };
 
+// 直接在连接后从平台数据初始化状态
+const initializeArtilleryStatus = () => {
+  if (!isConnected.value || !connectedPlatform.value) return;
+
+  // 初始化火炮状态显示
+  updateArtilleryStatusDisplay(connectedPlatform.value);
+
+  // 获取最新的环境参数
+  if (platforms.value.length > 0) {
+    const latestPlatformData = platforms.value[0]; // 取第一个平台的环境数据
+    console.log("[ArtilleryPage] 初始化环境参数从平台数据");
+  }
+};
+
 // 处理连接平台
 const handleConnectPlatform = () => {
   if (isConnected.value) {
@@ -677,12 +781,14 @@ const handleConnectPlatform = () => {
     return;
   }
 
-  // 查找已选择的平台
+  // 查找已选择的平台（支持多种火炮类型）
   const targetPlatform = platforms.value.find(
     (platform) =>
       platform.base?.name === selectedInstance.value &&
       platform.base?.group === selectedGroup.value &&
-      platform.base?.type === "ROCKET_LAUNCHER"
+      (platform.base?.type === "ROCKET_LAUNCHER" ||
+        platform.base?.type === "Artillery" ||
+        platform.base?.type === "CANNON")
   );
 
   if (targetPlatform) {
@@ -692,6 +798,13 @@ const handleConnectPlatform = () => {
     connectedPlatform.value = targetPlatform;
     connectedPlatformName.value = selectedInstance.value;
     artilleryStatus.isReady = true;
+
+    // 连接后立即获取平台状态
+    updateArtilleryStatusDisplay(targetPlatform);
+
+    // 初始化状态
+    initializeArtilleryStatus();
+
     console.log(`[ArtilleryPage] 连接到真实平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功: ${selectedInstance.value}`);
   } else {
@@ -704,6 +817,45 @@ const handleConnectPlatform = () => {
     console.log(`[ArtilleryPage] 连接到模拟平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功（模拟模式）: ${selectedInstance.value}`);
   }
+};
+
+// 格式化坐标显示
+const formatCoordinate = (coord: number | undefined) => {
+  if (coord === undefined) return "0.000000°";
+  return coord.toFixed(6) + "°";
+};
+
+// 格式化角度显示
+const formatAngle = (angle: number | undefined) => {
+  if (angle === undefined) return "0°";
+  return angle.toFixed(1) + "°";
+};
+
+// 采用协同目标
+const adoptCoordinationTarget = () => {
+  if (!receivedCoordinationTarget.name) {
+    ElMessage.warning("没有可采用的协同目标");
+    return;
+  }
+
+  // 将协同目标信息复制到当前目标
+  currentTarget.name = receivedCoordinationTarget.name;
+  currentTarget.coordinates = receivedCoordinationTarget.coordinates;
+
+  ElMessage.success(`已采用协同目标：${receivedCoordinationTarget.name}`);
+
+  // 清除协同目标信息
+  clearCoordinationTarget();
+};
+
+// 清除协同目标
+const clearCoordinationTarget = () => {
+  receivedCoordinationTarget.name = "";
+  receivedCoordinationTarget.coordinates = "";
+  receivedCoordinationTarget.sourcePlatform = "";
+  receivedCoordinationTarget.longitude = undefined;
+  receivedCoordinationTarget.latitude = undefined;
+  receivedCoordinationTarget.altitude = undefined;
 };
 
 // 目标装订
@@ -750,6 +902,8 @@ const handleInputTargetName = () => {
       ElMessage.warning("请输入目标名称");
       return;
     }
+    // 同步更新当前目标信息
+    currentTarget.name = targetName.value;
     isTargetNameEditing.value = false;
     ElMessage.success(`目标名称已设置: ${targetName.value}`);
   } else {
@@ -781,15 +935,49 @@ const handleSetFireCount = () => {
 };
 
 // 发送协同指令
-const handleSendCooperationCommand = () => {
-  ElMessage.success("协同指令已发送");
+const handleSendCooperationCommand = async () => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
 
-  // 添加新的协同报文
-  cooperationMessages.value.unshift({
-    time: new Date().toLocaleTimeString(),
-    message: "火炮发出协同打击报文",
-    type: "artillery",
-  });
+    const commandEnum = PlatformCommandEnum["Arty_Fire_Coordinate"];
+    if (commandEnum === undefined) {
+      throw new Error("未知发射协同命令");
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+    };
+
+    console.log("发送发射协同命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      ElMessage.success("发射协同指令已发送");
+
+      // 添加新的协同报文
+      cooperationMessages.value.unshift({
+        time: new Date().toLocaleTimeString(),
+        message: `火炮发出发射协同报文（目标：${
+          currentTarget.name || "未指定"
+        }）`,
+        type: "artillery",
+      });
+    } else {
+      ElMessage.error(`协同指令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送发射协同命令失败: ${error.message}`;
+    console.error(errorMsg, error);
+    ElMessage.error(errorMsg);
+  }
 };
 
 // 装填弹药
@@ -922,11 +1110,11 @@ const updateArtilleryStatusDisplay = (platform: any) => {
   artilleryStatus.isReady = !platform.base?.broken;
   artilleryStatus.systemStatus = platform.base?.broken ? "故障" : "正常";
 
-  // 模拟炮管温度变化
+  // 根据平台状态动态计算炮管温度
   if (artilleryStatus.isLoaded) {
-    artilleryStatus.temperature = 35 + Math.random() * 10; // 装填后温度上升
+    artilleryStatus.temperature = Math.round(35 + Math.random() * 10); // 装填后温度上升
   } else {
-    artilleryStatus.temperature = 25 + Math.random() * 5; // 正常温度
+    artilleryStatus.temperature = Math.round(25 + Math.random() * 5); // 正常温度
   }
 
   // 更新武器状态（从武器信息获取）
@@ -934,21 +1122,86 @@ const updateArtilleryStatusDisplay = (platform: any) => {
     platform.weapons.forEach((weapon: any) => {
       if (weapon.quantity !== undefined) {
         ammunitionCount.value = weapon.quantity;
+
+        // 根据武器类型更新弹药类型可用性
+        if (weapon.type) {
+          const weaponType = weapon.type.toLowerCase();
+          ammunitionTypes.value.forEach((ammoType) => {
+            // 根据武器类型匹配弹药类型
+            if (weaponType.includes("155") && ammoType.value.includes("155")) {
+              ammoType.count = weapon.quantity || ammoType.count;
+            } else if (
+              weaponType.includes("120") &&
+              ammoType.value.includes("120")
+            ) {
+              ammoType.count = weapon.quantity || ammoType.count;
+            }
+          });
+        }
       }
     });
   }
+
+  // 更新平台状态信息（类似无人机页面的实现）
+  console.log(`[ArtilleryPage] 更新火炮平台状态:`, {
+    平台名称: platform.base.name,
+    位置: platform.base.location,
+    系统状态: artilleryStatus.systemStatus,
+    就绪状态: artilleryStatus.isReady,
+    炮管温度: artilleryStatus.temperature,
+    弹药数量: ammunitionCount.value,
+  });
 };
 
 // 处理平台状态数据包
 const handlePlatformStatus = (packet: any) => {
   try {
     if (packet.parsedPacket?.packageType === 0x29) {
+      // 平台状态数据包
       const parsedData = packet.parsedPacket.parsedData;
 
       if (parsedData?.platform && Array.isArray(parsedData.platform)) {
         // 更新平台数据
         platforms.value = parsedData.platform;
         lastUpdateTime.value = Date.now();
+
+        // 更新环境参数（从 evironment 字段获取）
+        if (parsedData.evironment) {
+          const env = parsedData.evironment;
+          console.log("[ArtilleryPage] 收到原始环境数据:", env);
+
+          // 从平台数据中更新环境参数
+          if (env.temperature !== undefined) {
+            // 温度单位从开尔文(K)转换为摄氏度(°C)
+            const celsiusTemp = env.temperature - 273.15;
+            environment.temperature = Math.round(celsiusTemp);
+          }
+
+          if (env.windSpeed !== undefined) {
+            // 风速处理
+            environment.windSpeed = env.windSpeed.toFixed(1);
+          }
+
+          if (env.humidity !== undefined) {
+            // 湿度处理（转换为百分比）
+            environment.humidity = Math.round(env.humidity * 100);
+          }
+
+          if (env.visibility !== undefined) {
+            // 能见度处理（单位转换为公里）
+            environment.visibility = (env.visibility / 1000).toFixed(1);
+          }
+
+          // 更新演习时间
+          environment.exerciseTime = new Date().toLocaleTimeString();
+
+          console.log("[ArtilleryPage] 更新环境参数:", {
+            温度: environment.temperature + "°C",
+            风速: environment.windSpeed + "m/s",
+            湿度: environment.humidity + "%",
+            能见度: environment.visibility + "km",
+          });
+        }
 
         // 如果已连接，更新已连接平台的状态
         if (isConnected.value && connectedPlatformName.value) {
@@ -981,9 +1234,81 @@ const handlePlatformStatus = (packet: any) => {
           已连接平台: connectedPlatformName.value || "未连接",
         });
       }
+    } else if (packet.parsedPacket?.packageType === 0x2a) {
+      console.log("[ArtilleryPage] 收到平台命令数据:", packet.parsedPacket);
+      // 平台命令数据包 - 处理打击协同命令
+      const parsedData = packet.parsedPacket.parsedData;
+
+      if (parsedData?.strikeCoordinateParam) {
+        // 打击协同命令（Uav_Strike_Coordinate = 11）
+        const strikeParam = parsedData.strikeCoordinateParam;
+        const sourcePlatform = parsedData.platformName || "未知平台";
+
+        // 提取目标信息
+        if (strikeParam.targetName) {
+          receivedCoordinationTarget.name = strikeParam.targetName;
+          receivedCoordinationTarget.sourcePlatform = sourcePlatform;
+
+          // 提取坐标信息
+          if (strikeParam.coordinate) {
+            const coord = strikeParam.coordinate;
+            // 转换为可读格式
+            const lonDeg = Math.floor(coord.longitude);
+            const lonMin = Math.floor((coord.longitude - lonDeg) * 60);
+            const lonSec = Math.floor(
+              ((coord.longitude - lonDeg) * 60 - lonMin) * 60
+            );
+
+            const latDeg = Math.floor(coord.latitude);
+            const latMin = Math.floor((coord.latitude - latDeg) * 60);
+            const latSec = Math.floor(
+              ((coord.latitude - latDeg) * 60 - latMin) * 60
+            );
+
+            receivedCoordinationTarget.coordinates = `E${lonDeg}°${lonMin}'${lonSec}\" N${latDeg}°${latMin}'${latSec}\"`;
+            receivedCoordinationTarget.longitude = coord.longitude;
+            receivedCoordinationTarget.latitude = coord.latitude;
+            receivedCoordinationTarget.altitude = coord.altitude;
+          }
+
+          console.log("[ArtilleryPage] 收到打击协同命令:", {
+            源平台: sourcePlatform,
+            目标名称: strikeParam.targetName,
+            火炮名称: strikeParam.artyName,
+            坐标: strikeParam.coordinate,
+          });
+
+          // 立即更新目标装订信息（根据项目规范自动应用协同目标）
+          currentTarget.name = strikeParam.targetName;
+          if (receivedCoordinationTarget.coordinates) {
+            currentTarget.coordinates = receivedCoordinationTarget.coordinates;
+          }
+
+          // 更新目标名称输入框
+          targetName.value = strikeParam.targetName;
+          isTargetNameEditing.value = false;
+
+          ElMessage.success(
+            `收到来自 ${sourcePlatform} 的打击协同命令，目标：${strikeParam.targetName}，已自动更新目标装订`
+          );
+
+          // 添加协同报文到报文区域
+          cooperationMessages.value.unshift({
+            time: new Date().toLocaleTimeString(),
+            message: `收到来自 ${sourcePlatform} 的打击协同命令（目标：${strikeParam.targetName}）`,
+            type: "coordination_received",
+          });
+
+          console.log("[ArtilleryPage] 已自动更新目标装订信息:", {
+            目标名称: currentTarget.name,
+            目标坐标: currentTarget.coordinates,
+            目标名称输入框: targetName.value,
+          });
+        }
+      }
     }
   } catch (error) {
-    console.error("[ArtilleryPage] 处理平台状态数据失败:", error);
+    console.error("[ArtilleryPage] 处理平台数据失败:", error);
   }
 };
 
@@ -1260,6 +1585,35 @@ onUnmounted(() => {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   padding: 12px;
+}
+
+/* 协同目标显示 */
+.coordination-target-display {
+  background: #e8f5e8;
+  border: 2px solid #28a745;
+  border-radius: 6px;
+  padding: 12px;
+  position: relative;
+}
+
+.coordination-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.coordination-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #155724;
+}
+
+.coordination-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-end;
 }
 
 .target-info-item {

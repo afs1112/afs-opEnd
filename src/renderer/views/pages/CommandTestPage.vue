@@ -745,6 +745,8 @@ const PlatformCommandEnum: { [key: string]: number } = {
   Arty_Fire: 8, // 火炮发射
   Uav_Set_Speed: 9, // 设定无人机速度
   Uav_Lock_Target: 10, // 锁定目标
+  Uav_Strike_Coordinate: 11, // 打击协同
+  Arty_Fire_Coordinate: 12, // 发射协同
 };
 
 // 命令发送方法
