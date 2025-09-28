@@ -80,9 +80,22 @@
 
           <!-- 航线规划 -->
           <div class="control-group">
-            <el-button class="route-planning-btn" @click="handleRoutePlanning">
-              航线规划
-            </el-button>
+            <div class="button-row">
+              <el-button
+                class="route-planning-btn"
+                @click="handleRoutePlanning"
+              >
+                航线规划
+              </el-button>
+              <el-button
+                class="trajectory-sync-btn"
+                :type="isSyncingTrajectory ? 'danger' : 'warning'"
+                @click="toggleTrajectorySync"
+                :disabled="!isConnected"
+              >
+                {{ isSyncingTrajectory ? "停止同步" : "同步轨迹" }}
+              </el-button>
+            </div>
           </div>
           <div class="control-separator"></div>
           <!-- 光电吊舱控制 -->
@@ -188,8 +201,11 @@
                 <span class="target-label">选择目标：</span>
                 <el-select
                   v-model="selectedTarget"
-                  placeholder="选择要锁定的目标"
+                  :placeholder="
+                    isConnected ? '选择要锁定的目标' : '请先连接平台'
+                  "
                   class="target-select"
+                  :disabled="!isConnected || targetOptions.length === 0"
                   clearable
                 >
                   <el-option
@@ -197,8 +213,29 @@
                     :key="target.value"
                     :label="target.label"
                     :value="target.value"
-                  />
+                  >
+                    <template #default>
+                      <div class="target-option">
+                        <span class="target-name">{{ target.label }}</span>
+                        <span v-if="target.targetType" class="target-type">{{
+                          target.targetType
+                        }}</span>
+                      </div>
+                    </template>
+                  </el-option>
                 </el-select>
+              </div>
+              <!-- 目标状态提示 -->
+              <div v-if="isConnected" class="target-status-hint">
+                <span
+                  v-if="targetOptions.length === 0"
+                  class="text-gray-500 text-xs"
+                >
+                  当前平台未跟踪到目标
+                </span>
+                <span v-else class="text-green-600 text-xs">
+                  可选目标: {{ targetOptions.length }} 个
+                </span>
               </div>
             </div>
 
@@ -207,7 +244,9 @@
               <el-button
                 class="action-btn full-width-btn"
                 @click="handleLockTarget"
-                :disabled="!selectedTarget"
+                :disabled="
+                  !isConnected || !selectedTarget || targetOptions.length === 0
+                "
               >
                 锁定目标
               </el-button>
@@ -255,12 +294,16 @@
           <div class="status-content">
             <div class="status-title">载荷状态</div>
             <div class="status-info">
-              光电：{{ payloadStatus.optoElectronic.status }}、{{
-                payloadStatus.optoElectronic.power
-              }}、{{ payloadStatus.optoElectronic.type }}<br />
-              激光：{{ payloadStatus.laser.status }}、{{
-                payloadStatus.laser.power
-              }}、{{ payloadStatus.laser.type }}
+              光电载荷：开关{{
+                payloadStatus.optoElectronic.isTurnedOn ? "开启" : "关闭"
+              }}，俯仰{{ payloadStatus.optoElectronic.currentEl }}°，方位{{
+                payloadStatus.optoElectronic.currentAz
+              }}°<br />
+              激光载荷：开关{{
+                payloadStatus.laser.isTurnedOn ? "开启" : "关闭"
+              }}，俯仰{{ payloadStatus.laser.currentEl }}°，方位{{
+                payloadStatus.laser.currentAz
+              }}°
             </div>
           </div>
         </div>
@@ -273,6 +316,7 @@
               名称：{{ targetStatus.name }}<br />
               位置：{{ targetStatus.position.longitude }}
               {{ targetStatus.position.latitude }}<br />
+              高度：{{ targetStatus.position.altitude }}<br />
               是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
             </div>
           </div>
@@ -337,6 +381,40 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 传感器转向参数对话框 -->
+    <el-dialog
+      v-model="sensorParamDialogVisible"
+      title="传感器转向控制"
+      width="400px"
+    >
+      <el-form :model="sensorParamForm" label-width="100px">
+        <el-form-item label="方位角">
+          <el-input-number
+            v-model="sensorParamForm.azSlew"
+            :min="-180"
+            :max="180"
+            :step="0.1"
+            class="w-full"
+          />
+        </el-form-item>
+        <el-form-item label="俯仰角">
+          <el-input-number
+            v-model="sensorParamForm.elSlew"
+            :min="-90"
+            :max="90"
+            :step="0.1"
+            class="w-full"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="sensorParamDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="sendSensorParamCommand"
+          >确定</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -367,26 +445,80 @@ const selectedGroup = ref("");
 const selectedUav = ref("");
 const isConnected = ref(false); // 连接状态
 
+// 轨迹同步相关
+const isSyncingTrajectory = ref<boolean>(false);
+const syncTimer = ref<NodeJS.Timeout | null>(null);
+const hasRealPlatformData = ref<boolean>(false);
+
 // 目标选择相关
 const selectedTarget = ref("");
-const targetOptions = ref([
-  { label: "敌方坦克-001", value: "tank_001" },
-  { label: "敌方装甲车-002", value: "apc_002" },
-  { label: "敌方雷达站-003", value: "radar_003" },
-  { label: "敌方指挥所-004", value: "hq_004" },
-  { label: "敌方防空阵地-005", value: "sam_005" },
-  { label: "敌方补给车-006", value: "supply_006" },
-]);
-const groupOptions = ref([
-  { label: "分组1", value: "group1" },
-  { label: "分组2", value: "group2" },
-  { label: "训练分组", value: "train_group" },
-]);
-const uavOptions = ref([
-  { label: "无人机-001", value: "uav001" },
-  { label: "无人机-002", value: "uav002" },
-  { label: "无人机-003", value: "uav003" },
-]);
+
+// 动态目标选项（从当前连接平台的tracks中获取）
+const targetOptions = computed(() => {
+  if (
+    !connectedPlatform.value?.tracks ||
+    !Array.isArray(connectedPlatform.value.tracks)
+  ) {
+    return [];
+  }
+
+  // 从当前连接的无人机平台的tracks中获取目标选项
+  return connectedPlatform.value.tracks.map((track: any) => ({
+    label: track.targetName || "未知目标",
+    value: track.targetName || "",
+    sensorName: track.sensorName || "",
+    targetType: track.targetType || "",
+  }));
+});
+// 平台数据
+const platforms = ref<any[]>([]);
+const lastUpdateTime = ref<number>(0);
+
+// 已连接的平台信息
+const connectedPlatform = ref<any>(null);
+const connectedPlatformName = ref<string>("");
+
+// 动态分组选项（从平台数据中获取）
+// 动态分组选项（从平台数据中获取）
+const groupOptions = computed(() => {
+  const groups = new Set<string>();
+
+  // 从真实平台数据中获取分组
+  platforms.value.forEach((platform) => {
+    if (platform.base?.group && platform.base?.type === "UAV01") {
+      groups.add(platform.base.group);
+    }
+  });
+
+  // 根据项目规范，必须从platforms报文动态解析，不使用静态数据
+  return Array.from(groups).map((group) => ({
+    label: group,
+    value: group,
+  }));
+});
+// 动态无人机选项（基于选择的分组）
+const uavOptions = computed(() => {
+  if (!selectedGroup.value) {
+    return [];
+  }
+
+  // 从真实平台数据中获取无人机
+  const realUavs = platforms.value
+    .filter(
+      (platform) =>
+        platform.base?.group === selectedGroup.value &&
+        platform.base?.type === "UAV01" &&
+        !platform.base?.broken
+    )
+    .map((platform) => ({
+      label: platform.base.name || "未命名无人机",
+      value: platform.base.name || "",
+      platform: platform,
+    }));
+
+  // 根据项目规范，只返回从真实平台数据解析的结果
+  return realUavs;
+});
 
 // 环境参数数据
 const environmentParams = reactive({
@@ -415,11 +547,19 @@ const platformStatus = reactive({
 // 载荷状态数据
 const payloadStatus = reactive({
   optoElectronic: {
+    isTurnedOn: false,
+    currentEl: 0.0, // 俯仰角
+    currentAz: 0.0, // 方位角
+    // 保留原有字段兼容性
     status: "正常",
     power: "开",
     type: "HD摄像头",
   },
   laser: {
+    isTurnedOn: false,
+    currentEl: 0.0, // 俯仰角
+    currentAz: 0.0, // 方位角
+    // 保留原有字段兼容性
     status: "待机",
     power: "关",
     type: "测距激光",
@@ -432,6 +572,7 @@ const targetStatus = reactive({
   position: {
     longitude: "116.400000°",
     latitude: "39.910000°",
+    altitude: "0m",
   },
   destroyed: false,
 });
@@ -476,6 +617,13 @@ const documentContent = ref("");
 const documentLoading = ref(false);
 const documentError = ref("");
 
+// 传感器转向相关
+const sensorParamDialogVisible = ref(false);
+const sensorParamForm = reactive({
+  azSlew: 0,
+  elSlew: 0,
+});
+
 // 函数定义
 const addLog = (
   type: "info" | "success" | "warning" | "error",
@@ -509,42 +657,500 @@ const getLogColor = (type: string) => {
   }
 };
 
+// 平台命令枚举映射（根据新的proto定义）
+const PlatformCommandEnum: { [key: string]: number } = {
+  Command_inValid: 0,
+  Uav_Sensor_On: 1, // 传感器开
+  Uav_Sensor_Off: 2, // 传感器关
+  Uav_Sensor_Turn: 3, // 传感器转向
+  Uav_LazerPod_Lasing: 4, // 激光吊舱照射
+  Uav_LazerPod_Cease: 5, // 激光吊舱停止照射
+  Uav_Nav: 6, // 无人机航线规划
+  Arty_Target_Set: 7, // 目标装订
+  Arty_Fire: 8, // 火炮发射
+  Uav_Set_Speed: 9, // 设定无人机速度
+  Uav_Lock_Target: 10, // 锁定目标
+};
+
+// 获取光电传感器名称
+const getOptoElectronicSensorName = () => {
+  if (!connectedPlatform.value?.sensors) {
+    return null;
+  }
+
+  // 查找光电传感器
+  const sensor = connectedPlatform.value.sensors.find(
+    (sensor: any) =>
+      sensor.base?.type?.toLowerCase().includes("eoir") ||
+      sensor.base?.name?.toLowerCase().includes("光电")
+  );
+
+  return sensor?.base?.name || null;
+};
+
+// 获取激光传感器名称
+const getLaserSensorName = () => {
+  if (!connectedPlatform.value?.sensors) {
+    return null;
+  }
+
+  // 查找激光传感器
+  const sensor = connectedPlatform.value.sensors.find(
+    (sensor: any) =>
+      sensor.base?.type?.toLowerCase().includes("laser") ||
+      sensor.base?.name?.toLowerCase().includes("激光")
+  );
+
+  return sensor?.base?.name || null;
+};
+
+// 从平台数据中获取目标位置信息
+const getTargetLocationInfo = (targetName: string) => {
+  if (!platforms.value || !Array.isArray(platforms.value)) {
+    return null;
+  }
+
+  // 在所有平台中查找与目标名称一致的平台
+  const targetPlatform = platforms.value.find(
+    (platform: any) => platform.base?.name === targetName
+  );
+
+  if (targetPlatform?.base?.location) {
+    const location = targetPlatform.base.location;
+    return {
+      longitude: `${location.longitude.toFixed(6)}°`,
+      latitude: `${location.latitude.toFixed(6)}°`,
+      altitude: `${location.altitude}m`,
+    };
+  }
+
+  return null;
+};
+
+// 传感器命令发送（不带参数）
+const sendSensorCommand = async (command: string, sensorName: string) => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
+
+    if (!sensorName) {
+      ElMessage.warning("未找到对应的传感器");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum[command];
+    if (commandEnum === undefined) {
+      throw new Error(`未知传感器命令: ${command}`);
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      sensorParam: {
+        sensorName: sensorName,
+        azSlew: 0, // 开关命令不需要角度参数
+        elSlew: 0,
+      },
+    };
+
+    addLog("info", `发送传感器命令: ${command} 到传感器 ${sensorName}`);
+    console.log("发送传感器命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog("success", `传感器命令 ${command} 发送成功`);
+      ElMessage.success(`传感器命令发送成功: ${command}`);
+    } else {
+      addLog("error", `传感器命令 ${command} 发送失败: ${result.error}`);
+      ElMessage.error(`命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送传感器命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 激光命令发送
+const sendLaserCommand = async (command: string) => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
+
+    const laserSensorName = getLaserSensorName();
+    if (!laserSensorName) {
+      ElMessage.warning("未找到激光传感器");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum[command];
+    if (commandEnum === undefined) {
+      throw new Error(`未知激光命令: ${command}`);
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      sensorParam: {
+        sensorName: laserSensorName,
+        azSlew: 0,
+        elSlew: 0,
+      },
+    };
+
+    addLog("info", `发送激光命令: ${command} 到传感器 ${laserSensorName}`);
+    console.log("发送激光命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog("success", `激光命令 ${command} 发送成功`);
+      ElMessage.success(`激光命令发送成功: ${command}`);
+    } else {
+      addLog("error", `激光命令 ${command} 发送失败: ${result.error}`);
+      ElMessage.error(`命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送激光命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 更新平台状态显示
+const updatePlatformStatusDisplay = (platform: any) => {
+  if (!platform?.base) return;
+
+  // 更新平台位置和姿态信息
+  if (platform.base.location) {
+    platformStatus.position.longitude = `${platform.base.location.longitude.toFixed(
+      6
+    )}°`;
+    platformStatus.position.latitude = `${platform.base.location.latitude.toFixed(
+      6
+    )}°`;
+    platformStatus.position.altitude = `${platform.base.location.altitude}m`;
+  }
+
+  if (platform.base.pitch !== undefined) {
+    platformStatus.attitude.pitch = `${platform.base.pitch.toFixed(1)}°`;
+  }
+  if (platform.base.roll !== undefined) {
+    platformStatus.attitude.roll = `${platform.base.roll.toFixed(1)}°`;
+  }
+  if (platform.base.yaw !== undefined) {
+    platformStatus.attitude.yaw = `${platform.base.yaw.toFixed(1)}°`;
+  }
+
+  // 更新载荷状态（从传感器信息获取）
+  if (platform.sensors && Array.isArray(platform.sensors)) {
+    platform.sensors.forEach((sensor: any) => {
+      if (
+        sensor.base?.type?.toLowerCase().includes("eoir") ||
+        sensor.base?.name?.toLowerCase().includes("光电")
+      ) {
+        const sensorIsOn = sensor.base.isTurnedOn || false;
+
+        // 同步载荷状态显示
+        payloadStatus.optoElectronic.isTurnedOn = sensorIsOn;
+        payloadStatus.optoElectronic.currentEl = sensor.base.currentEl || 0.0;
+        payloadStatus.optoElectronic.currentAz = sensor.base.currentAz || 0.0;
+        // 兼容原有字段
+        payloadStatus.optoElectronic.status = sensorIsOn ? "正常" : "待机";
+        payloadStatus.optoElectronic.power = sensorIsOn ? "开" : "关";
+
+        // 同步光电载荷开关状态
+        optoElectronicPodEnabled.value = sensorIsOn;
+      }
+
+      if (
+        sensor.base?.type?.toLowerCase().includes("laser") ||
+        sensor.base?.name?.toLowerCase().includes("激光")
+      ) {
+        console.log("sensor", sensor);
+        const sensorIsOn = sensor.base.isTurnedOn || false;
+
+        // 同步载荷状态显示
+        payloadStatus.laser.isTurnedOn = sensorIsOn;
+        payloadStatus.laser.currentEl = sensor.base.currentEl || 0.0;
+        payloadStatus.laser.currentAz = sensor.base.currentAz || 0.0;
+        // 兼容原有字段
+        payloadStatus.laser.status = sensorIsOn ? "正常" : "待机";
+        payloadStatus.laser.power = sensorIsOn ? "开" : "关";
+
+        // 同步激光载荷开关状态
+        laserPodEnabled.value = sensorIsOn;
+
+        // 更新激光编码（遵循项目规范）
+        if (sensor.laserCode) {
+          const laserCodeValue = sensor.laserCode.toString();
+          // 只有在当前没有激光编码或编码不同时才更新
+          if (laserCode.value !== laserCodeValue) {
+            laserCode.value = laserCodeValue;
+            // 根据项目规范，自动填入后设置为不可编辑状态
+            isLaserCodeEditing.value = false;
+          }
+        }
+      }
+    });
+  }
+};
+
+// 处理平台状态数据包
+const handlePlatformStatus = (packet: any) => {
+  try {
+    if (packet.parsedPacket?.packageType === 0x29) {
+      const parsedData = packet.parsedPacket.parsedData;
+
+      if (parsedData?.platform && Array.isArray(parsedData.platform)) {
+        // 更新平台数据
+        platforms.value = parsedData.platform;
+        lastUpdateTime.value = Date.now();
+        hasRealPlatformData.value = true; // 标记已接收到真实平台数据
+
+        // 如果已连接，更新已连接平台的状态
+        if (isConnected.value && connectedPlatformName.value) {
+          const updatedPlatform = parsedData.platform.find(
+            (p: any) =>
+              p.base?.name === connectedPlatformName.value &&
+              p.base?.type === "UAV01"
+          );
+
+          if (updatedPlatform) {
+            connectedPlatform.value = updatedPlatform;
+            // 更新平台状态显示
+            updatePlatformStatusDisplay(updatedPlatform);
+            console.log(
+              `[UavPage] 更新已连接平台状态: ${connectedPlatformName.value}`
+            );
+          }
+        }
+
+        // 提取无人机平台和分组信息
+        const uavPlatforms = parsedData.platform.filter(
+          (p: any) => p.base?.type === "UAV01"
+        );
+        const uavGroups = new Set();
+        uavPlatforms.forEach((p: any) => {
+          if (p.base?.group) {
+            uavGroups.add(p.base.group);
+          }
+        });
+
+        console.log("[UavPage] 收到平台状态数据:", {
+          总平台数量: parsedData.platform.length,
+          无人机数量: uavPlatforms.length,
+          无人机分组: Array.from(uavGroups),
+          已连接平台: connectedPlatformName.value || "未连接",
+        });
+
+        addLog(
+          "success",
+          `更新平台数据: 发现${uavPlatforms.length}个无人机平台`
+        );
+      }
+    }
+  } catch (error) {
+    console.error("[UavPage] 处理平台状态数据失败:", error);
+    addLog(
+      "error",
+      `处理平台数据失败: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+};
+
 // 按钮点击事件处理函数
 const handleSelectGroup = (value: string) => {
   selectedGroup.value = value;
   selectedUav.value = ""; // 重置无人机选择
-  addLog(
-    "info",
-    `选择分组: ${
-      groupOptions.value.find((g) => g.value === value)?.label || value
-    }`
-  );
-  ElMessage.info(
-    `已选择分组: ${
-      groupOptions.value.find((g) => g.value === value)?.label || value
-    }`
-  );
+
+  if (value) {
+    addLog(
+      "info",
+      `选择分组: ${
+        groupOptions.value.find((g) => g.value === value)?.label || value
+      }`
+    );
+    ElMessage.info(
+      `已选择分组: ${
+        groupOptions.value.find((g) => g.value === value)?.label || value
+      }`
+    );
+  } else {
+    addLog("info", "已清空分组选择");
+    ElMessage.info("已清空分组选择");
+  }
 };
 
 const handleSelectUav = (value: string) => {
   selectedUav.value = value;
-  addLog(
-    "info",
-    `选择无人机: ${
-      uavOptions.value.find((u) => u.value === value)?.label || value
-    }`
-  );
-  ElMessage.info(
-    `已选择无人机: ${
-      uavOptions.value.find((u) => u.value === value)?.label || value
-    }`
-  );
+
+  if (value) {
+    addLog(
+      "info",
+      `选择无人机: ${
+        uavOptions.value.find((u) => u.value === value)?.label || value
+      }`
+    );
+    ElMessage.info(
+      `已选择无人机: ${
+        uavOptions.value.find((u) => u.value === value)?.label || value
+      }`
+    );
+  } else {
+    addLog("info", "已清空无人机选择");
+    ElMessage.info("已清空无人机选择");
+  }
+};
+
+// 轨迹同步相关函数
+// 切换轨迹同步状态
+const toggleTrajectorySync = () => {
+  if (isSyncingTrajectory.value) {
+    stopTrajectorySync();
+  } else {
+    startTrajectorySync();
+  }
+};
+
+// 开始轨迹同步
+const startTrajectorySync = async () => {
+  try {
+    if (!selectedUav.value) {
+      ElMessage.warning("请先选择平台");
+      return;
+    }
+
+    if (!hasRealPlatformData.value) {
+      ElMessage.warning("请等待接收到真实的平台状态数据后再启动轨迹同步");
+      addLog("warning", "尚未接收到真实平台数据，无法启动轨迹同步");
+      return;
+    }
+
+    // 获取UavId
+    let uavId = 0;
+    try {
+      const uavIdResult = await (window as any).electronAPI.uav.getCurrentId();
+      if (uavIdResult.success && uavIdResult.uavId) {
+        uavId = parseInt(uavIdResult.uavId);
+      } else {
+        ElMessage.warning("请先设置UavId");
+        return;
+      }
+    } catch (error) {
+      ElMessage.warning("无法获取UavId，请先设置");
+      return;
+    }
+
+    isSyncingTrajectory.value = true;
+    addLog(
+      "info",
+      `开始持续同步平台 ${selectedUav.value} 的轨迹数据，UavId: ${uavId}`
+    );
+    ElMessage.success(`轨迹同步已启动，UavId: ${uavId}`);
+
+    // 立即发送一次
+    await sendTrajectoryData();
+
+    // 设置定时器，每2秒发送一次
+    syncTimer.value = setInterval(async () => {
+      await sendTrajectoryData();
+    }, 2000);
+  } catch (error: any) {
+    const errorMsg = `启动轨迹同步时发生错误: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+    isSyncingTrajectory.value = false;
+  }
+};
+
+// 停止轨迹同步
+const stopTrajectorySync = () => {
+  if (syncTimer.value) {
+    clearInterval(syncTimer.value);
+    syncTimer.value = null;
+  }
+
+  isSyncingTrajectory.value = false;
+  addLog("info", `停止轨迹同步`);
+  ElMessage.info("轨迹同步已停止");
+};
+
+// 发送轨迹数据
+const sendTrajectoryData = async () => {
+  try {
+    if (!selectedUav.value) {
+      return;
+    }
+
+    // 获取当前选择的平台数据
+    const platform = platforms.value.find(
+      (p) => p.base?.name === selectedUav.value
+    );
+    if (!platform) {
+      console.log("[轨迹同步] 未找到平台数据，跳过本次发送");
+      return;
+    }
+
+    // 检查平台是否有真实的基础数据（包含位置信息）
+    if (!platform.base || !platform.base.location) {
+      console.log("[轨迹同步] 平台缺少位置数据，跳过本次发送");
+      return;
+    }
+
+    // 获取UavId
+    const uavIdResult = await (window as any).electronAPI.uav.getCurrentId();
+    if (!uavIdResult.success || !uavIdResult.uavId) {
+      return;
+    }
+    const uavId = parseInt(uavIdResult.uavId);
+
+    // 将响应式对象转换为普通对象，避免IPC序列化问题
+    const platformDataPlain = JSON.parse(JSON.stringify(platform));
+
+    // 发送轨迹同步数据，传递平台数据用于提取位置和姿态信息
+    const result = await (
+      window as any
+    ).electronAPI.multicast.syncTrajectoryWithPlatformData({
+      platformName: selectedUav.value,
+      uavId: uavId,
+      platformData: platformDataPlain,
+    });
+
+    if (result.success) {
+      console.log(`[轨迹同步] 发送成功，UavId: ${uavId}`);
+    } else {
+      console.error(`[轨迹同步] 发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    console.error(`[轨迹同步] 发送数据时发生错误: ${error.message}`);
+  }
 };
 
 const handleConnectPlatform = () => {
   if (isConnected.value) {
     // 断开连接
     isConnected.value = false;
+    connectedPlatform.value = null;
+    connectedPlatformName.value = "";
+
+    // 重置载荷开关状态
+    optoElectronicPodEnabled.value = false;
+    laserPodEnabled.value = false;
+
     addLog(
       "warning",
       `已断开连接: ${selectedGroup.value} - ${selectedUav.value}`
@@ -558,12 +1164,44 @@ const handleConnectPlatform = () => {
     return;
   }
 
-  isConnected.value = true;
-  addLog(
-    "success",
-    `已连接到平台: ${selectedGroup.value} - ${selectedUav.value}`
+  // 查找已选择的平台
+  const targetPlatform = platforms.value.find(
+    (platform) =>
+      platform.base?.name === selectedUav.value &&
+      platform.base?.group === selectedGroup.value &&
+      platform.base?.type === "UAV01"
   );
-  ElMessage.success("平台连接成功");
+
+  if (targetPlatform) {
+    // 连接到真实平台
+    isConnected.value = true;
+    connectedPlatform.value = targetPlatform;
+    connectedPlatformName.value = selectedUav.value;
+
+    // 同步载荷状态和开关状态
+    updatePlatformStatusDisplay(targetPlatform);
+
+    addLog(
+      "success",
+      `已连接到真实平台: ${selectedGroup.value} - ${selectedUav.value}`
+    );
+    ElMessage.success(`平台连接成功: ${selectedUav.value}`);
+  } else {
+    // 未找到真实平台，但仍然允许连接（使用默认数据）
+    isConnected.value = true;
+    connectedPlatform.value = null; // 没有真实平台数据
+    connectedPlatformName.value = selectedUav.value;
+
+    // 重置载荷开关状态为默认值（关闭）
+    optoElectronicPodEnabled.value = false;
+    laserPodEnabled.value = false;
+
+    addLog(
+      "warning",
+      `连接到模拟平台: ${selectedGroup.value} - ${selectedUav.value}`
+    );
+    ElMessage.success(`平台连接成功（模拟模式）: ${selectedUav.value}`);
+  }
 };
 
 const handleOpenSolution = () => {
@@ -571,9 +1209,28 @@ const handleOpenSolution = () => {
   ElMessage.info("打开方案功能开发中...");
 };
 
-const handleRoutePlanning = () => {
-  addLog("info", "点击航线规划按钮");
-  ElMessage.info("航线规划功能开发中...");
+const handleRoutePlanning = async () => {
+  try {
+    addLog("info", "正在准备启动导航软件...");
+    const result = await (window as any).electronAPI.nav.openNavigation();
+
+    if (result.success) {
+      if (result.uavId) {
+        addLog("success", `导航软件启动成功，使用UavId: ${result.uavId}`);
+        ElMessage.success(`导航软件已启动，UavId: ${result.uavId}`);
+      } else {
+        addLog("success", "导航软件启动成功");
+        ElMessage.success("导航软件已启动");
+      }
+    } else {
+      addLog("error", `导航软件启动失败: ${result.error}`);
+      ElMessage.error(`启动失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `启动导航软件时发生错误: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
 };
 
 const handleInputLaserCode = () => {
@@ -625,12 +1282,17 @@ const handleIrradiate = () => {
   }
 
   // 检查是否设置了倒计时
-  if (!laserCountdown.value || parseInt(laserCountdown.value) <= 0) {
-    ElMessage.warning("请先设置激光倒计时");
+  const countdownTime = laserCountdown.value
+    ? parseInt(laserCountdown.value)
+    : 0;
+
+  if (countdownTime <= 0) {
+    // 没有设置倒计时或倒计时为0，直接发送照射命令
+    sendLaserCommand("Uav_LazerPod_Lasing");
     return;
   }
 
-  const countdownTime = parseInt(laserCountdown.value);
+  // 有倒计时，启动倒计时流程
   isIrradiating.value = true;
   irradiationCountdown.value = countdownTime;
 
@@ -649,38 +1311,297 @@ const handleIrradiate = () => {
       }
       isIrradiating.value = false;
 
-      addLog("success", "照射命令已发送");
-      ElMessage.success("照射命令已发送！");
-
-      // TODO: 这里可以添加实际的照射命令发送逻辑
+      // 发送真实的激光照射命令
+      sendLaserCommand("Uav_LazerPod_Lasing");
     }
   }, 1000);
 };
 
 const handleStop = () => {
-  addLog("warning", "点击停止按钮");
-  ElMessage.warning("停止功能开发中...");
+  // 发送真实的激光停止照射命令
+  sendLaserCommand("Uav_LazerPod_Cease");
 };
 
 const handleTurn = () => {
-  addLog("info", "点击转向按钮");
-  ElMessage.info("转向功能开发中...");
+  if (!isConnected.value) {
+    ElMessage.warning("请先连接平台");
+    return;
+  }
+
+  // 打开传感器转向参数对话框
+  showSensorParamDialog();
 };
 
-const handleLockTarget = () => {
+// 显示传感器转向参数对话框
+const showSensorParamDialog = () => {
+  sensorParamForm.azSlew = 0;
+  sensorParamForm.elSlew = 0;
+  sensorParamDialogVisible.value = true;
+};
+
+// 发送传感器转向命令（同时发送光电和激光载荷转向）
+const sendSensorParamCommand = async () => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
+
+    const optoElectronicSensorName = getOptoElectronicSensorName();
+    const laserSensorName = getLaserSensorName();
+
+    if (!optoElectronicSensorName && !laserSensorName) {
+      ElMessage.warning("未找到任何传感器");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Sensor_Turn"];
+    if (commandEnum === undefined) {
+      throw new Error(`未知传感器命令: Uav_Sensor_Turn`);
+    }
+
+    let successCount = 0;
+    let totalCommands = 0;
+
+    // 发送光电载荷转向命令
+    if (optoElectronicSensorName) {
+      totalCommands++;
+      const commandData = {
+        commandID: Date.now(),
+        platformName: connectedPlatformName.value,
+        command: commandEnum,
+        sensorParam: {
+          sensorName: optoElectronicSensorName,
+          azSlew: Number(sensorParamForm.azSlew),
+          elSlew: Number(sensorParamForm.elSlew),
+        },
+      };
+
+      addLog(
+        "info",
+        `发送光电载荷转向命令: 传感器 ${optoElectronicSensorName}, 方位角: ${sensorParamForm.azSlew}°, 俯仰角: ${sensorParamForm.elSlew}°`
+      );
+      console.log("发送光电载荷转向命令数据:", commandData);
+
+      const result = await (
+        window as any
+      ).electronAPI.multicast.sendPlatformCmd(commandData);
+
+      if (result.success) {
+        addLog("success", `光电载荷转向命令发送成功`);
+        successCount++;
+      } else {
+        addLog("error", `光电载荷转向命令发送失败: ${result.error}`);
+      }
+    }
+
+    // 发送激光载荷转向命令
+    if (laserSensorName) {
+      totalCommands++;
+      // 1秒延迟以避免命令ID冲突并确保时间间隔
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const commandData = {
+        commandID: Date.now(),
+        platformName: connectedPlatformName.value,
+        command: commandEnum,
+        sensorParam: {
+          sensorName: laserSensorName,
+          azSlew: Number(sensorParamForm.azSlew),
+          elSlew: Number(sensorParamForm.elSlew),
+        },
+      };
+
+      addLog(
+        "info",
+        `发送激光载荷转向命令: 传感器 ${laserSensorName}, 方位角: ${sensorParamForm.azSlew}°, 俯仰角: ${sensorParamForm.elSlew}°`
+      );
+      console.log("发送激光载荷转向命令数据:", commandData);
+
+      const result = await (
+        window as any
+      ).electronAPI.multicast.sendPlatformCmd(commandData);
+
+      if (result.success) {
+        addLog("success", `激光载荷转向命令发送成功`);
+        successCount++;
+      } else {
+        addLog("error", `激光载荷转向命令发送失败: ${result.error}`);
+      }
+    }
+
+    // 根据发送结果显示消息
+    if (successCount === totalCommands) {
+      ElMessage.success(
+        `传感器转向命令全部发送成功（${successCount}/${totalCommands}）`
+      );
+      sensorParamDialogVisible.value = false;
+    } else if (successCount > 0) {
+      ElMessage.warning(`部分命令发送成功（${successCount}/${totalCommands}）`);
+    } else {
+      ElMessage.error("所有转向命令发送失败");
+    }
+  } catch (error: any) {
+    const errorMsg = `发送传感器转向命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+const handleLockTarget = async () => {
   if (!selectedTarget.value) {
     ElMessage.warning("请先选择要锁定的目标");
     return;
   }
 
-  const targetLabel =
-    targetOptions.value.find((t) => t.value === selectedTarget.value)?.label ||
-    selectedTarget.value;
-  addLog("success", `已锁定目标：${targetLabel}`);
-  ElMessage.success(`已锁定目标：${targetLabel}`);
+  if (!isConnected.value || !connectedPlatformName.value) {
+    ElMessage.warning("请先连接平台");
+    return;
+  }
 
-  // 更新目标状态
-  targetStatus.name = targetLabel;
+  // 从目标选项中查找对应的目标信息
+  const targetInfo = targetOptions.value.find(
+    (t) => t.value === selectedTarget.value
+  );
+  const targetLabel = targetInfo?.label || selectedTarget.value;
+
+  // 发送光电和激光传感器的锁定命令
+  await sendLockTargetCommand(targetLabel);
+};
+
+// 发送锁定目标命令（同时发送光电和激光传感器锁定）
+const sendLockTargetCommand = async (targetName: string) => {
+  try {
+    const optoElectronicSensorName = getOptoElectronicSensorName();
+    const laserSensorName = getLaserSensorName();
+
+    if (!optoElectronicSensorName && !laserSensorName) {
+      ElMessage.warning("未找到任何传感器");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Lock_Target"];
+    if (commandEnum === undefined) {
+      throw new Error(`未知锁定目标命令: Uav_Lock_Target`);
+    }
+
+    let successCount = 0;
+    let totalCommands = 0;
+
+    // 发送光电传感器锁定命令
+    if (optoElectronicSensorName) {
+      totalCommands++;
+      const commandData = {
+        commandID: Date.now(),
+        platformName: connectedPlatformName.value,
+        command: commandEnum,
+        lockParam: {
+          targetName: targetName,
+          sensorName: optoElectronicSensorName,
+        },
+      };
+
+      addLog(
+        "info",
+        `发送光电传感器锁定命令: 传感器 ${optoElectronicSensorName} 锁定目标 ${targetName}`
+      );
+      console.log("发送光电传感器锁定命令数据:", commandData);
+
+      const result = await (
+        window as any
+      ).electronAPI.multicast.sendPlatformCmd(commandData);
+
+      if (result.success) {
+        addLog("success", `光电传感器锁定命令发送成功`);
+        successCount++;
+      } else {
+        addLog("error", `光电传感器锁定命令发送失败: ${result.error}`);
+      }
+    }
+
+    // 发送激光传感器锁定命令
+    if (laserSensorName) {
+      totalCommands++;
+      // 1秒延迟以避免命令ID冲突并确保时间间隔
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      const commandData = {
+        commandID: Date.now(),
+        platformName: connectedPlatformName.value,
+        command: commandEnum,
+        lockParam: {
+          targetName: targetName,
+          sensorName: laserSensorName,
+        },
+      };
+
+      addLog(
+        "info",
+        `发送激光传感器锁定命令: 传感器 ${laserSensorName} 锁定目标 ${targetName}`
+      );
+      console.log("发送激光传感器锁定命令数据:", commandData);
+
+      const result = await (
+        window as any
+      ).electronAPI.multicast.sendPlatformCmd(commandData);
+
+      if (result.success) {
+        addLog("success", `激光传感器锁定命令发送成功`);
+        successCount++;
+      } else {
+        addLog("error", `激光传感器锁定命令发送失败: ${result.error}`);
+      }
+    }
+
+    // 根据发送结果显示消息和更新状态
+    if (successCount === totalCommands) {
+      ElMessage.success(
+        `目标锁定命令全部发送成功（${successCount}/${totalCommands}）`
+      );
+      addLog("success", `已锁定目标：${targetName}`);
+
+      // 更新目标状态（显示目标名称、类型和位置信息）
+      targetStatus.name = targetName;
+
+      // 获取目标位置信息
+      const locationInfo = getTargetLocationInfo(targetName);
+      if (locationInfo) {
+        targetStatus.position.longitude = locationInfo.longitude;
+        targetStatus.position.latitude = locationInfo.latitude;
+        targetStatus.position.altitude = locationInfo.altitude;
+        addLog(
+          "info",
+          `目标位置：${locationInfo.longitude} ${locationInfo.latitude} ${locationInfo.altitude}`
+        );
+      } else {
+        // 未找到目标位置信息，使用默认值
+        targetStatus.position.longitude = "未知";
+        targetStatus.position.latitude = "未知";
+        targetStatus.position.altitude = "未知";
+        addLog("warning", `未能获取目标 ${targetName} 的位置信息`);
+      }
+
+      const targetInfo = targetOptions.value.find(
+        (t) => t.value === selectedTarget.value
+      );
+      if (targetInfo?.targetType) {
+        addLog(
+          "info",
+          `目标类型：${targetInfo.targetType}，传感器：${targetInfo.sensorName}`
+        );
+      }
+    } else if (successCount > 0) {
+      ElMessage.warning(
+        `部分锁定命令发送成功（${successCount}/${totalCommands}）`
+      );
+    } else {
+      ElMessage.error("所有锁定命令发送失败");
+    }
+  } catch (error: any) {
+    const errorMsg = `发送锁定目标命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
 };
 
 const handleSendCooperationCommand = () => {
@@ -696,9 +1617,26 @@ const handleSendCooperationCommand = () => {
 };
 
 // 监听开关变化
-const onOptoElectronicToggle = () => {
+const onOptoElectronicToggle = async () => {
+  const sensorName = getOptoElectronicSensorName();
+  if (!sensorName) {
+    ElMessage.warning("未找到光电传感器，无法控制");
+    // 恢复开关状态
+    optoElectronicPodEnabled.value = !optoElectronicPodEnabled.value;
+    return;
+  }
+
+  const command = optoElectronicPodEnabled.value
+    ? "Uav_Sensor_On"
+    : "Uav_Sensor_Off";
   const status = optoElectronicPodEnabled.value ? "开启" : "关闭";
+
   addLog("info", `光电吊舱控制已${status}`);
+
+  // 发送传感器命令
+  await sendSensorCommand(command, sensorName);
+
+  // 更新本地状态显示
   payloadStatus.optoElectronic.power = optoElectronicPodEnabled.value
     ? "开"
     : "关";
@@ -707,9 +1645,24 @@ const onOptoElectronicToggle = () => {
     : "待机";
 };
 
-const onLaserToggle = () => {
+const onLaserToggle = async () => {
+  const sensorName = getLaserSensorName();
+  if (!sensorName) {
+    ElMessage.warning("未找到激光传感器，无法控制");
+    // 恢复开关状态
+    laserPodEnabled.value = !laserPodEnabled.value;
+    return;
+  }
+
+  const command = laserPodEnabled.value ? "Uav_Sensor_On" : "Uav_Sensor_Off";
   const status = laserPodEnabled.value ? "开启" : "关闭";
+
   addLog("info", `激光吊舱控制已${status}`);
+
+  // 发送传感器命令
+  await sendSensorCommand(command, sensorName);
+
+  // 更新本地状态显示
   payloadStatus.laser.power = laserPodEnabled.value ? "开" : "关";
   payloadStatus.laser.status = laserPodEnabled.value ? "正常" : "待机";
 };
@@ -794,6 +1747,24 @@ const handleCloseDocument = () => {
 onMounted(() => {
   addLog("success", "无人机操作页面加载完成");
 
+  // 监听平台状态数据
+  if (window.electronAPI?.multicast?.onPacket) {
+    window.electronAPI.multicast.onPacket(handlePlatformStatus);
+    console.log("[UavPage] 已开始监听平台状态数据");
+  } else {
+    console.warn("[UavPage] multicast API 不可用");
+  }
+
+  // 监听导航软件启动事件，自动更新UavId显示
+  (window as any).electronAPI.ipcRenderer.on(
+    "nav:uavIdUpdated",
+    (_, data: any) => {
+      console.log("[UavPage] 导航软件启动，UavId已更新:", data.uavId);
+      addLog("info", `导航软件启动，UavId已更新: ${data.uavId}`);
+      ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
+    }
+  );
+
   // 模拟数据更新
   setInterval(() => {
     // 更新环境参数
@@ -810,10 +1781,22 @@ onMounted(() => {
 onUnmounted(() => {
   addLog("info", "无人机操作页面已卸载");
 
+  // 清理监听器
+  if (window.electronAPI?.multicast?.removeAllListeners) {
+    window.electronAPI.multicast.removeAllListeners("packet");
+    console.log("[UavPage] 已停止监听平台状态数据");
+  }
+
   // 清理照射倒计时定时器
   if (irradiationTimer.value) {
     clearInterval(irradiationTimer.value);
     irradiationTimer.value = null;
+  }
+
+  // 清理轨迹同步定时器
+  if (syncTimer.value) {
+    clearInterval(syncTimer.value);
+    syncTimer.value = null;
   }
 });
 </script>
@@ -945,7 +1928,7 @@ onUnmounted(() => {
 
 /* 航线规划按钮（在任务控制内） */
 .route-planning-btn {
-  width: 100%;
+  flex: 1;
   height: 45px;
   border: 2px solid #d0d0d0;
   background: #f8f9fa;
@@ -955,11 +1938,28 @@ onUnmounted(() => {
   color: #333;
   cursor: pointer;
   transition: all 0.2s;
+  margin-right: 8px;
 }
 
 .route-planning-btn:hover {
   background: #e9ecef;
   border-color: #007bff;
+}
+
+/* 同步轨迹按钮 */
+.trajectory-sync-btn {
+  flex: 1;
+  height: 45px;
+  border: 2px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trajectory-sync-btn:hover {
+  opacity: 0.8;
 }
 
 /* 任务控制区域 */
@@ -1106,7 +2106,7 @@ onUnmounted(() => {
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #d0d0d0;
-  height: 120px;
+  min-height: 120px;
 }
 
 .status-content {
@@ -1318,5 +2318,31 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 目标选项样式 */
+.target-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.target-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.target-type {
+  font-size: 12px;
+  color: #909399;
+  background: #f0f2f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.target-status-hint {
+  margin-top: 4px;
+  text-align: center;
 }
 </style>

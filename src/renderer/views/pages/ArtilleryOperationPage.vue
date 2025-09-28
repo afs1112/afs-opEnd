@@ -482,6 +482,10 @@ const isFiring = ref(false);
 const platforms = ref<Platform[]>([]);
 const lastUpdateTime = ref<number>(0);
 
+// 已连接的平台信息
+const connectedPlatform = ref<Platform | null>(null);
+const connectedPlatformName = ref<string>("");
+
 const connectionStatus = reactive<ConnectionStatus>({
   isConnected: false,
   simulationEndpoint: "",
@@ -522,20 +526,27 @@ const cooperationMessages = ref([
   { time: "23:48:22", message: "火炮发出已打击报文", type: "artillery" },
 ]);
 
-// 计算属性：可用的分组选项（包含假数据）
+// 计算属性：可用的分组选项（从平台数据中获取）
 const groupOptions = computed<GroupOption[]>(() => {
   const groups = new Set<string>();
 
-  // 从真实平台数据中获取分组
+  // 从真实平台数据中获取分组（支持多种火炮类型）
   platforms.value.forEach((platform) => {
-    if (platform.base?.group && platform.base?.type === "ROCKET_LAUNCHER") {
+    if (
+      platform.base?.group &&
+      (platform.base?.type === "ROCKET_LAUNCHER" ||
+        platform.base?.type === "Artillery" ||
+        platform.base?.type === "CANNON")
+    ) {
       groups.add(platform.base.group);
     }
   });
 
-  // 添加假数据分组
-  const fakeGroups = ["第一火炮营", "第二火炮营", "第三火炮营"];
-  fakeGroups.forEach((group) => groups.add(group));
+  // 如果没有真实数据，使用默认分组
+  if (groups.size === 0) {
+    const fakeGroups = ["第一火炮营", "第二火炮营", "第三火炮营"];
+    fakeGroups.forEach((group) => groups.add(group));
+  }
 
   return Array.from(groups).map((group) => ({
     label: group,
@@ -543,18 +554,20 @@ const groupOptions = computed<GroupOption[]>(() => {
   }));
 });
 
-// 计算属性：当前分组下的火炮选项（包含假数据）
+// 计算属性：当前分组下的火炮选项
 const artilleryOptions = computed<ArtilleryOption[]>(() => {
   if (!selectedGroup.value) {
     return [];
   }
 
-  // 从真实平台数据中获取火炮
+  // 从真实平台数据中获取火炮（支持多种类型）
   const realArtillery = platforms.value
     .filter(
       (platform) =>
         platform.base?.group === selectedGroup.value &&
-        platform.base?.type === "ROCKET_LAUNCHER" &&
+        (platform.base?.type === "ROCKET_LAUNCHER" ||
+          platform.base?.type === "Artillery" ||
+          platform.base?.type === "CANNON") &&
         !platform.base?.broken
     )
     .map((platform) => ({
@@ -563,18 +576,23 @@ const artilleryOptions = computed<ArtilleryOption[]>(() => {
       platform: platform,
     }));
 
-  // 添加假数据火炮
+  // 如果有真实数据，直接返回
+  if (realArtillery.length > 0) {
+    return realArtillery;
+  }
+
+  // 如果没有真实数据，使用默认火炮数据
   const fakeArtillery: ArtilleryOption[] = [];
   if (selectedGroup.value === "第一火炮营") {
     fakeArtillery.push(
       {
-        label: "155mm榴弹炮-01",
-        value: "155mm榴弹炮-01",
+        label: "155mm榆弹炮-01",
+        value: "155mm榆弹炮-01",
         platform: {} as Platform,
       },
       {
-        label: "155mm榴弹炮-02",
-        value: "155mm榴弹炮-02",
+        label: "155mm榆弹炮-02",
+        value: "155mm榆弹炮-02",
         platform: {} as Platform,
       },
       {
@@ -586,13 +604,13 @@ const artilleryOptions = computed<ArtilleryOption[]>(() => {
   } else if (selectedGroup.value === "第二火炮营") {
     fakeArtillery.push(
       {
-        label: "203mm榴弹炮-01",
-        value: "203mm榴弹炮-01",
+        label: "203mm榆弹炮-01",
+        value: "203mm榆弹炮-01",
         platform: {} as Platform,
       },
       {
-        label: "203mm榴弹炮-02",
-        value: "203mm榴弹炮-02",
+        label: "203mm榆弹炮-02",
+        value: "203mm榆弹炮-02",
         platform: {} as Platform,
       }
     );
@@ -604,15 +622,24 @@ const artilleryOptions = computed<ArtilleryOption[]>(() => {
     );
   }
 
-  return [...realArtillery, ...fakeArtillery];
+  return fakeArtillery;
 });
 
 // 监听分组变化，重置火炮选择
-const onGroupChange = () => {
+const onGroupChange = (value: string) => {
   selectedInstance.value = "";
-  if (artilleryOptions.value.length === 1) {
-    // 如果只有一个火炮，自动选择
-    selectedInstance.value = artilleryOptions.value[0].value;
+
+  if (value) {
+    // 选择了分组
+    if (artilleryOptions.value.length === 1) {
+      // 如果只有一个火炮，自动选择
+      selectedInstance.value = artilleryOptions.value[0].value;
+    }
+
+    console.log(`[ArtilleryPage] 选择分组: ${value}`);
+  } else {
+    // 清空分组
+    console.log(`[ArtilleryPage] 已清空分组选择`);
   }
 };
 
@@ -639,6 +666,8 @@ const handleConnectPlatform = () => {
     // 断开连接
     isConnected.value = false;
     connectionStatus.isConnected = false;
+    connectedPlatform.value = null;
+    connectedPlatformName.value = "";
     ElMessage.warning("平台连接已断开");
     return;
   }
@@ -648,9 +677,33 @@ const handleConnectPlatform = () => {
     return;
   }
 
-  isConnected.value = true;
-  connectionStatus.isConnected = true;
-  ElMessage.success("平台连接成功");
+  // 查找已选择的平台
+  const targetPlatform = platforms.value.find(
+    (platform) =>
+      platform.base?.name === selectedInstance.value &&
+      platform.base?.group === selectedGroup.value &&
+      platform.base?.type === "ROCKET_LAUNCHER"
+  );
+
+  if (targetPlatform) {
+    // 连接到真实平台
+    isConnected.value = true;
+    connectionStatus.isConnected = true;
+    connectedPlatform.value = targetPlatform;
+    connectedPlatformName.value = selectedInstance.value;
+    artilleryStatus.isReady = true;
+    console.log(`[ArtilleryPage] 连接到真实平台: ${selectedInstance.value}`);
+    ElMessage.success(`平台连接成功: ${selectedInstance.value}`);
+  } else {
+    // 未找到真实平台，但仍然允许连接（使用默认数据）
+    isConnected.value = true;
+    connectionStatus.isConnected = true;
+    connectedPlatform.value = null; // 没有真实平台数据
+    connectedPlatformName.value = selectedInstance.value;
+    artilleryStatus.isReady = true;
+    console.log(`[ArtilleryPage] 连接到模拟平台: ${selectedInstance.value}`);
+    ElMessage.success(`平台连接成功（模拟模式）: ${selectedInstance.value}`);
+  }
 };
 
 // 目标装订
@@ -853,6 +906,39 @@ const fireAtDrone = async () => {
   // TODO: 实际的发射逻辑和防空报文发送
 };
 
+// 更新火炮平台状态显示
+const updateArtilleryStatusDisplay = (platform: any) => {
+  if (!platform?.base) return;
+
+  // 更新平台位置信息
+  if (platform.base.location) {
+    // 更新目标信息（距离和方位计算需要对比坐标）
+    targetInfo.distance = Math.floor(Math.random() * 1000) + 2000; // 模拟距离
+    targetInfo.bearing = Math.floor(Math.random() * 360); // 模拟方位
+    targetInfo.altitude = platform.base.location.altitude + 200; // 模拟高度差
+  }
+
+  // 更新火炮系统状态
+  artilleryStatus.isReady = !platform.base?.broken;
+  artilleryStatus.systemStatus = platform.base?.broken ? "故障" : "正常";
+
+  // 模拟炮管温度变化
+  if (artilleryStatus.isLoaded) {
+    artilleryStatus.temperature = 35 + Math.random() * 10; // 装填后温度上升
+  } else {
+    artilleryStatus.temperature = 25 + Math.random() * 5; // 正常温度
+  }
+
+  // 更新武器状态（从武器信息获取）
+  if (platform.weapons && Array.isArray(platform.weapons)) {
+    platform.weapons.forEach((weapon: any) => {
+      if (weapon.quantity !== undefined) {
+        ammunitionCount.value = weapon.quantity;
+      }
+    });
+  }
+};
+
 // 处理平台状态数据包
 const handlePlatformStatus = (packet: any) => {
   try {
@@ -864,12 +950,35 @@ const handlePlatformStatus = (packet: any) => {
         platforms.value = parsedData.platform;
         lastUpdateTime.value = Date.now();
 
+        // 如果已连接，更新已连接平台的状态
+        if (isConnected.value && connectedPlatformName.value) {
+          const updatedPlatform = parsedData.platform.find(
+            (p: any) =>
+              p.base?.name === connectedPlatformName.value &&
+              (p.base?.type === "ROCKET_LAUNCHER" ||
+                p.base?.type === "Artillery" ||
+                p.base?.type === "CANNON")
+          );
+
+          if (updatedPlatform) {
+            connectedPlatform.value = updatedPlatform;
+            // 更新火炮状态显示
+            updateArtilleryStatusDisplay(updatedPlatform);
+            console.log(
+              `[ArtilleryPage] 更新已连接平台状态: ${connectedPlatformName.value}`
+            );
+          }
+        }
+
         console.log("[ArtilleryPage] 收到平台状态数据:", {
           平台数量: parsedData.platform.length,
           火炮数量: parsedData.platform.filter(
-            (p: any) => p.base?.type === "ROCKET_LAUNCHER"
+            (p: any) =>
+              p.base?.type === "ROCKET_LAUNCHER" ||
+              p.base?.type === "Artillery" ||
+              p.base?.type === "CANNON"
           ).length,
-          分组数量: groupOptions.value.length,
+          已连接平台: connectedPlatformName.value || "未连接",
         });
       }
     }
