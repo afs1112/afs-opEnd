@@ -8,7 +8,7 @@ class CommonService {
         exportedAt: new Date().toISOString(),
         version: "1.0",
       };
-      const filePath = await window.electronAPI.showSaveDialog({
+      const filePath = await window.electronAPI.export.showSaveDialog({
         title: `Export ${title} data`,
         defaultFileName: `${title}_export_${new Date()
           .toISOString()
@@ -18,7 +18,7 @@ class CommonService {
 
       if (!filePath) return;
 
-      const result = await window.electronAPI.exportToFile(
+      const result = await window.electronAPI.export.exportFile(
         filePath,
         exportData
       );

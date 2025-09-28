@@ -25,47 +25,89 @@ export interface UavIdRecord {
 declare global {
   interface Window {
     electronAPI: {
-      database: {
-        query: (sql: string, params?: any[]) => Promise<any[]>;
-        execute: (sql: string, params?: any[]) => Promise<{ success: boolean; lastId?: number; changes?: number; error?: string }>;
-        reset: () => Promise<{ success: boolean; error?: string }>;
-      };
       export: {
         showSaveDialog: (options: any) => Promise<string | undefined>;
-        exportFile: (filePath: string, data: any) => Promise<{ success: boolean; path?: string; error?: string }>;
-        exportDatabase: () => Promise<{ success: boolean; path?: string; size?: number; error?: string }>;
-        exportSqlQuery: () => Promise<{ success: boolean; path?: string; error?: string }>;
+        exportFile: (
+          filePath: string,
+          data: any
+        ) => Promise<{ success: boolean; path?: string; error?: string }>;
       };
-      import: {
-        showOpenDialog: (options: any) => Promise<string[] | undefined>;
-        importFromJsonFile: () => Promise<{ success: boolean; error?: string }>;
-        importDatabaseFile: () => Promise<{ success: boolean; error?: string }>;
-        importFromSqlFile: () => Promise<{ success: boolean; error?: string }>;
-      };
+
       multicast: {
         start: () => Promise<{ success: boolean; error?: string }>;
         stop: () => Promise<{ success: boolean; error?: string }>;
         getStatus: () => Promise<MulticastStatus>;
-        getConfig: () => Promise<{ address: string; port: number; interfaceAddress: string }>;
-        updateConfig: (address: string, port: number, interfaceAddr: string) => Promise<{ success: boolean; error?: string }>;
+        getConfig: () => Promise<{
+          address: string;
+          port: number;
+          interfaceAddress: string;
+        }>;
+        updateConfig: (
+          address: string,
+          port: number,
+          interfaceAddr: string
+        ) => Promise<{ success: boolean; error?: string }>;
         onPacket: (callback: (packet: MulticastPacket) => void) => void;
         onError: (callback: (error: string) => void) => void;
         removeAllListeners: (channel: string) => void;
       };
       nav: {
-        openNavigation: () => Promise<{ success: boolean; error?: string; message?: string; uavId?: string }>;
-        getConfig: () => Promise<{ success: boolean; config?: any; error?: string }>;
-        updateConfig: (config: any) => Promise<{ success: boolean; message?: string; error?: string }>;
-        resetConfig: () => Promise<{ success: boolean; message?: string; error?: string }>;
-        validateConfig: () => Promise<{ success: boolean; validation?: { valid: boolean; errors: string[] }; error?: string }>;
-        getNavPath: () => Promise<{ success: boolean; path?: string; exists?: boolean; error?: string }>;
+        openNavigation: () => Promise<{
+          success: boolean;
+          error?: string;
+          message?: string;
+          uavId?: string;
+        }>;
+        getConfig: () => Promise<{
+          success: boolean;
+          config?: any;
+          error?: string;
+        }>;
+        updateConfig: (
+          config: any
+        ) => Promise<{ success: boolean; message?: string; error?: string }>;
+        resetConfig: () => Promise<{
+          success: boolean;
+          message?: string;
+          error?: string;
+        }>;
+        validateConfig: () => Promise<{
+          success: boolean;
+          validation?: { valid: boolean; errors: string[] };
+          error?: string;
+        }>;
+        getNavPath: () => Promise<{
+          success: boolean;
+          path?: string;
+          exists?: boolean;
+          error?: string;
+        }>;
       };
       uav: {
-        generateId: () => Promise<{ success: boolean; uavId?: string; error?: string }>;
-        getCurrentId: () => Promise<{ success: boolean; uavId?: string; error?: string }>;
-        setCurrentId: (uavId: string, description?: string) => Promise<{ success: boolean; message?: string; error?: string }>;
-        getHistory: () => Promise<{ success: boolean; history?: UavIdRecord[]; error?: string }>;
-        prepareForNavigation: () => Promise<{ success: boolean; uavId?: string; error?: string }>;
+        generateId: () => Promise<{
+          success: boolean;
+          uavId?: string;
+          error?: string;
+        }>;
+        getCurrentId: () => Promise<{
+          success: boolean;
+          uavId?: string;
+          error?: string;
+        }>;
+        setCurrentId: (
+          uavId: string,
+          description?: string
+        ) => Promise<{ success: boolean; message?: string; error?: string }>;
+        getHistory: () => Promise<{
+          success: boolean;
+          history?: UavIdRecord[];
+          error?: string;
+        }>;
+        prepareForNavigation: () => Promise<{
+          success: boolean;
+          uavId?: string;
+          error?: string;
+        }>;
       };
     };
   }

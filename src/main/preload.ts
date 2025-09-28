@@ -1,12 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  database: {
-    query: (sql, params) => ipcRenderer.invoke("database:query", sql, params),
-    execute: (sql, params) =>
-      ipcRenderer.invoke("database:execute", sql, params),
-    reset: () => ipcRenderer.invoke("database:reset"),
-  },
   export: {
     showSaveDialog: async (options: any) => {
       return await ipcRenderer.invoke("show-save-dialog", options);
@@ -17,18 +11,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
         data: ensureSerializable(data),
       });
     },
-    exportDatabase: async () => {
-      return await ipcRenderer.invoke("export-database");
-    },
-    exportSqlQuery: async () => {
-      return await ipcRenderer.invoke("export-sql-query");
-    },
-  },
-  
-  import: {
-    importFromJsonFile: () => ipcRenderer.invoke("import:json"),
-    importDatabaseFile: () => ipcRenderer.invoke("import:database"),
-    importFromSqlFile: () => ipcRenderer.invoke("import:sql"),
   },
 
   // 组播相关
@@ -37,13 +19,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     stop: () => ipcRenderer.invoke("multicast:stop"),
     getStatus: () => ipcRenderer.invoke("multicast:getStatus"),
     getConfig: () => ipcRenderer.invoke("multicast:getConfig"),
-    updateConfig: (address: string, port: number, interfaceAddr: string) => 
-      ipcRenderer.invoke("multicast:updateConfig", address, port, interfaceAddr),
-    sendPlatformCmd: (data: any) => ipcRenderer.invoke("multicast:sendPlatformCmd", data),
-    syncTrajectory: (data: { platformName: string; uavId: number }) => 
+    updateConfig: (address: string, port: number, interfaceAddr: string) =>
+      ipcRenderer.invoke(
+        "multicast:updateConfig",
+        address,
+        port,
+        interfaceAddr
+      ),
+    sendPlatformCmd: (data: any) =>
+      ipcRenderer.invoke("multicast:sendPlatformCmd", data),
+    syncTrajectory: (data: { platformName: string; uavId: number }) =>
       ipcRenderer.invoke("multicast:syncTrajectory", data),
-    syncTrajectoryWithPlatformData: (data: { platformName: string; uavId: number; platformData: any }) => 
-      ipcRenderer.invoke("multicast:syncTrajectoryWithPlatformData", data),
+    syncTrajectoryWithPlatformData: (data: {
+      platformName: string;
+      uavId: number;
+      platformData: any;
+    }) => ipcRenderer.invoke("multicast:syncTrajectoryWithPlatformData", data),
     onPacket: (callback: (packet: any) => void) => {
       ipcRenderer.on("multicast:packet", (_, packet) => callback(packet));
     },
@@ -59,7 +50,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   nav: {
     openNavigation: () => ipcRenderer.invoke("nav:openNavigation"),
     getConfig: () => ipcRenderer.invoke("nav:getConfig"),
-    updateConfig: (config: any) => ipcRenderer.invoke("nav:updateConfig", config),
+    updateConfig: (config: any) =>
+      ipcRenderer.invoke("nav:updateConfig", config),
     resetConfig: () => ipcRenderer.invoke("nav:resetConfig"),
     validateConfig: () => ipcRenderer.invoke("nav:validateConfig"),
     getNavPath: () => ipcRenderer.invoke("nav:getNavPath"),
@@ -71,12 +63,24 @@ contextBridge.exposeInMainWorld("electronAPI", {
   uav: {
     generateId: () => ipcRenderer.invoke("uav:generateId"),
     getCurrentId: () => ipcRenderer.invoke("uav:getCurrentId"),
-    setCurrentId: (uavId: string, description?: string) => 
+    setCurrentId: (uavId: string, description?: string) =>
       ipcRenderer.invoke("uav:setCurrentId", uavId, description),
     getHistory: () => ipcRenderer.invoke("uav:getHistory"),
     prepareForNavigation: () => ipcRenderer.invoke("uav:prepareForNavigation"),
     enableAutoGenerate: () => ipcRenderer.invoke("uav:enableAutoGenerate"),
     disableAutoGenerate: () => ipcRenderer.invoke("uav:disableAutoGenerate"),
+  },
+
+  // 文档相关
+  document: {
+    readDocument: (filePath: string) =>
+      ipcRenderer.invoke("document:readDocument", filePath),
+  },
+
+  // 对话框相关
+  dialog: {
+    showOpenDialog: (options: any) =>
+      ipcRenderer.invoke("dialog:showOpenDialog", options),
   },
 
   // 暴露ipcRenderer用于监听事件
@@ -89,8 +93,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     },
     removeAllListeners: (channel: string) => {
       ipcRenderer.removeAllListeners(channel);
-    }
-  }
+    },
+  },
 });
 
 function ensureSerializable(data: any): any {

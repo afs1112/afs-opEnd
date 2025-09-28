@@ -64,6 +64,9 @@
               <el-button class="control-btn" @click="handleOpenSolution"
                 >打开方案</el-button
               >
+              <el-button class="control-btn" @click="openDocument"
+                >打开文档</el-button
+              >
             </div>
           </div>
         </div>
@@ -306,12 +309,44 @@
         </div>
       </div>
     </div>
+
+    <!-- 文档查看对话框 -->
+    <el-dialog
+      v-model="documentDialogVisible"
+      title="文档查看"
+      width="80%"
+      :before-close="handleCloseDocument"
+    >
+      <div class="document-content">
+        <div v-if="documentLoading" class="loading-container">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>正在加载文档...</span>
+        </div>
+        <div v-else-if="documentError" class="error-container">
+          <el-icon><WarningFilled /></el-icon>
+          <span>{{ documentError }}</span>
+        </div>
+        <div v-else-if="documentContent" class="document-text">
+          <pre>{{ documentContent }}</pre>
+        </div>
+        <div v-else class="empty-container">
+          <span>请选择要打开的文档</span>
+        </div>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="selectDocument" type="primary">选择文档</el-button>
+          <el-button @click="handleCloseDocument">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { Loading, WarningFilled } from "@element-plus/icons-vue";
 
 // 基础数据
 const optoElectronicPodEnabled = ref(false); // 光电吊舱控制开关
@@ -437,6 +472,12 @@ const operationLogs = ref<
     message: "无人机连接成功",
   },
 ]);
+
+// 文档查看相关
+const documentDialogVisible = ref(false);
+const documentContent = ref("");
+const documentLoading = ref(false);
+const documentError = ref("");
 
 // 函数定义
 const addLog = (
@@ -687,6 +728,71 @@ const handleLaserCodeInput = (value: string) => {
 
 const handleCountdownInput = (value: string) => {
   laserCountdown.value = onlyNumbers(value);
+};
+
+// 文档相关函数
+// 打开文档
+const openDocument = () => {
+  documentDialogVisible.value = true;
+  documentContent.value = "";
+  documentError.value = "";
+};
+
+// 选择文档
+const selectDocument = async () => {
+  try {
+    // 使用 Electron 的文件选择对话框
+    const result = await (window as any).electronAPI.dialog.showOpenDialog({
+      title: "选择文档",
+      filters: [
+        { name: "Word 文档", extensions: ["doc", "docx"] },
+        { name: "所有文件", extensions: ["*"] },
+      ],
+      properties: ["openFile"],
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const filePath = result.filePaths[0];
+      await loadDocument(filePath);
+    }
+  } catch (error) {
+    console.error("选择文档失败:", error);
+    ElMessage.error("选择文档失败");
+  }
+};
+
+// 加载文档内容
+const loadDocument = async (filePath: string) => {
+  documentLoading.value = true;
+  documentError.value = "";
+  documentContent.value = "";
+
+  try {
+    // 调用主进程的文档解析方法
+    const content = await (window as any).electronAPI.document.readDocument(
+      filePath
+    );
+
+    if (content.success) {
+      documentContent.value = content.data;
+      ElMessage.success("文档加载成功");
+    } else {
+      documentError.value = content.error || "文档加载失败";
+      ElMessage.error(documentError.value);
+    }
+  } catch (error) {
+    documentError.value = "文档加载失败：" + (error as Error).message;
+    ElMessage.error(documentError.value);
+  } finally {
+    documentLoading.value = false;
+  }
+};
+
+// 关闭文档对话框
+const handleCloseDocument = () => {
+  documentDialogVisible.value = false;
+  documentContent.value = "";
+  documentError.value = "";
 };
 onMounted(() => {
   addLog("success", "无人机操作页面加载完成");
@@ -1169,5 +1275,51 @@ onUnmounted(() => {
   .control-btn.large {
     max-width: none;
   }
+}
+
+/* 文档对话框样式 */
+.document-content {
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.loading-container,
+.error-container,
+.empty-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  color: #666;
+  font-size: 14px;
+}
+
+.error-container {
+  color: #e74c3c;
+}
+
+.document-text {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+.document-text pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  color: #333;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>
