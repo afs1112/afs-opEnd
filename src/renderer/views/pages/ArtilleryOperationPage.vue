@@ -64,7 +64,7 @@
               <!-- 功能分隔符 -->
               <div class="function-separator" v-if="isConnected"></div>
               <el-button class="control-btn" @click="openDocument"
-                >打开文档</el-button
+                >演练方案</el-button
               >
             </div>
           </div>
