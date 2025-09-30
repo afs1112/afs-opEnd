@@ -11,19 +11,25 @@
               <div class="seat-title">
                 无人机席位
                 <span v-if="isConnected" class="connected-info"
-                  >：已连接 {{ selectedUav }}</span
+                  >{{ selectedGroup }}:{{ selectedUav }}</span
                 >
               </div>
             </div>
 
-            <!-- 中间演习时间 -->
-            <div class="exercise-time" v-if="isConnected">
-              演习时间：{{ environmentParams.exerciseTime }}
+            <!-- 中间时间区域 -->
+            <div class="time-section" v-if="isConnected">
+              <div class="exercise-time">
+                演习时间：{{ environmentParams.exerciseTime }}
+              </div>
+              <div class="astronomical-time">
+                天文时间：{{ environmentParams.astronomicalTime }}
+              </div>
             </div>
 
             <!-- 右侧控制区域 -->
             <div class="controls-section">
               <el-select
+                v-if="!isConnected"
                 v-model="selectedGroup"
                 placeholder="选择分组"
                 class="control-select short"
@@ -38,6 +44,7 @@
                 />
               </el-select>
               <el-select
+                v-if="!isConnected"
                 v-model="selectedUav"
                 placeholder="选择无人机"
                 class="control-select large"
@@ -67,6 +74,21 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 任务目标提醒栏 -->
+    <div v-if="isConnected" class="mission-target-banner mb-4">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <el-icon size="16"><LocationFilled /></el-icon>
+        </div>
+        <span class="banner-title">当前任务目标：</span>
+        <span class="target-info" v-if="missionTarget">
+          {{ missionTarget.name }} ({{ missionTarget.coordinates.longitude }}°,
+          {{ missionTarget.coordinates.latitude }}°)
+        </span>
+        <span class="target-info no-target" v-else> 暂无任务目标 </span>
       </div>
     </div>
 
@@ -260,7 +282,18 @@
         <!-- 气候环境 -->
         <div class="status-card environment-status">
           <div class="status-content">
-            <div class="status-title">气候环境</div>
+            <div class="status-header">
+              <div class="status-title">气候环境</div>
+              <div
+                class="data-source-indicator"
+                :class="getEnvironmentDataSourceClass()"
+              >
+                <span class="indicator-dot"></span>
+                <span class="indicator-text">{{
+                  getEnvironmentDataSourceText()
+                }}</span>
+              </div>
+            </div>
             <div class="status-info">
               温度{{ environmentParams.temperature }}，气压{{
                 environmentParams.pressure
@@ -270,13 +303,30 @@
               }}<br />
               云层{{ environmentParams.cloudCover }}
             </div>
+            <div
+              class="status-info no-data"
+              v-if="!hasEnvironmentData() && isConnected"
+            >
+              暂无环境数据
+            </div>
           </div>
         </div>
 
         <!-- 平台状态 -->
         <div class="status-card platform-status">
           <div class="status-content">
-            <div class="status-title">平台状态</div>
+            <div class="status-header">
+              <div class="status-title">平台状态</div>
+              <div
+                class="data-source-indicator"
+                :class="getPlatformDataSourceClass()"
+              >
+                <span class="indicator-dot"></span>
+                <span class="indicator-text">{{
+                  getPlatformDataSourceText()
+                }}</span>
+              </div>
+            </div>
             <div class="status-info">
               位置：{{ platformStatus.position.longitude }}
               {{ platformStatus.position.latitude }}
@@ -286,14 +336,31 @@
               }}
               偏航{{ platformStatus.attitude.yaw }}
             </div>
+            <div
+              class="status-info no-data"
+              v-if="!hasPlatformData() && isConnected"
+            >
+              暂无平台数据
+            </div>
           </div>
         </div>
 
         <!-- 载荷状态 -->
         <div class="status-card payload-status">
           <div class="status-content">
-            <div class="status-title">载荷状态</div>
-            <div class="status-info">
+            <div class="status-header">
+              <div class="status-title">载荷状态</div>
+              <div
+                class="data-source-indicator"
+                :class="getPayloadDataSourceClass()"
+              >
+                <span class="indicator-dot"></span>
+                <span class="indicator-text">{{
+                  getPayloadDataSourceText()
+                }}</span>
+              </div>
+            </div>
+            <div class="status-info" v-if="hasPayloadData()">
               光电载荷：开关{{
                 payloadStatus.optoElectronic.isTurnedOn ? "开启" : "关闭"
               }}，俯仰{{ payloadStatus.optoElectronic.currentEl }}°，方位{{
@@ -305,20 +372,33 @@
                 payloadStatus.laser.currentAz
               }}°
             </div>
+            <div class="status-info no-data" v-else>暂无载荷数据</div>
           </div>
         </div>
 
         <!-- 目标状态 -->
         <div class="status-card target-status">
           <div class="status-content">
-            <div class="status-title">目标状态</div>
-            <div class="status-info">
+            <div class="status-header">
+              <div class="status-title">目标状态</div>
+              <div
+                class="data-source-indicator"
+                :class="getTargetDataSourceClass()"
+              >
+                <span class="indicator-dot"></span>
+                <span class="indicator-text">{{
+                  getTargetDataSourceText()
+                }}</span>
+              </div>
+            </div>
+            <div class="status-info" v-if="hasTargetData()">
               名称：{{ targetStatus.name }}<br />
               位置：{{ targetStatus.position.longitude }}
               {{ targetStatus.position.latitude }}<br />
               高度：{{ targetStatus.position.altitude }}<br />
               是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
             </div>
+            <div class="status-info no-data" v-else>暂无目标数据</div>
           </div>
         </div>
       </div>
@@ -432,7 +512,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { Loading, WarningFilled } from "@element-plus/icons-vue";
+import {
+  Loading,
+  WarningFilled,
+  LocationFilled,
+} from "@element-plus/icons-vue";
 
 // 基础数据
 const optoElectronicPodEnabled = ref(false); // 光电吊舱控制开关
@@ -489,6 +573,9 @@ const lastUpdateTime = ref<number>(0);
 const connectedPlatform = ref<any>(null);
 const connectedPlatformName = ref<string>("");
 
+// 任务目标信息
+const missionTarget = ref<any>(null);
+
 // 动态分组选项（从平台数据中获取）
 // 动态分组选项（从平台数据中获取）
 const groupOptions = computed(() => {
@@ -519,7 +606,8 @@ const uavOptions = computed(() => {
       (platform) =>
         platform.base?.group === selectedGroup.value &&
         platform.base?.type === "UAV01" &&
-        !platform.base?.broken
+        !platform.base?.broken &&
+        platform.base?.side === "red"
     )
     .map((platform) => ({
       label: platform.base.name || "未命名无人机",
@@ -538,7 +626,8 @@ const environmentParams = reactive({
   windSpeed: "3m/s",
   humidity: "60%",
   cloudCover: "20%",
-  exerciseTime: "14:30:25",
+  exerciseTime: "T + 0",
+  astronomicalTime: "00:00:00",
 });
 
 // 平台状态数据
@@ -589,18 +678,7 @@ const targetStatus = reactive({
 });
 
 // 协同报文数据
-const cooperationMessages = ref([
-  {
-    time: "23:43:11",
-    message: "无人机发出协同打击报文",
-    type: "uav",
-  },
-  {
-    time: "23:48:22",
-    message: "火炮发出已打击报文",
-    type: "artillery",
-  },
-]);
+const cooperationMessages = ref([]);
 
 // 操作日志
 const operationLogs = ref<
@@ -861,6 +939,189 @@ const sendLaserCommand = async (command: string) => {
   }
 };
 
+// 获取任务目标（同组side为blue的平台）
+const getMissionTarget = () => {
+  if (!selectedGroup.value || !platforms.value) {
+    missionTarget.value = null;
+    return;
+  }
+
+  // 查找同组中side为blue的平台作为任务目标
+  const targetPlatform = platforms.value.find(
+    (platform: any) =>
+      platform.base?.group === selectedGroup.value &&
+      platform.base?.side === "blue" &&
+      platform.base?.location // 确保有位置信息
+  );
+
+  if (targetPlatform && targetPlatform.base) {
+    missionTarget.value = {
+      name: targetPlatform.base.name || "未知目标",
+      coordinates: {
+        longitude: targetPlatform.base.location.longitude.toFixed(6),
+        latitude: targetPlatform.base.location.latitude.toFixed(6),
+        altitude: targetPlatform.base.location.altitude,
+      },
+      platformType: targetPlatform.base.type || "未知类型",
+    };
+    console.log(
+      `[UavPage] 找到任务目标: ${missionTarget.value.name}`,
+      missionTarget.value
+    );
+  } else {
+    missionTarget.value = null;
+    console.log(`[UavPage] 未找到组 ${selectedGroup.value} 中的蓝方目标`);
+  }
+};
+
+// 数据源指示器相关函数
+// 环境数据源判断
+const hasEnvironmentData = () => {
+  // 未连接时使用模拟数据
+  if (!isConnected.value) {
+    return true;
+  }
+  // 已连接时检查是否有真实数据
+  return hasRealPlatformData.value && platforms.value.length > 0;
+};
+
+const getEnvironmentDataSourceClass = () => {
+  if (!isConnected.value) {
+    return "simulated";
+  } else if (hasRealPlatformData.value && platforms.value.length > 0) {
+    return "connected";
+  } else {
+    return "no-data";
+  }
+};
+
+const getEnvironmentDataSourceText = () => {
+  if (!isConnected.value) {
+    return "模拟数据";
+  } else if (hasRealPlatformData.value && platforms.value.length > 0) {
+    return "实时数据";
+  } else {
+    return "无数据";
+  }
+};
+
+// 平台数据源判断
+const hasPlatformData = () => {
+  // 未连接时使用模拟数据
+  if (!isConnected.value) {
+    return true;
+  }
+  // 已连接时检查是否有真实平台数据
+  return connectedPlatform.value && connectedPlatform.value.base;
+};
+
+const getPlatformDataSourceClass = () => {
+  if (!isConnected.value) {
+    return "simulated";
+  } else if (connectedPlatform.value && connectedPlatform.value.base) {
+    return "connected";
+  } else {
+    return "no-data";
+  }
+};
+
+const getPlatformDataSourceText = () => {
+  if (!isConnected.value) {
+    return "模拟数据";
+  } else if (connectedPlatform.value && connectedPlatform.value.base) {
+    return "实时数据";
+  } else {
+    return "无数据";
+  }
+};
+
+// 载荷数据源判断
+const hasPayloadData = () => {
+  // 未连接时使用模拟数据
+  if (!isConnected.value) {
+    return true;
+  }
+  // 已连接时检查是否有真实载荷数据
+  return (
+    connectedPlatform.value &&
+    connectedPlatform.value.sensors &&
+    Array.isArray(connectedPlatform.value.sensors) &&
+    connectedPlatform.value.sensors.length > 0
+  );
+};
+
+const getPayloadDataSourceClass = () => {
+  if (!isConnected.value) {
+    return "simulated";
+  } else if (
+    connectedPlatform.value &&
+    connectedPlatform.value.sensors &&
+    Array.isArray(connectedPlatform.value.sensors) &&
+    connectedPlatform.value.sensors.length > 0
+  ) {
+    return "connected";
+  } else {
+    return "no-data";
+  }
+};
+
+const getPayloadDataSourceText = () => {
+  if (!isConnected.value) {
+    return "模拟数据";
+  } else if (
+    connectedPlatform.value &&
+    connectedPlatform.value.sensors &&
+    Array.isArray(connectedPlatform.value.sensors) &&
+    connectedPlatform.value.sensors.length > 0
+  ) {
+    return "实时数据";
+  } else {
+    return "无数据";
+  }
+};
+
+// 目标数据源判断
+const hasTargetData = () => {
+  // 未连接时使用模拟数据
+  if (!isConnected.value) {
+    return true;
+  }
+  // 已连接时检查是否有真实目标数据
+  return (
+    selectedTarget.value &&
+    targetOptions.value.length > 0 &&
+    targetStatus.name !== "目标-001" // 排除默认模拟数据
+  );
+};
+
+const getTargetDataSourceClass = () => {
+  if (!isConnected.value) {
+    return "simulated";
+  } else if (
+    selectedTarget.value &&
+    targetOptions.value.length > 0 &&
+    targetStatus.name !== "目标-001"
+  ) {
+    return "connected";
+  } else {
+    return "no-data";
+  }
+};
+
+const getTargetDataSourceText = () => {
+  if (!isConnected.value) {
+    return "模拟数据";
+  } else if (
+    selectedTarget.value &&
+    targetOptions.value.length > 0 &&
+    targetStatus.name !== "目标-001"
+  ) {
+    return "实时数据";
+  } else {
+    return "无数据";
+  }
+};
+
 // 更新平台状态显示
 const updatePlatformStatusDisplay = (platform: any) => {
   if (!platform?.base) return;
@@ -959,8 +1220,7 @@ const handlePlatformStatus = (packet: any) => {
 
           // 从平台数据中更新环境参数
           if (env.temperature !== undefined) {
-            // 温度单位从开尔文(K)转换为摄氏度(°C)
-            const celsiusTemp = env.temperature - 273.15;
+            const celsiusTemp = env.temperature;
             environmentParams.temperature = celsiusTemp.toFixed(1) + "°C";
           }
 
@@ -1056,7 +1316,17 @@ const handlePlatformStatus = (packet: any) => {
           });
         }
 
-        // 如果已连接，更新已连接平台的状态
+        // 更新演习时间（使用第一个平台的updateTime）
+        if (
+          parsedData.platform.length > 0 &&
+          parsedData.platform[0].updateTime
+        ) {
+          environmentParams.exerciseTime = `T + ${parsedData.platform[0].updateTime.toFixed(
+            0
+          )}`;
+        }
+
+        // 如果已连接，更新已连接平台的状态和任务目标
         if (isConnected.value && connectedPlatformName.value) {
           const updatedPlatform = parsedData.platform.find(
             (p: any) =>
@@ -1072,6 +1342,9 @@ const handlePlatformStatus = (packet: any) => {
               `[UavPage] 更新已连接平台状态: ${connectedPlatformName.value}`
             );
           }
+
+          // 更新任务目标信息
+          getMissionTarget();
         }
 
         // 提取无人机平台和分组信息
@@ -1291,6 +1564,9 @@ const handleConnectPlatform = () => {
     optoElectronicPodEnabled.value = false;
     laserPodEnabled.value = false;
 
+    // 清除任务目标
+    missionTarget.value = null;
+
     addLog(
       "warning",
       `已断开连接: ${selectedGroup.value} - ${selectedUav.value}`
@@ -1321,6 +1597,9 @@ const handleConnectPlatform = () => {
     // 同步载荷状态和开关状态
     updatePlatformStatusDisplay(targetPlatform);
 
+    // 获取任务目标
+    getMissionTarget();
+
     addLog(
       "success",
       `已连接到真实平台: ${selectedGroup.value} - ${selectedUav.value}`
@@ -1335,6 +1614,9 @@ const handleConnectPlatform = () => {
     // 重置载荷开关状态为默认值（关闭）
     optoElectronicPodEnabled.value = false;
     laserPodEnabled.value = false;
+
+    // 获取任务目标
+    getMissionTarget();
 
     addLog(
       "warning",
@@ -1810,7 +2092,7 @@ const handleSendCooperationCommand = async () => {
         `打击协同命令发送成功，目标: ${targetName}，协同火炮: ${artilleryName}`
       );
       ElMessage.success(
-        `打击协同指令已发送（目标: ${targetName}，火炮: ${artilleryName}）`
+        `打击协同指令已发送（目标: ${targetName}，协同火炮: ${artilleryName}）`
       );
 
       // 添加新的协同报文
@@ -1981,8 +2263,14 @@ onMounted(() => {
 
   // 模拟数据更新
   setInterval(() => {
-    // 只更新演习时间，环境参数从真实平台数据获取
-    environmentParams.exerciseTime = new Date().toLocaleTimeString();
+    // 演习时间现在从平台数据获取，不再在这里更新
+    // 只在没有真实平台数据时使用默认时间
+    if (platforms.value.length === 0) {
+      environmentParams.exerciseTime = `T + ${Date.now()}`;
+    }
+
+    // 更新天文时间（实际当前时间）
+    environmentParams.astronomicalTime = new Date().toLocaleTimeString();
 
     // 模拟平台姿态变化（仅在未连接真实平台时）
     if (!hasRealPlatformData.value || !connectedPlatform.value) {
@@ -2023,6 +2311,44 @@ onUnmounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* 任务目标提醒栏 */
+.mission-target-banner {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-icon {
+  color: #007bff;
+  display: flex;
+  align-items: center;
+}
+
+.banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.target-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.target-info.no-target {
+  color: #6c757d;
+  font-style: italic;
+}
+
 /* 顶部控制区域 */
 .top-section {
   background: white;
@@ -2054,15 +2380,25 @@ onUnmounted(() => {
   flex: 0 0 auto;
 }
 
-/* 中间演习时间 */
-.exercise-time {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+/* 中间时间区域 */
+.time-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.exercise-time,
+.astronomical-time {
   font-size: 16px;
   font-weight: 600;
   color: #333;
   white-space: nowrap;
+}
+
+.astronomical-time {
+  font-size: 14px;
+  color: #666;
 }
 
 /* 右侧控制区域 */
@@ -2331,17 +2667,84 @@ onUnmounted(() => {
   height: 100%;
 }
 
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .status-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
+}
+
+/* 数据源指示器 */
+.data-source-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.data-source-indicator.connected {
+  background: #e8f5e8;
+  color: #2d5016;
+}
+
+.data-source-indicator.connected .indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #52c41a;
+}
+
+.data-source-indicator.simulated {
+  background: #fff7e6;
+  color: #ad6800;
+}
+
+.data-source-indicator.simulated .indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #faad14;
+}
+
+.data-source-indicator.no-data {
+  background: #f5f5f5;
+  color: #8c8c8c;
+}
+
+.data-source-indicator.no-data .indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d9d9d9;
+}
+
+.indicator-text {
+  white-space: nowrap;
 }
 
 .status-info {
   font-size: 14px;
   color: #666;
   line-height: 1.5;
+  flex: 1;
+}
+
+.status-info.no-data {
+  color: #999;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 /* 底部协同报文区域 */
