@@ -371,35 +371,28 @@
             </div>
             <div class="status-info" v-if="connectedPlatform?.targetLoad">
               <!-- 如果有TargetLoad信息，优先显示 -->
-              <template>
-                目标名称：{{
-                  connectedPlatform.targetLoad.targetName || "未设置"
-                }}<br />
-                距离：{{
-                  formatTargetLoadDistance(
-                    connectedPlatform.targetLoad.distance
-                  )
-                }}<br />
-                方位：{{
-                  formatTargetLoadBearing(connectedPlatform.targetLoad.bearing)
-                }}
-                高差：{{
-                  formatTargetLoadElevation(
-                    connectedPlatform.targetLoad.elevationDifference
-                  )
-                }}
-                方位角：{{
-                  formatTargetLoadAngle(connectedPlatform.targetLoad.azimuth)
-                }}
-                高低角：{{
-                  formatTargetLoadAngle(connectedPlatform.targetLoad.pitch)
-                }}
-              </template>
+
+              目标名称：{{ connectedPlatform.targetLoad.targetName || "未设置"
+              }}<br />
+              距离：{{
+                formatTargetLoadDistance(connectedPlatform.targetLoad.distance)
+              }}<br />
+              方位：{{
+                formatTargetLoadBearing(connectedPlatform.targetLoad.bearing)
+              }}
+              高差：{{
+                formatTargetLoadElevation(
+                  connectedPlatform.targetLoad.elevationDifference
+                )
+              }}
+              方位角：{{
+                formatTargetLoadAngle(connectedPlatform.targetLoad.azimuth)
+              }}
+              高低角：{{
+                formatTargetLoadAngle(connectedPlatform.targetLoad.pitch)
+              }}
             </div>
-            <div
-              class="status-info no-data"
-              v-if="!hasTargetData() && isConnected"
-            >
+            <div class="status-info no-data" v-if="!hasTargetData()">
               暂无目标数据
             </div>
           </div>
@@ -422,25 +415,23 @@
             </div>
             <div class="status-info" v-if="getLatestShell()">
               <!-- 如果有最新发射的炮弹，显示炮弹信息 -->
-              <template>
-                炮弹名称：{{ getLatestShell().base.name }}<br />
 
-                位置：{{
-                  formatCoordinate(getLatestShell().base?.location?.longitude)
-                }}
-                {{
-                  formatCoordinate(getLatestShell().base?.location?.latitude)
-                }}
-                高度：{{
-                  getLatestShell().base?.location?.altitude || 0
-                }}m<br />
-                姿态：俯仰{{ formatAngle(getLatestShell().base?.pitch) }} 横滚{{
-                  formatAngle(getLatestShell().base?.roll)
-                }}
-                偏航{{ formatAngle(getLatestShell().base?.yaw) }} 速度：{{
-                  getLatestShell().base?.speed || 0
-                }}m/s
-              </template>
+              炮弹名称：{{ getLatestShell().base.name }}<br />
+
+              位置：{{
+                formatCoordinate(getLatestShell().base?.location?.longitude)
+              }}
+              {{ formatCoordinate(getLatestShell().base?.location?.latitude) }}
+              高度：{{
+                getLatestShell().base?.location?.altitude.toFixed(2) || 0
+              }}m<br />
+              姿态：俯仰{{ formatAngle(getLatestShell().base?.pitch) }} 横滚{{
+                formatAngle(getLatestShell().base?.roll)
+              }}
+              偏航{{ formatAngle(getLatestShell().base?.yaw) }} 速度：{{
+                getLatestShell().base?.speed.toFixed(2) || 0.0
+              }}m/s
+
               <!-- 如果没有炮弹信息，显示弹药库存信息 -->
             </div>
             <div
@@ -659,6 +650,9 @@ const receivedCoordinationTarget = reactive<CoordinationTarget>({
   coordinates: "",
   sourcePlatform: "",
 });
+
+// 存储同组无人机的名称
+const coordinatedUavName = ref("");
 
 // 弹药类型选择
 const selectedAmmunitionType = ref("");
@@ -1261,7 +1255,7 @@ const handleConnectPlatform = () => {
     artilleryStatus.isReady = true;
 
     // 连接后立即获取平台状态
-    updateArtilleryStatusDisplay(targetPlatform);
+    // updateArtilleryStatusDisplay(targetPlatform);
 
     // 初始化状态
     initializeArtilleryStatus();
@@ -1475,10 +1469,32 @@ const handleSendCooperationCommand = async () => {
       throw new Error("未知发射协同命令");
     }
 
+    // 构造坐标信息（如果有的话）
+    let targetCoordinate = undefined;
+
+    // 从missionTarget获取目标坐标信息
+    if (missionTarget.value?.coordinates) {
+      targetCoordinate = {
+        longitude: parseFloat(missionTarget.value.coordinates.longitude),
+        latitude: parseFloat(missionTarget.value.coordinates.latitude),
+        altitude: missionTarget.value.coordinates.altitude || 0,
+      };
+    }
+
     const commandData = {
       commandID: Date.now(),
       platformName: connectedPlatformName.value,
       command: commandEnum,
+      fireCoordinateParam: {
+        uavName: String(
+          coordinatedUavName.value || connectedPlatformName.value
+        ), // 使用协同的无人机名称，如果没有则使用火炮名称
+        targetName: String(currentTarget.name || "未指定"),
+        weaponName: String(
+          loadedAmmunitionType.value || selectedAmmunitionType.value || "未指定"
+        ),
+        ...(targetCoordinate && { coordinate: targetCoordinate }), // 只有当targetCoordinate存在时才添加
+      },
     };
 
     console.log("发送发射协同命令数据:", commandData);
@@ -1628,6 +1644,69 @@ const fireAtDrone = async () => {
       fireStatus.value = "已发射";
 
       console.log(`[ArtilleryPage] 火力命令发送成功`);
+
+      // 发送发射协同命令 (Arty_Fire_Coordinate)
+      try {
+        const coordinationCommandEnum =
+          PlatformCommandEnum["Arty_Fire_Coordinate"];
+        if (coordinationCommandEnum !== undefined) {
+          // 构造坐标信息（如果有的话）
+          let targetCoordinate = undefined;
+
+          // 从missionTarget获取目标坐标信息
+          if (missionTarget.value?.coordinates) {
+            targetCoordinate = {
+              longitude: parseFloat(missionTarget.value.coordinates.longitude),
+              latitude: parseFloat(missionTarget.value.coordinates.latitude),
+              altitude: missionTarget.value.coordinates.altitude || 0,
+            };
+          }
+
+          const coordinationCommandData = {
+            commandID: Date.now() + 1, // 确保ID唯一
+            platformName: String(connectedPlatformName.value),
+            command: Number(coordinationCommandEnum), // 使用枚举值：12 (Arty_Fire_Coordinate)
+            fireCoordinateParam: {
+              uavName: String(coordinatedUavName.value), // 使用协同的无人机名称，如果没有则使用火炮名称
+              targetName: String(currentTarget.name),
+              weaponName: String(loadedAmmunitionType.value),
+              ...(targetCoordinate && { coordinate: targetCoordinate }), // 只有当targetCoordinate存在时才添加
+            },
+          };
+
+          console.log(
+            "[ArtilleryPage] 发送发射协同命令数据:",
+            coordinationCommandData
+          );
+
+          const coordinationResult = await (
+            window as any
+          ).electronAPI.multicast.sendPlatformCmd(coordinationCommandData);
+
+          if (coordinationResult.success) {
+            ElMessage.success("📡 发射协同命令发送成功");
+            console.log(`[ArtilleryPage] 发射协同命令发送成功`);
+
+            // 添加协同报文
+            cooperationMessages.value.unshift({
+              time: new Date().toLocaleTimeString(),
+              message: `火炮发出发射协同报文（目标：${currentTarget.name}）`,
+              type: "fire_coordination",
+            });
+          } else {
+            console.warn(
+              `[ArtilleryPage] 发射协同命令发送失败: ${coordinationResult.error}`
+            );
+            ElMessage.warning("发射协同命令发送失败");
+          }
+        }
+      } catch (coordinationError: any) {
+        console.error(
+          "[ArtilleryPage] 发送发射协同命令失败:",
+          coordinationError
+        );
+        ElMessage.error("发送发射协同命令时发生错误");
+      }
 
       // 发射后清空装填状态，需要重新装填
       artilleryStatus.isLoaded = false;
@@ -1853,11 +1932,7 @@ const handlePlatformStatus = (packet: any) => {
         // 如果已连接，更新已连接平台的状态
         if (isConnected.value && connectedPlatformName.value) {
           const updatedPlatform = parsedData.platform.find(
-            (p: any) =>
-              p.base?.name === connectedPlatformName.value &&
-              (p.base?.type === "ROCKET_LAUNCHER" ||
-                p.base?.type === "Artillery" ||
-                p.base?.type === "CANNON")
+            (p: any) => p.base?.name === connectedPlatformName.value
           );
 
           if (updatedPlatform) {
@@ -1866,9 +1941,8 @@ const handlePlatformStatus = (packet: any) => {
               ...updatedPlatform,
               targetLoad: updatedPlatform.targetLoad || null,
             };
-
             // 更新火炮状态显示
-            updateArtilleryStatusDisplay(updatedPlatform);
+            // updateArtilleryStatusDisplay(updatedPlatform);
 
             // 如果有TargetLoad信息，输出日志
             if (updatedPlatform.targetLoad) {
@@ -1931,6 +2005,9 @@ const handlePlatformStatus = (packet: any) => {
           if (strikeParam.targetName) {
             receivedCoordinationTarget.name = strikeParam.targetName;
             receivedCoordinationTarget.sourcePlatform = sourcePlatform;
+
+            // 保存同组无人机的名称
+            coordinatedUavName.value = sourcePlatform;
 
             // 提取坐标信息
             if (strikeParam.coordinate) {

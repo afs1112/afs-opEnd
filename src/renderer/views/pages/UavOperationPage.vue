@@ -363,13 +363,15 @@
             <div class="status-info" v-if="hasPayloadData()">
               光电载荷：开关{{
                 payloadStatus.optoElectronic.isTurnedOn ? "开启" : "关闭"
-              }}，俯仰{{ payloadStatus.optoElectronic.currentEl }}°，方位{{
-                payloadStatus.optoElectronic.currentAz
+              }}，俯仰{{
+                payloadStatus.optoElectronic.currentEl.toFixed(2)
+              }}°，方位{{
+                payloadStatus.optoElectronic.currentAz.toFixed(2)
               }}°<br />
               激光载荷：开关{{
                 payloadStatus.laser.isTurnedOn ? "开启" : "关闭"
-              }}，俯仰{{ payloadStatus.laser.currentEl }}°，方位{{
-                payloadStatus.laser.currentAz
+              }}，俯仰{{ payloadStatus.laser.currentEl.toFixed(2) }}°，方位{{
+                payloadStatus.laser.currentAz.toFixed(2)
               }}°
             </div>
             <div class="status-info no-data" v-else>暂无载荷数据</div>
@@ -486,7 +488,7 @@
             :min="sensorLimits.minAzSlew"
             :max="sensorLimits.maxAzSlew"
             :step="1"
-            :precision="0"
+            :precision="2"
             class="w-full"
           />
         </el-form-item>
@@ -496,7 +498,7 @@
             :min="sensorLimits.minElSlew"
             :max="sensorLimits.maxElSlew"
             :step="1"
-            :precision="0"
+            :precision="2"
             class="w-full"
           />
         </el-form-item>
@@ -1383,6 +1385,61 @@ const handlePlatformStatus = (packet: any) => {
           }`
         );
       }
+    } else if (packet.parsedPacket?.packageType === 0x2a) {
+      // 平台命令数据包
+      const parsedData = packet.parsedPacket.parsedData;
+      console.log("[UavPage] 收到火炮命令数据1234:", packet.parsedPacket);
+
+      // 处理发射协同命令 (Arty_Fire_Coordinate)
+      if (
+        parsedData?.command === "Arty_Fire_Coordinate" &&
+        parsedData?.fireCoordinateParam
+      ) {
+        // 12 是 Arty_Fire_Coordinate
+        try {
+          const fireCoordinateParam = parsedData.fireCoordinateParam;
+          const sourcePlatform = parsedData.platformName || "未知平台";
+
+          // 提取坐标信息（如果有的话）
+          let coordinateInfo = "";
+          if (fireCoordinateParam.coordinate) {
+            const coord = fireCoordinateParam.coordinate;
+            coordinateInfo = `，坐标: E${coord.longitude.toFixed(
+              6
+            )}° N${coord.latitude.toFixed(6)}°`;
+            if (coord.altitude) {
+              coordinateInfo += ` ${coord.altitude.toFixed(1)}m`;
+            }
+          }
+
+          // 构造显示信息
+          const message = `收到来自火炮 ${sourcePlatform} 的发射协同命令（目标: ${
+            fireCoordinateParam.targetName || "未知"
+          }，武器: ${
+            fireCoordinateParam.weaponName || "未知"
+          }${coordinateInfo}）`;
+
+          // 添加到协同报文面板
+          cooperationMessages.value.unshift({
+            time: new Date().toLocaleTimeString(),
+            message: message,
+            type: "fire_coordination",
+          });
+
+          // 添加到操作日志
+          addLog("info", message);
+
+          console.log(`[UavPage] ${message}`);
+        } catch (error) {
+          console.error("[UavPage] 处理发射协同命令时出错:", error);
+          addLog(
+            "error",
+            `处理发射协同命令时出错: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+      }
     }
   } catch (error) {
     console.error("[UavPage] 处理平台状态数据失败:", error);
@@ -1779,12 +1836,6 @@ const showSensorParamDialog = () => {
 
     if (optoElectronicSensor) {
       // 回填当前的方位角和俯仰角值，并确保是整数
-      sensorParamForm.azSlew = Math.round(
-        optoElectronicSensor.base?.currentAz || 0
-      );
-      sensorParamForm.elSlew = Math.round(
-        optoElectronicSensor.base?.currentEl || 0
-      );
 
       // 从光电传感器获取转向限制参数
       sensorLimits.minAzSlew =

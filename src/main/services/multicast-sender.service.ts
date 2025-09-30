@@ -45,6 +45,16 @@ export interface PlatformCmdData {
       altitude?: number;
     };
   };
+  fireCoordinateParam?: {
+    uavName?: string;
+    targetName?: string;
+    weaponName?: string;
+    coordinate?: {
+      longitude?: number;
+      latitude?: number;
+      altitude?: number;
+    };
+  };
 }
 
 export class MulticastSenderService {
@@ -275,7 +285,8 @@ export class MulticastSenderService {
         TargetSetParamType,
         SetSpeedParamType,
         LockParamType,
-        StrikeCoordinateParamType;
+        StrikeCoordinateParamType,
+        FireCoordinateParamType;
 
       try {
         FireParamType = this.root.lookupType("PlatformStatus.FireParam");
@@ -333,6 +344,15 @@ export class MulticastSenderService {
           "[MulticastSender] ⚠️ 未找到 StrikeCoordinateParamType:",
           e
         );
+      }
+
+      try {
+        FireCoordinateParamType = this.root.lookupType(
+          "PlatformStatus.FireCoordinateParam"
+        );
+        console.log("[MulticastSender] ✅ 找到 FireCoordinateParamType");
+      } catch (e) {
+        console.log("[MulticastSender] ⚠️ 未找到 FireCoordinateParamType:", e);
       }
 
       console.log("[MulticastSender] 创建PlatformCmd消息:", data);
@@ -471,6 +491,39 @@ export class MulticastSenderService {
           artyName: data.strikeCoordinateParam.artyName || "",
           targetName: data.strikeCoordinateParam.targetName || "",
           coordinate: data.strikeCoordinateParam.coordinate || undefined,
+        };
+      }
+
+      // 如果有fireCoordinateParam，添加到消息中
+      if (data.fireCoordinateParam && FireCoordinateParamType) {
+        console.log(
+          "[MulticastSender] 添加fireCoordinateParam:",
+          data.fireCoordinateParam
+        );
+        const fireCoordinateParam = FireCoordinateParamType.create({
+          uavName: data.fireCoordinateParam.uavName || "",
+          targetName: data.fireCoordinateParam.targetName || "",
+          weaponName: data.fireCoordinateParam.weaponName || "",
+          coordinate: data.fireCoordinateParam.coordinate
+            ? {
+                longitude: data.fireCoordinateParam.coordinate.longitude || 0,
+                latitude: data.fireCoordinateParam.coordinate.latitude || 0,
+                altitude: data.fireCoordinateParam.coordinate.altitude || 0,
+              }
+            : undefined,
+        });
+        cmdData.fireCoordinateParam = fireCoordinateParam;
+      } else if (data.fireCoordinateParam && !FireCoordinateParamType) {
+        console.log(
+          "[MulticastSender] ⚠️ fireCoordinateParam数据存在但FireCoordinateParamType未找到，跳过"
+        );
+        console.log("[MulticastSender] 尝试直接使用原始数据...");
+        // 如果找不到类型，尝试直接使用原始数据
+        cmdData.fireCoordinateParam = {
+          uavName: data.fireCoordinateParam.uavName || "",
+          targetName: data.fireCoordinateParam.targetName || "",
+          weaponName: data.fireCoordinateParam.weaponName || "",
+          coordinate: data.fireCoordinateParam.coordinate || undefined,
         };
       }
 

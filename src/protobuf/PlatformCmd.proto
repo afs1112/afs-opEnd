@@ -36,7 +36,16 @@ message PlatformCmd {
   optional SetSpeedparam setSpeedParam =8; //速度设定参数
   optional LockParam lockParam =9; //锁定目标参数
   optional StrikeCoordinateParam strikeCoordinateParam =10; //打击协同参数
+  optional FireCoordinateParam fireCoordinateParam =11; //发射协同参数
 };
+
+message FireCoordinateParam
+{
+  optional string uavName = 1;
+  optional string targetName = 2;
+  optional string weaponName = 3;
+  optional PublicStruct.GeoCoordinate coordinate = 4;
+}
 
 message StrikeCoordinateParam
 {

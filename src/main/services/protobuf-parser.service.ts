@@ -661,6 +661,34 @@ export class ProtobufParserService {
         }
       }
 
+      // 增加打击协同命令的特殊日志记录
+      if (
+        decodedObject.command === "Uav_Strike_Coordinate" ||
+        decodedObject.command === 11
+      ) {
+        console.log("[Parser] ⚔️ 检测到打击协同命令");
+        if (decodedObject.strikeCoordinateParam) {
+          console.log(
+            "[Parser] ⚔️ 打击协同参数:",
+            JSON.stringify(decodedObject.strikeCoordinateParam, null, 2)
+          );
+        }
+      }
+
+      // 增加发射协同命令的特殊日志记录
+      if (
+        decodedObject.command === "Arty_Fire_Coordinate" ||
+        decodedObject.command === 12
+      ) {
+        console.log("[Parser] 💣 检测到发射协同命令");
+        if (decodedObject.fireCoordinateParam) {
+          console.log(
+            "[Parser] 💣 发射协同参数:",
+            JSON.stringify(decodedObject.fireCoordinateParam, null, 2)
+          );
+        }
+      }
+
       console.log("[Parser] ✅ 平台控制命令解析完成");
 
       return decodedObject;

@@ -1240,8 +1240,29 @@ const getCoordinationCommandDetails = (parsedData: any) => {
   }
 
   // 发射协同命令 (12)
-  if (command === 12) {
-    return " (火力协同)";
+  if (command === 12 && parsedData.fireCoordinateParam) {
+    const param = parsedData.fireCoordinateParam;
+    let details = [];
+
+    if (param.uavName) {
+      details.push(`无人机: ${param.uavName}`);
+    }
+    if (param.targetName) {
+      details.push(`目标: ${param.targetName}`);
+    }
+    if (param.weaponName) {
+      details.push(`武器: ${param.weaponName}`);
+    }
+    if (param.coordinate) {
+      details.push(
+        `坐标: ${param.coordinate.longitude}°,${param.coordinate.latitude}°`
+      );
+      if (param.coordinate.altitude) {
+        details[details.length - 1] += `,${param.coordinate.altitude}m`;
+      }
+    }
+
+    return details.length > 0 ? ` (${details.join(", ")})` : "";
   }
 
   // 其他参数的快速显示
@@ -1284,8 +1305,10 @@ const copyPlatformCmdSummary = () => {
           getCoordinationCommandDetails(p.parsedPacket?.parsedData),
         详细参数:
           p.parsedPacket?.parsedData?.strikeCoordinateParam ||
+          p.parsedPacket?.parsedData?.fireCoordinateParam ||
           p.parsedPacket?.parsedData?.sensorParam ||
           p.parsedPacket?.parsedData?.lockParam ||
+          p.parsedPacket?.parsedData?.fireParam ||
           null,
       })),
   };
@@ -1498,12 +1521,7 @@ const exportPackets = async () => {
 
       if (result.success) {
         const message = `数据导出成功！路径: ${result.path}`;
-        const details = result.recordCount
-          ? ` (${result.recordCount} 条记录, ${Math.round(
-              result.size / 1024
-            )}KB)`
-          : "";
-        ElMessage.success(message + details);
+        ElMessage.success(message);
       } else {
         ElMessage.error(`导出失败: ${result.error}`);
       }
