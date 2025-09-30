@@ -398,7 +398,13 @@
               位置：{{ targetStatus.position.longitude }}
               {{ targetStatus.position.latitude }}<br />
               高度：{{ targetStatus.position.altitude }}<br />
-              是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
+              <div class="destroyed-status" v-if="targetStatus.destroyed">
+                <el-icon class="destroyed-icon"><CircleClose /></el-icon>
+                <span class="destroyed-text">目标已摧毁</span>
+              </div>
+              <div class="active-status" v-else>
+                是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
+              </div>
             </div>
             <div class="status-info no-data" v-else>暂无目标数据</div>
           </div>
@@ -520,6 +526,7 @@ import {
   Loading,
   WarningFilled,
   LocationFilled,
+  CircleClose,
 } from "@element-plus/icons-vue";
 
 // 基础数据
@@ -1100,20 +1107,14 @@ const hasTargetData = () => {
   }
   // 已连接时检查是否有真实目标数据
   return (
-    selectedTarget.value &&
-    targetOptions.value.length > 0 &&
-    targetStatus.name !== "目标-001" // 排除默认模拟数据
+    selectedTarget.value && targetStatus.name !== "目标-001" // 排除默认模拟数据
   );
 };
 
 const getTargetDataSourceClass = () => {
   if (!isConnected.value) {
     return "simulated";
-  } else if (
-    selectedTarget.value &&
-    targetOptions.value.length > 0 &&
-    targetStatus.name !== "目标-001"
-  ) {
+  } else if (selectedTarget.value && targetStatus.name !== "目标-001") {
     return "connected";
   } else {
     return "no-data";
@@ -1123,11 +1124,7 @@ const getTargetDataSourceClass = () => {
 const getTargetDataSourceText = () => {
   if (!isConnected.value) {
     return "模拟数据";
-  } else if (
-    selectedTarget.value &&
-    targetOptions.value.length > 0 &&
-    targetStatus.name !== "目标-001"
-  ) {
+  } else if (selectedTarget.value && targetStatus.name !== "目标-001") {
     return "实时数据";
   } else {
     return "无数据";
@@ -1224,6 +1221,9 @@ const handlePlatformStatus = (packet: any) => {
         platforms.value = parsedData.platform;
         lastUpdateTime.value = Date.now();
         hasRealPlatformData.value = true; // 标记已接收到真实平台数据
+
+        // 检测目标是否被摧毁
+        checkTargetDestroyed(parsedData.platform);
 
         // 更新环境参数（从 evironment 字段获取）
         if (parsedData.evironment) {
@@ -1449,6 +1449,38 @@ const handlePlatformStatus = (packet: any) => {
         error instanceof Error ? error.message : String(error)
       }`
     );
+  }
+};
+
+// 添加目标摧毁检测函数
+const checkTargetDestroyed = (platforms: any[]) => {
+  // 只有在已连接平台且已锁定目标时才进行检测
+  if (
+    !isConnected.value ||
+    !connectedPlatformName.value ||
+    !selectedTarget.value
+  ) {
+    return;
+  }
+
+  // 查找当前锁定的目标是否仍然存在于平台数据中（作为平台名称）
+  const targetExists = platforms.some(
+    (platform: any) => platform.base?.name === selectedTarget.value
+  );
+
+  // 如果目标不存在于任何平台中，则认为目标被摧毁
+  if (
+    !targetExists &&
+    targetStatus.name === selectedTarget.value &&
+    targetStatus.destroyed == false
+  ) {
+    // 更新目标状态为已摧毁
+    targetStatus.destroyed = true;
+    addLog("warning", `目标 ${selectedTarget.value} 已被摧毁`);
+    ElMessage.warning(`目标 ${selectedTarget.value} 已被摧毁`);
+  } else if (targetExists && targetStatus.name === selectedTarget.value) {
+    // 如果目标仍然存在，则目标未被摧毁
+    targetStatus.destroyed = false;
   }
 };
 
@@ -2004,6 +2036,7 @@ const handleLockTarget = async () => {
 
   // 发送光电和激光传感器的锁定命令
   await sendLockTargetCommand(targetLabel);
+  targetStatus.destroyed = false;
 };
 
 // 发送锁定目标命令（同时发送光电和激光传感器锁定）
@@ -2859,6 +2892,49 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.destroyed-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #fef0f0;
+  border: 1px solid #fbc4c4;
+  border-radius: 4px;
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.destroyed-icon {
+  font-size: 20px;
+  color: #f56c6c;
+  animation: pulse 1.5s infinite;
+}
+
+.destroyed-text {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.active-status {
+  margin-top: 8px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 底部协同报文区域 */
