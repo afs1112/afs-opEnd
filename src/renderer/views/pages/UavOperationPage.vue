@@ -483,18 +483,20 @@
         <el-form-item label="方位角">
           <el-input-number
             v-model="sensorParamForm.azSlew"
-            :min="-180"
-            :max="180"
-            :step="0.1"
+            :min="sensorLimits.minAzSlew"
+            :max="sensorLimits.maxAzSlew"
+            :step="1"
+            :precision="0"
             class="w-full"
           />
         </el-form-item>
         <el-form-item label="俯仰角">
           <el-input-number
             v-model="sensorParamForm.elSlew"
-            :min="-90"
-            :max="90"
-            :step="0.1"
+            :min="sensorLimits.minElSlew"
+            :max="sensorLimits.maxElSlew"
+            :step="1"
+            :precision="0"
             class="w-full"
           />
         </el-form-item>
@@ -711,6 +713,14 @@ const sensorParamDialogVisible = ref(false);
 const sensorParamForm = reactive({
   azSlew: 0,
   elSlew: 0,
+});
+
+// 传感器转向限制参数
+const sensorLimits = reactive({
+  minAzSlew: -180,
+  maxAzSlew: 180,
+  minElSlew: -90,
+  maxElSlew: 90,
 });
 
 // 函数定义
@@ -1756,8 +1766,62 @@ const handleTurn = () => {
 
 // 显示传感器转向参数对话框
 const showSensorParamDialog = () => {
-  sensorParamForm.azSlew = 0;
-  sensorParamForm.elSlew = 0;
+  // 回填光电传感器当前的实际参数值
+  if (
+    connectedPlatform.value?.sensors &&
+    Array.isArray(connectedPlatform.value.sensors)
+  ) {
+    const optoElectronicSensor = connectedPlatform.value.sensors.find(
+      (sensor: any) =>
+        sensor.base?.type?.toLowerCase().includes("eoir") ||
+        sensor.base?.name?.toLowerCase().includes("光电")
+    );
+
+    if (optoElectronicSensor) {
+      // 回填当前的方位角和俯仰角值，并确保是整数
+      sensorParamForm.azSlew = Math.round(
+        optoElectronicSensor.base?.currentAz || 0
+      );
+      sensorParamForm.elSlew = Math.round(
+        optoElectronicSensor.base?.currentEl || 0
+      );
+
+      // 从光电传感器获取转向限制参数
+      sensorLimits.minAzSlew =
+        optoElectronicSensor.base?.minAzSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.minAzSlew)
+          : -180;
+      sensorLimits.maxAzSlew =
+        optoElectronicSensor.base?.maxAzSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.maxAzSlew)
+          : 180;
+      sensorLimits.minElSlew =
+        optoElectronicSensor.base?.minElSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.minElSlew)
+          : -90;
+      sensorLimits.maxElSlew =
+        optoElectronicSensor.base?.maxElSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.maxElSlew)
+          : 90;
+    } else {
+      // 如果没有找到光电传感器，使用默认值
+      sensorParamForm.azSlew = 0;
+      sensorParamForm.elSlew = 0;
+      sensorLimits.minAzSlew = -180;
+      sensorLimits.maxAzSlew = 180;
+      sensorLimits.minElSlew = -90;
+      sensorLimits.maxElSlew = 90;
+    }
+  } else {
+    // 如果没有连接平台或传感器数据，使用默认值
+    sensorParamForm.azSlew = 0;
+    sensorParamForm.elSlew = 0;
+    sensorLimits.minAzSlew = -180;
+    sensorLimits.maxAzSlew = 180;
+    sensorLimits.minElSlew = -90;
+    sensorLimits.maxElSlew = 90;
+  }
+
   sensorParamDialogVisible.value = true;
 };
 
@@ -1821,7 +1885,7 @@ const sendSensorParamCommand = async () => {
     if (laserSensorName) {
       totalCommands++;
       // 1秒延迟以避免命令ID冲突并确保时间间隔
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const commandData = {
         commandID: Date.now(),
@@ -1945,7 +2009,6 @@ const sendLockTargetCommand = async (targetName: string) => {
     if (laserSensorName) {
       totalCommands++;
       // 1秒延迟以避免命令ID冲突并确保时间间隔
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       const commandData = {
         commandID: Date.now(),
