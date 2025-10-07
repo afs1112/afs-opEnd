@@ -1,6 +1,6 @@
-import { app } from 'electron';
-import { join } from 'path';
-import fs from 'fs';
+import { app } from "electron";
+import { join } from "path";
+import fs from "fs";
 
 export interface UavIdRecord {
   id: string;
@@ -30,19 +30,55 @@ class UavIdService {
   private getConfigPath(): string {
     // 获取可执行文件所在目录
     let executableDir: string;
-    
+
     if (app.isPackaged) {
-      executableDir = require('path').dirname(process.execPath);
-      
-      if (process.platform === 'darwin') {
-        const appBundle = require('path').dirname(require('path').dirname(executableDir));
-        executableDir = require('path').dirname(appBundle);
+      executableDir = require("path").dirname(process.execPath);
+
+      if (process.platform === "darwin") {
+        const appBundle = require("path").dirname(
+          require("path").dirname(executableDir)
+        );
+        executableDir = require("path").dirname(appBundle);
       }
     } else {
       executableDir = app.getAppPath();
     }
 
-    return join(executableDir, 'uav-id-config.json');
+    return join(executableDir, "uav-id-config.json");
+  }
+
+  /**
+   * 系统启动时初始化UavId和导航配置
+   */
+  public initializeOnStartup(): {
+    success: boolean;
+    uavId?: string;
+    error?: string;
+  } {
+    try {
+      console.log("[UavId] 系统启动初始化...");
+
+      // 加载配置
+      const config = this.loadConfig();
+      console.log(`[UavId] 自动生成模式: ${config.settings.autoGenerate}`);
+
+      // 获取当前UavId（如果没有则自动生成）
+      const currentUavId = this.getCurrentUavId();
+
+      // 自动更新导航配置文件
+      const updateResult = this.updateNavConfigId(currentUavId);
+
+      if (updateResult) {
+        console.log(`[UavId] 系统启动初始化成功，UavId: ${currentUavId}`);
+        return { success: true, uavId: currentUavId };
+      } else {
+        console.warn(`[UavId] 导航配置更新失败`);
+        return { success: false, error: "导航配置更新失败" };
+      }
+    } catch (error: any) {
+      console.error("[UavId] 系统启动初始化失败:", error);
+      return { success: false, error: error.message };
+    }
   }
 
   /**
@@ -59,7 +95,7 @@ class UavIdService {
    */
   public generateAndSetNewUavId(): string {
     const newId = this.generateUavId();
-    this.setCurrentUavId(newId, '用户手动生成');
+    this.setCurrentUavId(newId, "用户手动生成");
     console.log(`[UavId] 用户生成新的UavId: ${newId}`);
     return newId;
   }
@@ -70,7 +106,7 @@ class UavIdService {
   public loadConfig(): UavIdConfig {
     try {
       if (fs.existsSync(this.configPath)) {
-        const configData = fs.readFileSync(this.configPath, 'utf8');
+        const configData = fs.readFileSync(this.configPath, "utf8");
         this.config = JSON.parse(configData);
         console.log(`[UavId] 配置文件已加载: ${this.configPath}`);
       } else {
@@ -78,10 +114,10 @@ class UavIdService {
         this.saveConfig();
         console.log(`[UavId] 创建默认配置文件: ${this.configPath}`);
       }
-      
+
       return this.config!;
     } catch (error) {
-      console.error('[UavId] 加载配置文件失败:', error);
+      console.error("[UavId] 加载配置文件失败:", error);
       this.config = this.getDefaultConfig();
       return this.config!;
     }
@@ -97,18 +133,18 @@ class UavIdService {
       }
 
       const configData = JSON.stringify(this.config, null, 2);
-      
-      const configDir = require('path').dirname(this.configPath);
+
+      const configDir = require("path").dirname(this.configPath);
       if (!fs.existsSync(configDir)) {
         fs.mkdirSync(configDir, { recursive: true });
       }
-      
-      fs.writeFileSync(this.configPath, configData, 'utf8');
+
+      fs.writeFileSync(this.configPath, configData, "utf8");
       console.log(`[UavId] 配置文件已保存: ${this.configPath}`);
-      
+
       return true;
     } catch (error) {
-      console.error('[UavId] 保存配置文件失败:', error);
+      console.error("[UavId] 保存配置文件失败:", error);
       return false;
     }
   }
@@ -128,16 +164,16 @@ class UavIdService {
    */
   public getCurrentUavId(): string {
     const config = this.getConfig();
-    
+
     // 只有在没有currentId的情况下才生成新ID
     // autoGenerate只影响是否在启动时自动生成，不影响已有ID的使用
     if (!config.currentId) {
       const newId = this.generateUavId();
-      this.setCurrentUavId(newId, '系统自动生成');
+      this.setCurrentUavId(newId, "系统自动生成");
       console.log(`[UavId] 生成新的UavId: ${newId}`);
       return newId;
     }
-    
+
     console.log(`[UavId] 使用现有UavId: ${config.currentId}`);
     return config.currentId;
   }
@@ -149,34 +185,34 @@ class UavIdService {
     try {
       const config = this.getConfig();
       const now = new Date().toISOString();
-      
+
       // 更新当前ID
       config.currentId = id;
-      
+
       // 当手动设置UavId时，禁用自动生成
-      if (description && !description.includes('自动生成')) {
+      if (description && !description.includes("自动生成")) {
         config.settings.autoGenerate = false;
-        console.log('[UavId] 手动设置UavId，已禁用自动生成');
+        console.log("[UavId] 手动设置UavId，已禁用自动生成");
       }
-      
+
       // 添加到历史记录
       const record: UavIdRecord = {
         id,
         generatedAt: now,
-        description: description || `自动生成的UavId`
+        description: description || `自动生成的UavId`,
       };
-      
+
       config.history.push(record);
-      
+
       // 保持历史记录不超过100条
       if (config.history.length > 100) {
         config.history = config.history.slice(-100);
       }
-      
+
       this.config = config;
       return this.saveConfig();
     } catch (error) {
-      console.error('[UavId] 设置UavId失败:', error);
+      console.error("[UavId] 设置UavId失败:", error);
       return false;
     }
   }
@@ -189,10 +225,10 @@ class UavIdService {
       const config = this.getConfig();
       config.settings.autoGenerate = true;
       this.config = config;
-      console.log('[UavId] 已启用自动生成模式');
+      console.log("[UavId] 已启用自动生成模式");
       return this.saveConfig();
     } catch (error) {
-      console.error('[UavId] 启用自动生成失败:', error);
+      console.error("[UavId] 启用自动生成失败:", error);
       return false;
     }
   }
@@ -205,10 +241,10 @@ class UavIdService {
       const config = this.getConfig();
       config.settings.autoGenerate = false;
       this.config = config;
-      console.log('[UavId] 已禁用自动生成模式');
+      console.log("[UavId] 已禁用自动生成模式");
       return this.saveConfig();
     } catch (error) {
-      console.error('[UavId] 禁用自动生成失败:', error);
+      console.error("[UavId] 禁用自动生成失败:", error);
       return false;
     }
   }
@@ -219,7 +255,7 @@ class UavIdService {
   public markCurrentIdAsUsed(): boolean {
     try {
       const config = this.getConfig();
-      
+
       if (config.currentId && config.history.length > 0) {
         const lastRecord = config.history[config.history.length - 1];
         if (lastRecord.id === config.currentId) {
@@ -228,10 +264,10 @@ class UavIdService {
           return this.saveConfig();
         }
       }
-      
+
       return false;
     } catch (error) {
-      console.error('[UavId] 标记ID为已使用失败:', error);
+      console.error("[UavId] 标记ID为已使用失败:", error);
       return false;
     }
   }
@@ -254,7 +290,7 @@ class UavIdService {
       this.config = config;
       return this.saveConfig();
     } catch (error) {
-      console.error('[UavId] 清除历史记录失败:', error);
+      console.error("[UavId] 清除历史记录失败:", error);
       return false;
     }
   }
@@ -269,8 +305,8 @@ class UavIdService {
       settings: {
         autoGenerate: true,
         idLength: 4,
-        prefix: ""
-      }
+        prefix: "",
+      },
     };
   }
 
@@ -281,36 +317,38 @@ class UavIdService {
     try {
       // 获取Nav配置文件路径
       let navConfigPath: string;
-      
+
       if (app.isPackaged) {
-        const execDir = require('path').dirname(process.execPath);
-        
-        if (process.platform === 'darwin') {
-          const appBundle = require('path').dirname(require('path').dirname(execDir));
-          const appParentDir = require('path').dirname(appBundle);
-          navConfigPath = join(appParentDir, 'Nav', 'data', 'config.ini');
+        const execDir = require("path").dirname(process.execPath);
+
+        if (process.platform === "darwin") {
+          const appBundle = require("path").dirname(
+            require("path").dirname(execDir)
+          );
+          const appParentDir = require("path").dirname(appBundle);
+          navConfigPath = join(appParentDir, "Nav", "data", "config.ini");
         } else {
-          navConfigPath = join(execDir, 'Nav', 'data', 'config.ini');
+          navConfigPath = join(execDir, "Nav", "data", "config.ini");
         }
       } else {
         // 开发环境：使用项目根目录
-        navConfigPath = join(app.getAppPath(), 'Nav', 'data', 'config.ini');
+        navConfigPath = join(app.getAppPath(), "Nav", "data", "config.ini");
       }
 
       console.log(`[UavId] Nav配置文件路径: ${navConfigPath}`);
 
       if (!fs.existsSync(navConfigPath)) {
         console.error(`[UavId] Nav配置文件不存在: ${navConfigPath}`);
-        
+
         // 在开发环境中，如果配置文件不存在，尝试创建一个默认的
         if (!app.isPackaged) {
           console.log(`[UavId] 尝试创建默认Nav配置文件...`);
-          
-          const navDir = require('path').dirname(navConfigPath);
+
+          const navDir = require("path").dirname(navConfigPath);
           if (!fs.existsSync(navDir)) {
             fs.mkdirSync(navDir, { recursive: true });
           }
-          
+
           const defaultConfig = `[Title]
 name=导航监控软件-B-20220417-1
 [Config]
@@ -319,25 +357,25 @@ CarID=1
 num=1
 ID1=${uavId}
 name1=UA`;
-          
-          fs.writeFileSync(navConfigPath, defaultConfig, 'utf8');
+
+          fs.writeFileSync(navConfigPath, defaultConfig, "utf8");
           console.log(`[UavId] 默认Nav配置文件已创建: ${navConfigPath}`);
           return true;
         }
-        
+
         return false;
       }
 
       // 读取配置文件
-      const configContent = fs.readFileSync(navConfigPath, 'utf8');
-      
+      const configContent = fs.readFileSync(navConfigPath, "utf8");
+
       // 解析INI格式并更新ID1
-      const lines = configContent.split('\n');
+      const lines = configContent.split("\n");
       let updated = false;
-      
+
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (line.startsWith('ID1=')) {
+        if (line.startsWith("ID1=")) {
           lines[i] = `ID1=${uavId}`;
           updated = true;
           console.log(`[UavId] 更新ID1: ${uavId}`);
@@ -346,55 +384,58 @@ name1=UA`;
       }
 
       if (!updated) {
-        console.error('[UavId] 未找到ID1配置项');
+        console.error("[UavId] 未找到ID1配置项");
         return false;
       }
 
       // 写回文件
-      const updatedContent = lines.join('\n');
-      fs.writeFileSync(navConfigPath, updatedContent, 'utf8');
-      
+      const updatedContent = lines.join("\n");
+      fs.writeFileSync(navConfigPath, updatedContent, "utf8");
+
       console.log(`[UavId] Nav配置文件已更新: ${navConfigPath}`);
       return true;
-      
     } catch (error) {
-      console.error('[UavId] 更新Nav配置文件失败:', error);
+      console.error("[UavId] 更新Nav配置文件失败:", error);
       return false;
     }
   }
 
   /**
-   * 准备启动导航软件（获取当前ID并更新配置）
+   * 准备启动导航软件（获取当前ID，不再生成新ID）
    */
-  public prepareForNavigation(): { success: boolean; uavId?: string; error?: string } {
+  public prepareForNavigation(): {
+    success: boolean;
+    uavId?: string;
+    error?: string;
+  } {
     try {
-      // 获取当前UavId（如果没有则生成新的）
-      const uavId = this.getCurrentUavId();
-      console.log(`[UavId] 准备导航启动，使用UavId: ${uavId}`);
-      
-      // 更新Nav配置文件
-      const updateSuccess = this.updateNavConfigId(uavId);
-      
-      if (!updateSuccess) {
+      // 直接获取当前UavId，不再生成新的
+      const config = this.getConfig();
+
+      if (!config.currentId) {
         return {
           success: false,
-          error: '更新Nav配置文件失败'
+          error: "系统未初始化UavId，请重启系统",
         };
       }
-      
+
+      const uavId = config.currentId;
+      console.log(`[UavId] 导航准备，使用已有UavId: ${uavId}`);
+
+      // 不需要重新更新Nav配置文件，因为系统启动时已经更新过了
+
       // 标记为已使用
       this.markCurrentIdAsUsed();
-      
+
       return {
         success: true,
-        uavId
+        uavId,
       };
-      
     } catch (error: any) {
-      console.error('[UavId] 准备导航启动失败:', error);
+      console.error("[UavId] 导航准备失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

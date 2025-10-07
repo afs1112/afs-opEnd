@@ -63,6 +63,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   uav: {
     generateId: () => ipcRenderer.invoke("uav:generateId"),
     getCurrentId: () => ipcRenderer.invoke("uav:getCurrentId"),
+    getSystemUavId: () => ipcRenderer.invoke("uav:getSystemUavId"), // 新增：获取系统启动时的UavId
     setCurrentId: (uavId: string, description?: string) =>
       ipcRenderer.invoke("uav:setCurrentId", uavId, description),
     getHistory: () => ipcRenderer.invoke("uav:getHistory"),

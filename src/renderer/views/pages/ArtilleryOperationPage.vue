@@ -18,7 +18,7 @@
             </div>
             <div class="time-section" v-if="isConnected">
               <div class="exercise-time">
-                演习时间：{{ environmentParams.exerciseTime }}
+                演习时间：{{ environmentParams.exerciseTime }} 秒
               </div>
               <div class="astronomical-time">
                 天文时间：{{ environmentParams.astronomicalTime }}
@@ -75,21 +75,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 任务目标提醒栏 -->
-    <div v-if="isConnected" class="mission-target-banner mb-4">
-      <div class="banner-content">
-        <div class="banner-icon">
-          <el-icon size="16"><LocationFilled /></el-icon>
-        </div>
-        <span class="banner-title">当前任务目标：</span>
-        <span class="target-info" v-if="missionTarget">
-          {{ missionTarget.name }} ({{ missionTarget.coordinates.longitude }}°,
-          {{ missionTarget.coordinates.latitude }}°)
-        </span>
-        <span class="target-info no-target" v-else> 暂无任务目标 </span>
       </div>
     </div>
 
@@ -282,9 +267,9 @@
         </div>
       </div>
 
-      <!-- 右侧状态显示区域 -->
-      <div class="right-panel flex flex-col gap-4">
-        <!-- 气候环境（完全复制无人机页面格式） -->
+      <!-- 中间状态显示区域 -->
+      <div class="middle-panel flex flex-col gap-4">
+        <!-- 气候环境 -->
         <div class="status-card environment-status">
           <div class="status-content">
             <div class="status-header">
@@ -354,6 +339,7 @@
             </div>
           </div>
         </div>
+
         <!-- 目标状态 -->
         <div class="status-card coordination-status">
           <div class="status-content">
@@ -370,8 +356,6 @@
               </div>
             </div>
             <div class="status-info" v-if="connectedPlatform?.targetLoad">
-              <!-- 如果有TargetLoad信息，优先显示 -->
-
               目标名称：{{ connectedPlatform.targetLoad.targetName || "未设置"
               }}<br />
               距离：{{
@@ -414,10 +398,7 @@
               </div>
             </div>
             <div class="status-info" v-if="getLatestShell()">
-              <!-- 如果有最新发射的炮弹，显示炮弹信息 -->
-
               炮弹名称：{{ getLatestShell().base.name }}<br />
-
               位置：{{
                 formatCoordinate(getLatestShell().base?.location?.longitude)
               }}
@@ -431,8 +412,6 @@
               偏航{{ formatAngle(getLatestShell().base?.yaw) }} 速度：{{
                 getLatestShell().base?.speed.toFixed(2) || 0.0
               }}m/s
-
-              <!-- 如果没有炮弹信息，显示弹药库存信息 -->
             </div>
             <div
               class="status-info no-data"
@@ -443,29 +422,54 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 底部协同报文区域 -->
-    <div class="bottom-panel mt-4">
-      <div class="report-header">
-        <el-button class="report-send-btn" @click="handleSendCooperationCommand"
-          >发送协同指令</el-button
-        >
-        <span class="report-title">协同报文区域</span>
-      </div>
-
-      <div class="report-content">
-        <div class="report-section">
-          <div class="report-messages">
-            <div
-              v-for="(msg, index) in cooperationMessages"
-              :key="index"
-              class="message-item"
-            >
-              {{ msg.time }} {{ msg.message }}
+      <!-- 右侧协同报文区域 -->
+      <div class="right-panel">
+        <!-- 任务目标提醒栏 -->
+        <div v-if="isConnected" class="mission-target-banner mb-4">
+          <div class="banner-content">
+            <div class="banner-icon">
+              <el-icon size="16"><LocationFilled /></el-icon>
             </div>
-            <div v-if="cooperationMessages.length === 0" class="message-item">
-              暂无协同报文
+            <span class="banner-title">当前任务目标：</span>
+            <span class="target-info" v-if="missionTarget">
+              {{ missionTarget.name }} ({{
+                missionTarget.coordinates.longitude
+              }}°, {{ missionTarget.coordinates.latitude }}°)
+            </span>
+            <span class="target-info no-target" v-else> 暂无任务目标 </span>
+          </div>
+        </div>
+
+        <div class="report-panel">
+          <div class="report-header">
+            <span class="report-title">协同报文区域</span>
+            <el-button
+              class="report-send-btn"
+              @click="handleSendCooperationCommand"
+              size="small"
+            >
+              发送协同指令
+            </el-button>
+          </div>
+
+          <div class="report-content">
+            <div class="report-section">
+              <div class="report-messages">
+                <div
+                  v-for="(msg, index) in cooperationMessages"
+                  :key="index"
+                  class="message-item"
+                >
+                  {{ msg.time }} {{ msg.message }}
+                </div>
+                <div
+                  v-if="cooperationMessages.length === 0"
+                  class="message-item"
+                >
+                  暂无协同报文
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1387,13 +1391,6 @@ const handleTargetSetting = async () => {
     if (result.success) {
       ElMessage.success(`🎯 目标装订命令发送成功：${currentTarget.name}`);
       console.log(`[ArtilleryPage] 目标装订命令发送成功`);
-
-      // 添加协同报文到报文区域
-      cooperationMessages.value.unshift({
-        time: new Date().toLocaleTimeString(),
-        message: `火炮发出目标装订命令（目标：${currentTarget.name}）`,
-        type: "target_setting",
-      });
     } else {
       ElMessage.error(`目标装订命令发送失败: ${result.error}`);
       console.error(`[ArtilleryPage] 目标装订命令发送失败: ${result.error}`);
@@ -2363,9 +2360,134 @@ onUnmounted(() => {
 
 /* 左侧控制面板 */
 .left-panel {
-  width: 450px;
+  width: 400px;
   display: flex;
   flex-direction: column;
+}
+
+/* 中间状态显示区域 */
+.middle-panel {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* 右侧报文面板 */
+.right-panel {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 任务目标提醒栏（在右侧列） */
+.mission-target-banner {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-icon {
+  color: #007bff;
+  display: flex;
+  align-items: center;
+}
+
+.banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.target-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.target-info.no-target {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* 报文面板样式 */
+.report-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.report-send-btn {
+  padding: 4px 12px;
+  border: 1px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-send-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.report-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-section {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.report-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.message-item {
+  font-size: 13px;
+  color: #666;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+  line-height: 1.4;
 }
 
 /* 目标装订按钮 */
@@ -2561,11 +2683,6 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 右侧状态面板 */
-.right-panel {
-  flex: 1;
-}
-
 /* 状态卡片 */
 .status-card {
   background: white;
@@ -2674,74 +2791,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-/* 底部协同报文区域 */
-.bottom-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
-  height: 200px;
-}
-
-.report-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.report-send-btn {
-  height: 36px;
-  padding: 0 16px;
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.report-send-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
-}
-
-.report-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-left: auto;
-}
-
-.report-content {
-  flex: 1;
-}
-
-.report-section {
-  height: 140px;
-  overflow-y: auto;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 8px;
-}
-
-.report-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.message-item {
-  font-size: 13px;
-  color: #666;
-  padding: 4px 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #007bff;
 }
 
 /* 颜色类 */

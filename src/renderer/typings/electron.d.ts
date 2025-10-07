@@ -94,6 +94,12 @@ declare global {
           uavId?: string;
           error?: string;
         }>;
+        getSystemUavId: () => Promise<{
+          // 新增：获取系统启动时的UavId
+          success: boolean;
+          uavId?: string;
+          error?: string;
+        }>;
         setCurrentId: (
           uavId: string,
           description?: string

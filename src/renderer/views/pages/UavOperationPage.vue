@@ -19,7 +19,7 @@
             <!-- 中间时间区域 -->
             <div class="time-section" v-if="isConnected">
               <div class="exercise-time">
-                演习时间：{{ environmentParams.exerciseTime }}
+                演习时间：{{ environmentParams.exerciseTime }} 秒
               </div>
               <div class="astronomical-time">
                 天文时间：{{ environmentParams.astronomicalTime }}
@@ -74,21 +74,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 任务目标提醒栏 -->
-    <div v-if="isConnected" class="mission-target-banner mb-4">
-      <div class="banner-content">
-        <div class="banner-icon">
-          <el-icon size="16"><LocationFilled /></el-icon>
-        </div>
-        <span class="banner-title">当前任务目标：</span>
-        <span class="target-info" v-if="missionTarget">
-          {{ missionTarget.name }} ({{ missionTarget.coordinates.longitude }}°,
-          {{ missionTarget.coordinates.latitude }}°)
-        </span>
-        <span class="target-info no-target" v-else> 暂无任务目标 </span>
       </div>
     </div>
 
@@ -207,6 +192,42 @@
               <el-button class="action-btn" @click="handleStop">停止</el-button>
             </div>
 
+            <!-- 传感器转向参数 -->
+            <div class="sensor-param-group mb-2">
+              <div class="param-row mb-2">
+                <div class="param-item">
+                  <span class="param-label">方位角：</span>
+                  <el-input-number
+                    v-model="sensorParamForm.azSlew"
+                    :min="sensorLimits.minAzSlew"
+                    :max="sensorLimits.maxAzSlew"
+                    :step="1"
+                    :precision="2"
+                    class="param-input"
+                    size="small"
+                    :disabled="!isConnected"
+                  />
+                  <span class="param-unit">°</span>
+                </div>
+              </div>
+              <div class="param-row mb-2">
+                <div class="param-item">
+                  <span class="param-label">俯仰角：</span>
+                  <el-input-number
+                    v-model="sensorParamForm.elSlew"
+                    :min="sensorLimits.minElSlew"
+                    :max="sensorLimits.maxElSlew"
+                    :step="1"
+                    :precision="2"
+                    class="param-input"
+                    size="small"
+                    :disabled="!isConnected"
+                  />
+                  <span class="param-unit">°</span>
+                </div>
+              </div>
+            </div>
+
             <!-- 转向按钮 -->
             <div class="button-row mb-2">
               <el-button class="action-btn full-width-btn" @click="handleTurn"
@@ -214,7 +235,7 @@
               >
             </div>
 
-            <!-- 照射控制与目标控制分隔符 -->
+            <!-- 转向控制与目标控制分隔符 -->
             <div class="control-separator"></div>
 
             <!-- 目标选择 -->
@@ -277,8 +298,8 @@
         </div>
       </div>
 
-      <!-- 右侧状态显示区域 -->
-      <div class="right-panel flex flex-col gap-4">
+      <!-- 中间状态显示区域 -->
+      <div class="middle-panel flex flex-col gap-4">
         <!-- 气候环境 -->
         <div class="status-card environment-status">
           <div class="status-content">
@@ -410,40 +431,62 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 底部协同报文区域 -->
-    <div class="bottom-panel mt-4">
-      <div class="report-header">
-        <el-button
-          class="report-send-btn"
-          @click="handleSendCooperationCommand"
-          :disabled="!isConnected || !selectedTarget"
-        >
-          发送打击协同指令{{
-            selectedTarget
-              ? `（目标: ${
-                  targetOptions.find((t) => t.value === selectedTarget)
-                    ?.label || selectedTarget
-                }）`
-              : "（请先选择目标）"
-          }}
-        </el-button>
-        <span class="report-title">报文面板</span>
-      </div>
-
-      <div class="report-content">
-        <div class="report-section">
-          <div class="report-messages">
-            <div
-              v-for="(msg, index) in cooperationMessages"
-              :key="index"
-              class="message-item"
-            >
-              {{ msg.time }} {{ msg.message }}
+      <!-- 右侧协同报文区域 -->
+      <div class="right-panel">
+        <!-- 任务目标提醒栏 -->
+        <div v-if="isConnected" class="mission-target-banner mb-4">
+          <div class="banner-content">
+            <div class="banner-icon">
+              <el-icon size="16"><LocationFilled /></el-icon>
             </div>
-            <div v-if="cooperationMessages.length === 0" class="message-item">
-              暂无协同报文
+            <span class="banner-title">当前任务目标：</span>
+            <span class="target-info" v-if="missionTarget">
+              {{ missionTarget.name }} ({{
+                missionTarget.coordinates.longitude
+              }}°, {{ missionTarget.coordinates.latitude }}°)
+            </span>
+            <span class="target-info no-target" v-else> 暂无任务目标 </span>
+          </div>
+        </div>
+
+        <div class="report-panel">
+          <div class="report-header">
+            <span class="report-title">协同报文区域</span>
+            <el-button
+              class="report-send-btn"
+              @click="handleSendCooperationCommand"
+              :disabled="!isConnected || !selectedTarget"
+              size="small"
+            >
+              发送打击协同指令{{
+                selectedTarget
+                  ? `（目标: ${
+                      targetOptions.find((t) => t.value === selectedTarget)
+                        ?.label || selectedTarget
+                    }）`
+                  : "（请先选择目标）"
+              }}
+            </el-button>
+          </div>
+
+          <div class="report-content">
+            <div class="report-section">
+              <div class="report-messages">
+                <div
+                  v-for="(msg, index) in cooperationMessages"
+                  :key="index"
+                  class="message-item"
+                >
+                  {{ msg.time }} {{ msg.message }}
+                </div>
+                <div
+                  v-if="cooperationMessages.length === 0"
+                  class="message-item"
+                >
+                  暂无协同报文
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -478,42 +521,6 @@
           <el-button @click="selectDocument" type="primary">选择文档</el-button>
           <el-button @click="handleCloseDocument">关闭</el-button>
         </div>
-      </template>
-    </el-dialog>
-
-    <!-- 传感器转向参数对话框 -->
-    <el-dialog
-      v-model="sensorParamDialogVisible"
-      title="传感器转向控制"
-      width="400px"
-    >
-      <el-form :model="sensorParamForm" label-width="100px">
-        <el-form-item label="方位角">
-          <el-input-number
-            v-model="sensorParamForm.azSlew"
-            :min="sensorLimits.minAzSlew"
-            :max="sensorLimits.maxAzSlew"
-            :step="1"
-            :precision="2"
-            class="w-full"
-          />
-        </el-form-item>
-        <el-form-item label="俯仰角">
-          <el-input-number
-            v-model="sensorParamForm.elSlew"
-            :min="sensorLimits.minElSlew"
-            :max="sensorLimits.maxElSlew"
-            :step="1"
-            :precision="2"
-            class="w-full"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="sensorParamDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="sendSensorParamCommand"
-          >确定</el-button
-        >
       </template>
     </el-dialog>
   </div>
@@ -718,7 +725,6 @@ const documentLoading = ref(false);
 const documentError = ref("");
 
 // 传感器转向相关
-const sensorParamDialogVisible = ref(false);
 const sensorParamForm = reactive({
   azSlew: 0,
   elSlew: 0,
@@ -1696,6 +1702,9 @@ const handleConnectPlatform = () => {
     // 同步载荷状态和开关状态
     updatePlatformStatusDisplay(targetPlatform);
 
+    // 初始化传感器限制参数
+    initializeSensorLimits();
+
     // 获取任务目标
     getMissionTarget();
 
@@ -1713,6 +1722,9 @@ const handleConnectPlatform = () => {
     // 重置载荷开关状态为默认值（关闭）
     optoElectronicPodEnabled.value = false;
     laserPodEnabled.value = false;
+
+    // 初始化传感器限制参数
+    initializeSensorLimits();
 
     // 获取任务目标
     getMissionTarget();
@@ -1843,69 +1855,14 @@ const handleStop = () => {
   sendLaserCommand("Uav_LazerPod_Cease");
 };
 
-const handleTurn = () => {
+const handleTurn = async () => {
   if (!isConnected.value) {
     ElMessage.warning("请先连接平台");
     return;
   }
 
-  // 打开传感器转向参数对话框
-  showSensorParamDialog();
-};
-
-// 显示传感器转向参数对话框
-const showSensorParamDialog = () => {
-  // 回填光电传感器当前的实际参数值
-  if (
-    connectedPlatform.value?.sensors &&
-    Array.isArray(connectedPlatform.value.sensors)
-  ) {
-    const optoElectronicSensor = connectedPlatform.value.sensors.find(
-      (sensor: any) =>
-        sensor.base?.type?.toLowerCase().includes("eoir") ||
-        sensor.base?.name?.toLowerCase().includes("光电")
-    );
-
-    if (optoElectronicSensor) {
-      // 回填当前的方位角和俯仰角值，并确保是整数
-
-      // 从光电传感器获取转向限制参数
-      sensorLimits.minAzSlew =
-        optoElectronicSensor.base?.minAzSlew !== undefined
-          ? Math.round(optoElectronicSensor.base.minAzSlew)
-          : -180;
-      sensorLimits.maxAzSlew =
-        optoElectronicSensor.base?.maxAzSlew !== undefined
-          ? Math.round(optoElectronicSensor.base.maxAzSlew)
-          : 180;
-      sensorLimits.minElSlew =
-        optoElectronicSensor.base?.minElSlew !== undefined
-          ? Math.round(optoElectronicSensor.base.minElSlew)
-          : -90;
-      sensorLimits.maxElSlew =
-        optoElectronicSensor.base?.maxElSlew !== undefined
-          ? Math.round(optoElectronicSensor.base.maxElSlew)
-          : 90;
-    } else {
-      // 如果没有找到光电传感器，使用默认值
-      sensorParamForm.azSlew = 0;
-      sensorParamForm.elSlew = 0;
-      sensorLimits.minAzSlew = -180;
-      sensorLimits.maxAzSlew = 180;
-      sensorLimits.minElSlew = -90;
-      sensorLimits.maxElSlew = 90;
-    }
-  } else {
-    // 如果没有连接平台或传感器数据，使用默认值
-    sensorParamForm.azSlew = 0;
-    sensorParamForm.elSlew = 0;
-    sensorLimits.minAzSlew = -180;
-    sensorLimits.maxAzSlew = 180;
-    sensorLimits.minElSlew = -90;
-    sensorLimits.maxElSlew = 90;
-  }
-
-  sensorParamDialogVisible.value = true;
+  // 直接使用当前输入的参数发送转向命令
+  await sendSensorParamCommand();
 };
 
 // 发送传感器转向命令（同时发送光电和激光载荷转向）
@@ -2004,7 +1961,6 @@ const sendSensorParamCommand = async () => {
       ElMessage.success(
         `传感器转向命令全部发送成功（${successCount}/${totalCommands}）`
       );
-      sensorParamDialogVisible.value = false;
     } else if (successCount > 0) {
       ElMessage.warning(`部分命令发送成功（${successCount}/${totalCommands}）`);
     } else {
@@ -2014,6 +1970,57 @@ const sendSensorParamCommand = async () => {
     const errorMsg = `发送传感器转向命令失败: ${error.message}`;
     addLog("error", errorMsg);
     ElMessage.error(errorMsg);
+  }
+};
+
+// 初始化传感器限制参数
+const initializeSensorLimits = () => {
+  // 从连接的传感器获取限制参数
+  if (
+    connectedPlatform.value?.sensors &&
+    Array.isArray(connectedPlatform.value.sensors)
+  ) {
+    const optoElectronicSensor = connectedPlatform.value.sensors.find(
+      (sensor: any) =>
+        sensor.base?.type?.toLowerCase().includes("eoir") ||
+        sensor.base?.name?.toLowerCase().includes("光电")
+    );
+
+    if (optoElectronicSensor) {
+      // 从光电传感器获取转向限制参数
+      sensorLimits.minAzSlew =
+        optoElectronicSensor.base?.minAzSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.minAzSlew)
+          : -180;
+      sensorLimits.maxAzSlew =
+        optoElectronicSensor.base?.maxAzSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.maxAzSlew)
+          : 180;
+      sensorLimits.minElSlew =
+        optoElectronicSensor.base?.minElSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.minElSlew)
+          : -90;
+      sensorLimits.maxElSlew =
+        optoElectronicSensor.base?.maxElSlew !== undefined
+          ? Math.round(optoElectronicSensor.base.maxElSlew)
+          : 90;
+    } else {
+      // 如果没有找到光电传感器，使用默认值
+      sensorParamForm.azSlew = 0;
+      sensorParamForm.elSlew = 0;
+      sensorLimits.minAzSlew = -180;
+      sensorLimits.maxAzSlew = 180;
+      sensorLimits.minElSlew = -90;
+      sensorLimits.maxElSlew = 90;
+    }
+  } else {
+    // 如果没有连接平台或传感器数据，使用默认值
+    sensorParamForm.azSlew = 0;
+    sensorParamForm.elSlew = 0;
+    sensorLimits.minAzSlew = -180;
+    sensorLimits.maxAzSlew = 180;
+    sensorLimits.minElSlew = -90;
+    sensorLimits.maxElSlew = 90;
   }
 };
 
@@ -2458,44 +2465,6 @@ onUnmounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* 任务目标提醒栏 */
-.mission-target-banner {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-left: 4px solid #007bff;
-  border-radius: 4px;
-  padding: 12px 16px;
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.banner-icon {
-  color: #007bff;
-  display: flex;
-  align-items: center;
-}
-
-.banner-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.target-info {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.target-info.no-target {
-  color: #6c757d;
-  font-style: italic;
-}
-
 /* 顶部控制区域 */
 .top-section {
   background: white;
@@ -2620,9 +2589,134 @@ onUnmounted(() => {
 
 /* 左侧控制面板 */
 .left-panel {
-  width: 450px;
+  width: 400px;
   display: flex;
   flex-direction: column;
+}
+
+/* 中间状态显示区域 */
+.middle-panel {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* 右侧报文面板 */
+.right-panel {
+  width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 任务目标提醒栏（在右侧列） */
+.mission-target-banner {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-left: 4px solid #007bff;
+  border-radius: 4px;
+  padding: 12px 16px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-icon {
+  color: #007bff;
+  display: flex;
+  align-items: center;
+}
+
+.banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.target-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.target-info.no-target {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* 报文面板样式 */
+.report-panel {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #d0d0d0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.report-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.report-send-btn {
+  padding: 4px 12px;
+  border: 1px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.report-send-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+.report-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-section {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.report-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.message-item {
+  font-size: 13px;
+  color: #666;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+  line-height: 1.4;
 }
 
 /* 航线规划按钮（在任务控制内） */
@@ -2773,6 +2867,44 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+/* 传感器参数输入样式 */
+.sensor-param-group {
+  padding: 8px 0;
+}
+
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.param-label {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.param-input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.param-unit {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* 目标选择 */
 .target-select-wrapper {
   display: flex;
@@ -2791,11 +2923,6 @@ onUnmounted(() => {
 .target-select {
   flex: 1;
   min-width: 150px;
-}
-
-/* 右侧状态面板 */
-.right-panel {
-  flex: 1;
 }
 
 /* 状态卡片 */
@@ -2935,83 +3062,6 @@ onUnmounted(() => {
     transform: scale(1);
     opacity: 1;
   }
-}
-
-/* 底部协同报文区域 */
-.bottom-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
-  height: 200px;
-}
-
-.report-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-
-.report-send-btn {
-  height: 36px;
-  padding: 0 16px;
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.report-send-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
-}
-
-.report-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-left: auto;
-}
-
-.report-content {
-  flex: 1;
-}
-
-.report-section {
-  height: 100%;
-}
-
-.report-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #555;
-  margin-bottom: 8px;
-}
-
-.report-messages {
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 12px;
-  height: 120px;
-  overflow-y: auto;
-}
-
-.message-item {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.4;
-  margin-bottom: 8px;
-  padding: 4px 0;
-}
-
-.message-item:last-child {
-  margin-bottom: 0;
 }
 
 /* Element Plus 组件样式覆盖 */

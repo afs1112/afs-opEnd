@@ -130,6 +130,23 @@ app.whenReady().then(async () => {
   try {
     createWindow();
 
+    // 初始化UavId服务并在系统启动时自动生成UavId
+    try {
+      console.log("[System] 初始化UavId服务...");
+
+      const initResult = uavIdService.initializeOnStartup();
+
+      if (initResult.success) {
+        console.log(
+          `[System] ✅ UavId服务初始化成功，UavId: ${initResult.uavId}`
+        );
+      } else {
+        console.error(`[System] ❌ UavId服务初始化失败: ${initResult.error}`);
+      }
+    } catch (error) {
+      console.error("[System] UavId服务初始化失败:", error);
+    }
+
     // 启动组播监听服务
     try {
       await multicastService.start();
@@ -757,6 +774,16 @@ ipcMain.handle("uav:generateId", () => {
 });
 
 ipcMain.handle("uav:getCurrentId", () => {
+  try {
+    const uavId = uavIdService.getCurrentUavId();
+    return { success: true, uavId };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取系统启动时的UavId
+ipcMain.handle("uav:getSystemUavId", () => {
   try {
     const uavId = uavIdService.getCurrentUavId();
     return { success: true, uavId };
