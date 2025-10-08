@@ -1,6 +1,10 @@
 <template>
   <div class="h-full flex flex-col">
-    <el-tabs v-model="activeTab" class="flex-1 flex flex-col" tab-position="top">
+    <el-tabs
+      v-model="activeTab"
+      class="flex-1 flex flex-col"
+      tab-position="top"
+    >
       <el-tab-pane label="设置与测试" name="multicast" class="h-full">
         <MulticastPage />
       </el-tab-pane>
@@ -13,17 +17,20 @@
       <el-tab-pane label="命令测试" name="command">
         <CommandTestPage />
       </el-tab-pane>
+      <el-tab-pane label="作战测评" name="evaluation">
+        <EvaluationPage />
+      </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from "vue";
 import MulticastPage from "./MulticastPage.vue";
 import UavOperationPage from "./UavOperationPage.vue";
 import ArtilleryOperationPage from "./ArtilleryOperationPage.vue";
 import CommandTestPage from "./CommandTestPage.vue";
+import EvaluationPage from "./EvaluationPage.vue";
 
-const activeTab = ref('multicast');
+const activeTab = ref("multicast");
 </script>
-
