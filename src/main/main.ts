@@ -225,6 +225,84 @@ ipcMain.handle(
   }
 );
 
+// 图片服务IPC处理
+ipcMain.handle(
+  "images:getPlatformImagePath",
+  async (_, platformType: string) => {
+    try {
+      // 图片文件名基于平台类型
+      const imageName = `${platformType}.jpg`;
+
+      let imagePath: string;
+
+      if (app.isPackaged) {
+        // 打包后，图片在应用根目录的images文件夹中
+        imagePath = join(process.resourcesPath, "..", "images", imageName);
+      } else {
+        // 开发环境，图片在src/images文件夹中
+        imagePath = join(__dirname, "..", "..", "src", "images", imageName);
+      }
+
+      console.log(`[Images] 查找图片: ${platformType} -> ${imagePath}`);
+
+      // 检查文件是否存在
+      if (fs.existsSync(imagePath)) {
+        console.log(`[Images] ✅ 找到图片: ${imagePath}`);
+        return { success: true, path: imagePath, exists: true };
+      } else {
+        console.log(`[Images] ❌ 图片不存在: ${imagePath}`);
+        return { success: true, path: null, exists: false };
+      }
+    } catch (error: any) {
+      console.error("[Images] 获取平台图片路径失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// 获取图片的base64数据
+ipcMain.handle(
+  "images:getPlatformImageData",
+  async (_, platformType: string) => {
+    try {
+      const imageName = `${platformType}.jpg`;
+
+      let imagePath: string;
+
+      if (app.isPackaged) {
+        // 打包后，图片在应用根目录的images文件夹中
+        imagePath = join(process.resourcesPath, "..", "images", imageName);
+      } else {
+        // 开发环境，图片在src/images文件夹中
+        imagePath = join(__dirname, "..", "..", "src", "images", imageName);
+      }
+
+      console.log(`[Images] 读取图片数据: ${platformType} -> ${imagePath}`);
+
+      if (fs.existsSync(imagePath)) {
+        const imageData = fs.readFileSync(imagePath);
+        const base64Data = imageData.toString("base64");
+        const mimeType = "image/jpeg"; // 假设都是jpg格式
+
+        console.log(
+          `[Images] ✅ 成功读取图片数据: ${imagePath}, 大小: ${imageData.length} bytes`
+        );
+        return {
+          success: true,
+          data: `data:${mimeType};base64,${base64Data}`,
+          exists: true,
+        };
+      } else {
+        console.log(`[Images] ❌ 图片不存在: ${imagePath}`);
+        return { success: true, data: null, exists: false };
+      }
+    } catch (error: any) {
+      console.error("[Images] 读取平台图片数据失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
 // 文档服务IPC处理
 ipcMain.handle("document:readDocument", async (_, filePath: string) => {
   try {
@@ -338,6 +416,64 @@ ipcMain.handle(
     }
   }
 );
+
+// 启动平台心跳
+ipcMain.handle(
+  "multicast:startPlatformHeartbeat",
+  async (_, data: { platformName: string; intervalMs?: number }) => {
+    try {
+      // 检查服务是否已初始化
+      if (!multicastSenderService.isInitialized()) {
+        console.log("[Main] MulticastSender未初始化，尝试重新初始化...");
+        try {
+          await multicastSenderService.initialize();
+          console.log("[Main] ✅ MulticastSender重新初始化成功");
+        } catch (initError) {
+          console.error("[Main] ❌ MulticastSender重新初始化失败:", initError);
+          return {
+            success: false,
+            error: `初始化失败: ${
+              initError instanceof Error ? initError.message : String(initError)
+            }`,
+          };
+        }
+      }
+
+      multicastSenderService.startPlatformHeartbeat(
+        data.platformName,
+        data.intervalMs || 3000
+      );
+      console.log(`[Main] ✅ 启动平台心跳: ${data.platformName}`);
+      return { success: true };
+    } catch (error: any) {
+      console.error("[Main] 启动平台心跳失败:", error);
+      return { success: false, error: error.message };
+    }
+  }
+);
+
+// 停止平台心跳
+ipcMain.handle("multicast:stopPlatformHeartbeat", async () => {
+  try {
+    multicastSenderService.stopPlatformHeartbeat();
+    console.log("[Main] ✅ 停止平台心跳");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[Main] 停止平台心跳失败:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取心跳状态
+ipcMain.handle("multicast:getHeartbeatStatus", async () => {
+  try {
+    const status = multicastSenderService.getHeartbeatStatus();
+    return { success: true, data: status };
+  } catch (error: any) {
+    console.error("[Main] 获取心跳状态失败:", error);
+    return { success: false, error: error.message };
+  }
+});
 
 // 监听组播数据包并转发给渲染进程
 multicastService.on("packet", (packet: MulticastPacket) => {
@@ -544,6 +680,9 @@ function createWindow() {
       contextIsolation: true,
     },
   });
+
+  // 窗口创建后立即最大化
+  mainWindow.maximize();
 
   // 创建菜单
   const template = [

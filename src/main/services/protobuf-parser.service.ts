@@ -44,6 +44,7 @@ export class ProtobufParserService {
     this.packageTypes.set(0x29, "PackageType_PlatformStatus"); // 平台状态回传
     this.packageTypes.set(0x2a, "PackageType_PlatformCommand"); // 平台控制命令
     this.packageTypes.set(0x2b, "PackageType_PlatformDeleteCommand"); // 平台删除命令
+    this.packageTypes.set(0x2c, "PackageType_PlatformHeartbeat"); // 平台心跳
   }
 
   public async loadProtobufDefinitions(): Promise<void> {
@@ -285,6 +286,9 @@ export class ProtobufParserService {
           break;
         case 0x2b: // PackageType_PlatformDeleteCommand
           parsedData = this.parsePlatformDeleteCmd(messageData);
+          break;
+        case 0x2c: // PackageType_PlatformHeartbeat
+          parsedData = this.parsePlatformHeartbeat(messageData);
           break;
         default:
           console.warn(`未知的包类型: 0x${packageType.toString(16)}`);
@@ -739,6 +743,63 @@ export class ProtobufParserService {
       }
     } catch (error) {
       console.error("[Parser] ❌ 解析平台删除命令失败:", error);
+      return {
+        error: "解析失败",
+        errorMessage: error instanceof Error ? error.message : String(error),
+        raw: data.toString("hex"),
+        dataLength: data.length,
+      };
+    }
+  }
+
+  private parsePlatformHeartbeat(data: Buffer): any {
+    try {
+      console.log("[Parser] 尝试解析平台心跳数据...");
+
+      if (!this.root) {
+        throw new Error("Protobuf root 未初始化");
+      }
+
+      // 查找 PlatformHeartbeat 类型
+      let PlatformHeartbeatType: protobuf.Type;
+      try {
+        PlatformHeartbeatType = this.root.lookupType(
+          "PublicStruct.PlatformHeartbeat"
+        );
+        console.log("[Parser] ✅ 找到 PublicStruct.PlatformHeartbeat 类型");
+      } catch (lookupError: unknown) {
+        console.log("[Parser] 尝试其他可能的类型名...");
+        try {
+          PlatformHeartbeatType = this.root.lookupType("PlatformHeartbeat");
+          console.log("[Parser] ✅ 找到 PlatformHeartbeat 类型");
+        } catch (e) {
+          const errorMessage =
+            lookupError instanceof Error
+              ? lookupError.message
+              : String(lookupError);
+          throw new Error(`无法找到 PlatformHeartbeat 类型: ${errorMessage}`);
+        }
+      }
+
+      console.log("[Parser] 🔍 开始解码平台心跳数据，数据长度:", data.length);
+      console.log("[Parser] 🔍 数据内容:", data.toString("hex"));
+
+      const decoded = PlatformHeartbeatType.decode(data);
+      console.log("[Parser] ✅ 平台心跳解码成功");
+
+      // 转换为普通对象
+      const decodedObject = PlatformHeartbeatType.toObject(decoded, {
+        longs: String,
+        enums: String,
+        bytes: String,
+        defaults: true,
+      });
+
+      console.log("[Parser] 💓 平台心跳解析完成:", decodedObject);
+
+      return decodedObject;
+    } catch (error) {
+      console.error("[Parser] ❌ 解析平台心跳失败:", error);
       return {
         error: "解析失败",
         errorMessage: error instanceof Error ? error.message : String(error),

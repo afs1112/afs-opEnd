@@ -35,6 +35,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
       uavId: number;
       platformData: any;
     }) => ipcRenderer.invoke("multicast:syncTrajectoryWithPlatformData", data),
+
+    // 平台心跳相关
+    startPlatformHeartbeat: (data: {
+      platformName: string;
+      intervalMs?: number;
+    }) => ipcRenderer.invoke("multicast:startPlatformHeartbeat", data),
+    stopPlatformHeartbeat: () =>
+      ipcRenderer.invoke("multicast:stopPlatformHeartbeat"),
+    getHeartbeatStatus: () =>
+      ipcRenderer.invoke("multicast:getHeartbeatStatus"),
+
     onPacket: (callback: (packet: any) => void) => {
       ipcRenderer.on("multicast:packet", (_, packet) => callback(packet));
     },
@@ -70,6 +81,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
     prepareForNavigation: () => ipcRenderer.invoke("uav:prepareForNavigation"),
     enableAutoGenerate: () => ipcRenderer.invoke("uav:enableAutoGenerate"),
     disableAutoGenerate: () => ipcRenderer.invoke("uav:disableAutoGenerate"),
+  },
+
+  // 图片相关
+  images: {
+    getPlatformImagePath: (platformType: string) =>
+      ipcRenderer.invoke("images:getPlatformImagePath", platformType),
+    getPlatformImageData: (platformType: string) =>
+      ipcRenderer.invoke("images:getPlatformImageData", platformType),
   },
 
   // 文档相关

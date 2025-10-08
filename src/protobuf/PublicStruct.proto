@@ -27,7 +27,7 @@ enum PackageType
 	PackageType_PlatformStatus		  = 0x29;		//平台状态回传
 	PackageType_PlatformCommand		  = 0x2A;		//平台控制命令
 	PackageType_PlatformDeleteCommand	 = 0x2B;		//平台删除命令
-	
+	PackageType_PlatformHeartbeat	 = 0x2C;		//平台心跳
 }
 
 enum ReplyState
@@ -44,6 +44,12 @@ message GeoCoordinate
 	optional double latitude  = 2;
 	optional double altitude  = 3;
 }
+
+//终端内部心跳
+message PlatformHeartbeat
+{
+	optional string name  = 1;             //平台连接心跳
+} 
 
 //终端内部心跳
 message HeartbeatInternal

@@ -57,11 +57,17 @@ export interface PlatformCmdData {
   };
 }
 
+export interface PlatformHeartbeatData {
+  platformName: string;
+}
+
 export class MulticastSenderService {
   private socket: dgram.Socket | null = null;
   private root: protobuf.Root | null = null;
   private multicastAddress: string;
   private multicastPort: number;
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private connectedPlatformName: string | null = null;
 
   constructor() {
     this.multicastAddress = process.env.MULTICAST_ADDRESS || "239.255.43.21";
@@ -165,7 +171,7 @@ export class MulticastSenderService {
         );
       }
 
-      // 加载 PlatformCmd 和 UavFlyStatusInfo 相关的protobuf定义
+      // 加载 PlatformCmd、UavFlyStatusInfo 和 PlatformHeartbeat 相关的protobuf定义
       const requiredFiles = [
         "PublicStruct.proto",
         "PlatformCmd.proto",
@@ -217,7 +223,15 @@ export class MulticastSenderService {
           "PlatformStatus.PlatformCmd"
         );
         const FireParamType = this.root.lookupType("PlatformStatus.FireParam");
-        console.log("[MulticastSender] ✅ 验证消息类型成功");
+
+        // 验证PlatformHeartbeat类型
+        const PlatformHeartbeatType = this.root.lookupType(
+          "PublicStruct.PlatformHeartbeat"
+        );
+
+        console.log(
+          "[MulticastSender] ✅ 验证消息类型成功（包括PlatformHeartbeat）"
+        );
       } catch (verifyError) {
         console.error("[MulticastSender] ❌ 消息类型验证失败:", verifyError);
         if (this.root && this.root.nested) {
@@ -232,6 +246,15 @@ export class MulticastSenderService {
             console.log(
               "[MulticastSender] PlatformStatus命名空间中的类型:",
               Object.keys(platformNested.nested || {})
+            );
+          }
+          if (this.root.nested["PublicStruct"]) {
+            const publicNested = this.root.nested[
+              "PublicStruct"
+            ] as protobuf.Namespace;
+            console.log(
+              "[MulticastSender] PublicStruct命名空间中的类型:",
+              Object.keys(publicNested.nested || {})
             );
           }
         }
@@ -596,15 +619,21 @@ export class MulticastSenderService {
           if (err) {
             reject(err);
           } else {
-            console.log(
-              `[MulticastSender] 已发送数据包到 ${this.multicastAddress}:${this.multicastPort}`
-            );
-            console.log(`[MulticastSender] 数据包大小: ${packet.length} 字节`);
-            console.log(
-              `[MulticastSender] 发送时间: ${new Date().toLocaleString(
-                "zh-CN"
-              )}`
-            );
+            // 对于心跳包，减少日志输出以避免刷屏
+            const isHeartbeat = packet[3] === 0x2c; // PackageType_PlatformHeartbeat
+            if (!isHeartbeat) {
+              console.log(
+                `[MulticastSender] 已发送数据包到 ${this.multicastAddress}:${this.multicastPort}`
+              );
+              console.log(
+                `[MulticastSender] 数据包大小: ${packet.length} 字节`
+              );
+              console.log(
+                `[MulticastSender] 发送时间: ${new Date().toLocaleString(
+                  "zh-CN"
+                )}`
+              );
+            }
             resolve();
           }
         }
@@ -885,7 +914,146 @@ export class MulticastSenderService {
     }
   }
 
+  /**
+   * 发送平台心跳消息
+   * @param platformName 平台名称
+   */
+  public async sendPlatformHeartbeat(platformName: string): Promise<void> {
+    try {
+      if (!this.root) {
+        throw new Error("Protobuf定义文件未加载，请先调用 initialize() 方法");
+      }
+
+      if (!this.socket) {
+        throw new Error("UDP socket未初始化，请先调用 initialize() 方法");
+      }
+
+      console.log(`[MulticastSender] 发送平台心跳: ${platformName}`);
+
+      // 查找PlatformHeartbeat消息类型
+      const PlatformHeartbeatType = this.root.lookupType(
+        "PublicStruct.PlatformHeartbeat"
+      );
+
+      // 创建心跳数据
+      const heartbeatData = {
+        name: platformName,
+      };
+
+      // 创建并编码protobuf消息
+      const message = PlatformHeartbeatType.create(heartbeatData);
+      const protobufBuffer = PlatformHeartbeatType.encode(message).finish();
+
+      console.log(
+        `[MulticastSender] 平台心跳Protobuf编码后大小: ${protobufBuffer.length} 字节`
+      );
+
+      // 构造完整的数据包: 0xAA 0x55 + protocolID + packageType + size + protobufData
+      const protocolID = 0x01; // 协议ID
+      const packageType = 0x2c; // PackageType_PlatformHeartbeat
+      const size = protobufBuffer.length;
+
+      // 创建包头
+      const header = Buffer.alloc(8);
+      header[0] = 0xaa; // 包头标识
+      header[1] = 0x55; // 包头标识
+      header[2] = protocolID; // 协议ID
+      header[3] = packageType; // 包类型
+      header.writeUInt32LE(size, 4); // protobuf数据长度（小端序）
+
+      // 组合完整数据包
+      const fullPacket = Buffer.concat([header, protobufBuffer]);
+
+      console.log(`[MulticastSender] 平台心跳数据包构造详情:`, {
+        平台名称: platformName,
+        总长度: fullPacket.length,
+        包头: header.toString("hex"),
+        协议ID: `0x${protocolID.toString(16)}`,
+        包类型: `0x${packageType.toString(16)}`,
+        声明大小: size,
+        实际protobuf大小: protobufBuffer.length,
+      });
+
+      // 发送数据包
+      await this.sendPacket(fullPacket);
+
+      console.log(`[MulticastSender] ✅ 平台心跳发送成功: ${platformName}`);
+    } catch (error) {
+      console.error(
+        `[MulticastSender] ❌ 发送平台心跳失败: ${platformName}`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 启动平台心跳定时器
+   * @param platformName 平台名称
+   * @param intervalMs 心跳间隔（毫秒），默认3000ms（3秒）
+   */
+  public startPlatformHeartbeat(
+    platformName: string,
+    intervalMs: number = 3000
+  ): void {
+    // 停止之前的心跳定时器
+    this.stopPlatformHeartbeat();
+
+    this.connectedPlatformName = platformName;
+    console.log(
+      `[MulticastSender] 启动平台心跳定时器: ${platformName}, 间隔: ${intervalMs}ms`
+    );
+
+    // 立即发送一次心跳
+    this.sendPlatformHeartbeat(platformName).catch((error) => {
+      console.error(`[MulticastSender] 立即发送心跳失败:`, error);
+    });
+
+    // 设置定时器
+    this.heartbeatInterval = setInterval(async () => {
+      try {
+        await this.sendPlatformHeartbeat(platformName);
+      } catch (error) {
+        console.error(`[MulticastSender] 定时心跳发送失败:`, error);
+      }
+    }, intervalMs);
+
+    console.log(`[MulticastSender] ✅ 平台心跳定时器已启动: ${platformName}`);
+  }
+
+  /**
+   * 停止平台心跳定时器
+   */
+  public stopPlatformHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+      console.log(
+        `[MulticastSender] 平台心跳定时器已停止: ${
+          this.connectedPlatformName || "未知平台"
+        }`
+      );
+    }
+    this.connectedPlatformName = null;
+  }
+
+  /**
+   * 获取当前心跳状态
+   */
+  public getHeartbeatStatus(): {
+    isRunning: boolean;
+    platformName: string | null;
+  } {
+    return {
+      isRunning: this.heartbeatInterval !== null,
+      platformName: this.connectedPlatformName,
+    };
+  }
+
   public close(): void {
+    // 停止心跳定时器
+    this.stopPlatformHeartbeat();
+
     if (this.socket) {
       this.socket.close();
       this.socket = null;

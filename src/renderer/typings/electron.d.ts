@@ -47,10 +47,42 @@ declare global {
           port: number,
           interfaceAddr: string
         ) => Promise<{ success: boolean; error?: string }>;
+
+        // 平台心跳相关
+        startPlatformHeartbeat: (data: {
+          platformName: string;
+          intervalMs?: number;
+        }) => Promise<{ success: boolean; error?: string }>;
+        stopPlatformHeartbeat: () => Promise<{
+          success: boolean;
+          error?: string;
+        }>;
+        getHeartbeatStatus: () => Promise<{
+          success: boolean;
+          data?: { isRunning: boolean; platformName: string | null };
+          error?: string;
+        }>;
+
         onPacket: (callback: (packet: MulticastPacket) => void) => void;
         onError: (callback: (error: string) => void) => void;
         removeAllListeners: (channel: string) => void;
       };
+
+      images: {
+        getPlatformImagePath: (platformType: string) => Promise<{
+          success: boolean;
+          path: string | null;
+          exists: boolean;
+          error?: string;
+        }>;
+        getPlatformImageData: (platformType: string) => Promise<{
+          success: boolean;
+          data: string | null;
+          exists: boolean;
+          error?: string;
+        }>;
+      };
+
       nav: {
         openNavigation: () => Promise<{
           success: boolean;

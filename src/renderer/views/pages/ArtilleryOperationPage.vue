@@ -3,37 +3,22 @@
     <!-- 顶部控制区域 -->
     <div class="top-section mb-4">
       <div class="top-content">
-        <!-- 操作按钮区域 -->
-        <div class="control-area">
-          <div class="control-row">
+        <!-- 连接控制卡片 -->
+        <div class="connection-card">
+          <!-- 未连接时的布局 -->
+          <div v-if="!isConnected" class="control-row">
             <!-- 左侧标题区域 -->
             <div class="title-section">
-              <div class="seat-title">
-                火炮席位
-                <span v-if="isConnected" class="connected-info"
-                  >{{ selectedGroup }}:{{ selectedInstance }}</span
-                >
-              </div>
-              <!-- 中间演习时间 -->
-            </div>
-            <div class="time-section" v-if="isConnected">
-              <div class="exercise-time">
-                演习时间：{{ environmentParams.exerciseTime }} 秒
-              </div>
-              <div class="astronomical-time">
-                天文时间：{{ environmentParams.astronomicalTime }}
-              </div>
+              <div class="seat-title">火炮席位</div>
             </div>
 
-            <!-- 右侧控制区域 -->
+            <!-- 中间控制区域 -->
             <div class="controls-section">
               <el-select
-                v-if="!isConnected"
                 v-model="selectedGroup"
                 placeholder="选择分组"
                 class="control-select short"
-                @change="onGroupChange"
-                :disabled="isConnected"
+                @change="handleSelectGroup"
                 clearable
               >
                 <el-option
@@ -44,13 +29,11 @@
                 />
               </el-select>
               <el-select
-                v-if="!isConnected"
                 v-model="selectedInstance"
                 placeholder="选择火炮"
                 class="control-select large"
-                :disabled="
-                  !selectedGroup || artilleryOptions.length === 0 || isConnected
-                "
+                @change="handleSelectArtillery"
+                :disabled="!selectedGroup"
                 clearable
               >
                 <el-option
@@ -63,15 +46,106 @@
               <el-button
                 class="control-btn"
                 @click="handleConnectPlatform"
-                :type="isConnected ? 'warning' : 'primary'"
+                type="primary"
               >
-                {{ isConnected ? "断开" : "连接平台" }}
+                连接平台
               </el-button>
-              <!-- 功能分隔符 -->
-              <div class="function-separator" v-if="isConnected"></div>
-              <el-button class="control-btn" @click="openDocument"
-                >演练方案</el-button
+              <div class="function-separator"></div>
+              <el-button
+                class="exercise-btn"
+                @click="openDocument"
+                type="success"
               >
+                打开演练方案
+              </el-button>
+            </div>
+          </div>
+
+          <!-- 已连接时的布局 -->
+          <div v-if="isConnected" class="connected-layout">
+            <!-- 第一部分：组别和组内平台 -->
+            <div class="layout-section group-platforms-section">
+              <div class="platforms-container">
+                <!-- 平台列表 -->
+                <div class="platforms-list">
+                  <div
+                    v-for="platform in sameGroupPlatforms"
+                    :key="platform.name"
+                    class="platform-item"
+                    :class="{
+                      'current-platform':
+                        platform.name === connectedPlatformName,
+                      online: platform.isOnline && !platform.isCurrentPlatform,
+                      offline:
+                        !platform.isOnline && !platform.isCurrentPlatform,
+                      'connected-platform': platform.isCurrentPlatform,
+                    }"
+                  >
+                    <!-- 平台图标/头像 -->
+                    <div class="platform-avatar">
+                      <!-- 如果有图片数据，使用实际图片 -->
+                      <img
+                        v-if="platform.imageData"
+                        :src="platform.imageData"
+                        :alt="platform.displayType"
+                        class="avatar-image"
+                        @error="onImageError(platform)"
+                      />
+                      <!-- 如果没有图片，显示默认图标 -->
+                      <div
+                        v-else
+                        class="avatar-icon"
+                        :class="getPlatformIconClass(platform.type)"
+                      >
+                        {{ getPlatformIcon(platform.type) }}
+                      </div>
+                    </div>
+
+                    <div class="platform-info">
+                      <span class="platform-name">{{ platform.name }}</span>
+                      <span class="platform-type">{{ selectedGroup }}</span>
+                      <span class="platform-status-text">{{
+                        platform.statusText
+                      }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 第二部分：演习时间和天文时间 -->
+            <div class="layout-section time-section">
+              <div class="time-content">
+                <div class="exercise-time">
+                  演习时间：{{ environmentParams.exerciseTime }}
+                </div>
+                <div class="astronomical-time">
+                  天文时间：{{ environmentParams.astronomicalTime }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 第三部分：操作按钮 -->
+            <div class="layout-section controls-section">
+              <el-button
+                class="control-btn"
+                @click="handleConnectPlatform"
+                type="warning"
+              >
+                断开
+              </el-button>
+
+              <!-- 功能区域分隔符 -->
+              <div class="function-separator"></div>
+
+              <!-- 演练方案按钮 -->
+              <el-button
+                class="exercise-btn"
+                @click="openDocument"
+                type="success"
+              >
+                打开演练方案
+              </el-button>
             </div>
           </div>
         </div>
@@ -359,21 +433,24 @@
               目标名称：{{ connectedPlatform.targetLoad.targetName || "未设置"
               }}<br />
               距离：{{
-                formatTargetLoadDistance(connectedPlatform.targetLoad.distance)
+                formatValue(connectedPlatform.targetLoad.distance, "m", 0)
               }}<br />
               方位：{{
-                formatTargetLoadBearing(connectedPlatform.targetLoad.bearing)
+                formatValue(connectedPlatform.targetLoad.bearing, "°")
               }}
               高差：{{
-                formatTargetLoadElevation(
-                  connectedPlatform.targetLoad.elevationDifference
+                formatValue(
+                  connectedPlatform.targetLoad.elevationDifference,
+                  "m",
+                  1,
+                  "+"
                 )
               }}
               方位角：{{
-                formatTargetLoadAngle(connectedPlatform.targetLoad.azimuth)
+                formatValue(connectedPlatform.targetLoad.azimuth, "°", 2)
               }}
               高低角：{{
-                formatTargetLoadAngle(connectedPlatform.targetLoad.pitch)
+                formatValue(connectedPlatform.targetLoad.pitch, "°", 2)
               }}
             </div>
             <div class="status-info no-data" v-if="!hasTargetData()">
@@ -431,13 +508,73 @@
             <div class="banner-icon">
               <el-icon size="16"><LocationFilled /></el-icon>
             </div>
-            <span class="banner-title">当前任务目标：</span>
-            <span class="target-info" v-if="missionTarget">
-              {{ missionTarget.name }} ({{
-                missionTarget.coordinates.longitude
-              }}°, {{ missionTarget.coordinates.latitude }}°)
-            </span>
-            <span class="target-info no-target" v-else> 暂无任务目标 </span>
+            <div class="target-main-content" v-if="missionTarget">
+              <!-- 状态标签绝对定位在右上角 -->
+              <div class="target-status-indicator">
+                <div
+                  v-if="missionTarget.status === 'destroyed'"
+                  class="target-status destroyed"
+                >
+                  <el-icon class="status-icon"><CircleClose /></el-icon>
+                  <span class="status-text">已摧毁</span>
+                </div>
+                <div
+                  v-else-if="missionTarget.status === 'active'"
+                  class="target-status active"
+                >
+                  <el-icon class="status-icon"><SuccessFilled /></el-icon>
+                  <span class="status-text">正常</span>
+                </div>
+                <div v-else class="target-status inactive">
+                  <el-icon class="status-icon"><WarningFilled /></el-icon>
+                  <span class="status-text">未扫到</span>
+                </div>
+              </div>
+
+              <div class="target-header">
+                <span class="banner-title">当前任务目标：</span>
+              </div>
+              <div class="target-details">
+                <div class="target-avatar-name-section">
+                  <!-- 目标图片或默认图标 -->
+                  <div class="target-avatar">
+                    <img
+                      v-if="missionTarget.imageData"
+                      :src="missionTarget.imageData"
+                      :alt="missionTarget.platformType"
+                      class="target-avatar-image"
+                      @error="onTargetImageError(missionTarget)"
+                    />
+                    <el-icon
+                      v-else
+                      class="target-avatar-icon"
+                      :class="getPlatformIconClass(missionTarget.platformType)"
+                    >
+                      {{ getPlatformIcon(missionTarget.platformType) }}
+                    </el-icon>
+                  </div>
+
+                  <div class="target-name-type">
+                    <span class="target-name">{{ missionTarget.name }}</span>
+                    <span class="target-type">{{
+                      missionTarget.platformType
+                    }}</span>
+                  </div>
+                </div>
+                <div class="target-coordinates">
+                  <span class="coordinate-label">经纬高：</span>
+                  <span class="coordinate-value">
+                    {{ missionTarget.coordinates.longitude }}°,
+                    {{ missionTarget.coordinates.latitude }}°,
+                    {{ missionTarget.coordinates.altitude }}m
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="target-main-content" v-else>
+              <span class="banner-title">当前任务目标：</span>
+              <span class="target-info no-target">暂无任务目标</span>
+            </div>
           </div>
         </div>
 
@@ -457,15 +594,86 @@
             <div class="report-section">
               <div class="report-messages">
                 <div
-                  v-for="(msg, index) in cooperationMessages"
-                  :key="index"
+                  v-for="msg in cooperationMessages"
+                  :key="msg.id"
                   class="message-item"
+                  :class="{
+                    'message-sent': msg.type === 'sent',
+                    'message-received': msg.type === 'received',
+                    'message-success': msg.status === 'success',
+                    'message-failed': msg.status === 'failed',
+                    'message-pending': msg.status === 'pending',
+                  }"
                 >
-                  {{ msg.time }} {{ msg.message }}
+                  <div class="message-header">
+                    <div class="message-direction">
+                      <el-icon
+                        v-if="msg.type === 'sent'"
+                        class="direction-icon sent-icon"
+                      >
+                        <ArrowRight />
+                      </el-icon>
+                      <el-icon v-else class="direction-icon received-icon">
+                        <ArrowLeft />
+                      </el-icon>
+                      <span class="direction-text">
+                        {{ msg.type === "sent" ? "发出" : "收到" }}
+                      </span>
+                    </div>
+                    <div class="message-time">
+                      <span class="exercise-time">{{ msg.exerciseTime }}</span>
+                      <span class="clock-time">{{
+                        formatMessageTime(msg.timestamp)
+                      }}</span>
+                    </div>
+                  </div>
+
+                  <div class="message-body">
+                    <div class="message-platform-info">
+                      <span v-if="msg.type === 'sent'" class="platform-info">
+                        发给：<strong>{{ msg.targetPlatform }}</strong>
+                      </span>
+                      <span v-else class="platform-info">
+                        来自：<strong>{{ msg.sourcePlatform }}</strong>
+                      </span>
+                    </div>
+
+                    <div class="message-content">{{ msg.content }}</div>
+
+                    <div
+                      v-if="msg.details.targetName || msg.details.weaponName"
+                      class="message-details"
+                    >
+                      <el-tag
+                        v-if="msg.details.targetName"
+                        size="small"
+                        type="info"
+                      >
+                        目标：{{ msg.details.targetName }}
+                      </el-tag>
+                      <el-tag
+                        v-if="msg.details.weaponName"
+                        size="small"
+                        type="warning"
+                      >
+                        武器：{{ msg.details.weaponName }}
+                      </el-tag>
+                      <el-tag
+                        v-if="msg.details.coordinates"
+                        size="small"
+                        type="success"
+                      >
+                        坐标：{{
+                          msg.details.coordinates.longitude.toFixed(4)
+                        }}°, {{ msg.details.coordinates.latitude.toFixed(4) }}°
+                      </el-tag>
+                    </div>
+                  </div>
                 </div>
+
                 <div
                   v-if="cooperationMessages.length === 0"
-                  class="message-item"
+                  class="message-item message-empty"
                 >
                   暂无协同报文
                 </div>
@@ -516,7 +724,26 @@ import {
   Loading,
   WarningFilled,
   LocationFilled,
+  CircleClose,
+  SuccessFilled,
+  ArrowRight,
+  ArrowLeft,
 } from "@element-plus/icons-vue";
+import { platformHeartbeatService, platformImageService } from "../../services";
+
+// 当前目标信息接口
+interface CurrentTarget {
+  name: string;
+  coordinates: string;
+}
+
+// 弹药类型接口
+interface AmmunitionType {
+  label: string;
+  value: string;
+  count: number;
+  weaponData?: any; // 可选，用于存放原始武器数据
+}
 
 // 连接状态接口
 interface ConnectionStatus {
@@ -538,20 +765,6 @@ interface TargetInfo {
   distance: number;
   bearing: number;
   altitude: number;
-}
-
-// 当前目标信息接口
-interface CurrentTarget {
-  name: string;
-  coordinates: string;
-}
-
-// 弹药类型接口
-interface AmmunitionType {
-  label: string;
-  value: string;
-  count: number;
-  weaponData?: any; // 可选，用于存放原始武器数据
 }
 
 // 环境状态接口（无人机页面格式）
@@ -626,9 +839,7 @@ interface ArtilleryOption {
 // 响应式数据
 const selectedGroup = ref("");
 const selectedInstance = ref("");
-const operatorName = ref("");
 const ammunitionCount = ref(12);
-const targetDroneId = ref("UAV-001");
 const fireStatus = ref("待发射");
 const weaponName = ref("155毫米榴弹炮"); // 武器名称，默认值
 const targetName = ref("无人机-001"); // 目标名称，默认值
@@ -763,20 +974,7 @@ const documentError = ref("");
 
 // 新增缺失的变量
 const isConnected = ref(false);
-const isWeaponNameEditing = ref(true);
-const isTargetNameEditing = ref(true);
 const isFiring = ref(false);
-
-// 平台数据
-const platforms = ref<Platform[]>([]);
-const lastUpdateTime = ref<number>(0);
-
-// 已连接的平台信息
-const connectedPlatform = ref<Platform | null>(null);
-const connectedPlatformName = ref<string>("");
-
-// 任务目标信息
-const missionTarget = ref<any>(null);
 
 const connectionStatus = reactive<ConnectionStatus>({
   isConnected: false,
@@ -789,6 +987,36 @@ const artilleryStatus = reactive<ArtilleryStatus>({
   temperature: 32,
   systemStatus: "正常",
 });
+
+const targetInfo = reactive<TargetInfo>({
+  type: "无人机",
+  distance: 3200,
+  bearing: 45,
+  altitude: 1200,
+});
+
+// 平台数据
+const platforms = ref<Platform[]>([]);
+const lastUpdateTime = ref<number>(0);
+
+// 已连接的平台信息
+const connectedPlatform = ref<Platform | null>(null);
+const connectedPlatformName = ref<string>("");
+
+// 任务目标信息
+const missionTarget = ref<any>(null);
+
+// 同组平台信息
+const sameGroupPlatforms = ref<any[]>([]);
+
+// 心跳数据管理
+const platformHeartbeats = ref<
+  Map<string, { lastHeartbeat: number; isOnline: boolean }>
+>(new Map());
+const heartbeatTimeout = 10000; // 10秒超时判定为离线
+
+// 平台图片数据管理
+const platformImages = ref<Map<string, string>>(new Map());
 
 // 平台命令枚举映射（根据新的proto定义）
 const PlatformCommandEnum: { [key: string]: number } = {
@@ -807,13 +1035,6 @@ const PlatformCommandEnum: { [key: string]: number } = {
   Arty_Fire_Coordinate: 12, // 发射协同
 };
 
-const targetInfo = reactive<TargetInfo>({
-  type: "无人机",
-  distance: 3200,
-  bearing: 45,
-  altitude: 1200,
-});
-
 // 环境参数数据（完全复制无人机页面）
 const environmentParams = reactive<EnvironmentParams>({
   temperature: "25°C",
@@ -825,57 +1046,101 @@ const environmentParams = reactive<EnvironmentParams>({
   astronomicalTime: "00:00:00",
 });
 
+// 格式化时间显示
+const formatMessageTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+// 添加协同报文的通用方法
+const addCooperationMessage = (
+  message: Omit<CooperationMessage, "id" | "timestamp" | "exerciseTime">
+): void => {
+  const timestamp = Date.now();
+  const newMessage: CooperationMessage = {
+    id: `msg_${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp,
+    exerciseTime: environmentParams.exerciseTime, // 直接使用界面顶部显示的演习时间
+    ...message,
+  };
+
+  cooperationMessages.value.unshift(newMessage);
+
+  // 保持最多50条记录
+  if (cooperationMessages.value.length > 50) {
+    cooperationMessages.value = cooperationMessages.value.slice(0, 50);
+  }
+};
+
 const coordinationStatus = reactive<CoordinationStatus>({
   mode: "自主协同",
   dataLink: "正常",
   targetSharing: "已共享",
 });
 
+// 协同报文数据结构定义
+interface CooperationMessage {
+  id: string; // 唯一标识
+  timestamp: number; // 时间戳
+  exerciseTime: string; // 演习时间（T+格式）
+  type: "sent" | "received"; // 发送/接收方向
+  commandType: "strike_coordinate" | "fire_coordinate" | "other"; // 命令类型
+  sourcePlatform: string; // 来源平台
+  targetPlatform: string; // 目标平台
+  content: string; // 报文内容
+  details: {
+    targetName?: string; // 目标名称
+    weaponName?: string; // 武器名称
+    coordinates?: {
+      longitude: number;
+      latitude: number;
+      altitude?: number;
+    };
+    commandId?: number; // 命令ID
+  };
+  status: "success" | "failed" | "pending"; // 状态
+}
+
 // 协同报文数据
-const cooperationMessages = ref([]);
+const cooperationMessages = ref<CooperationMessage[]>([]);
 
 // 计算属性：可用的分组选项（从平台数据中获取）
 const groupOptions = computed<GroupOption[]>(() => {
   const groups = new Set<string>();
 
-  // 从真实平台数据中获取分组（支持多种火炮类型）
+  // 从真实平台数据中获取分组（根据火炮类型识别规范）
   platforms.value.forEach((platform) => {
     if (
       platform.base?.group &&
-      (platform.base?.type === "ROCKET_LAUNCHER" ||
-        platform.base?.type === "Artillery" ||
+      (platform.base?.type === "Artillery" ||
+        platform.base?.type === "ROCKET_LAUNCHER" ||
         platform.base?.type === "CANNON")
     ) {
       groups.add(platform.base.group);
     }
   });
 
-  // 如果没有真实数据，使用默认分组
-  if (groups.size === 0) {
-    const fakeGroups = ["第一火炮营", "第二火炮营", "第三火炮营"];
-    fakeGroups.forEach((group) => groups.add(group));
-  }
-
+  // 根据项目规范，必须从platforms报文动态解析，不使用静态数据
   return Array.from(groups).map((group) => ({
     label: group,
     value: group,
   }));
 });
 
-// 计算属性：当前分组下的火炮选项
+// 动态火炮选项（基于选择的分组）
 const artilleryOptions = computed<ArtilleryOption[]>(() => {
-  if (!selectedGroup.value) {
-    return [];
-  }
-
-  // 从真实平台数据中获取火炮（支持多种类型）
-  const realArtillery = platforms.value
+  if (!selectedGroup.value) return [];
+  return platforms.value
     .filter(
       (platform) =>
         platform.base?.group === selectedGroup.value &&
-        (platform.base?.type === "ROCKET_LAUNCHER" ||
-          platform.base?.type === "Artillery" ||
-          platform.base?.type === "CANNON") &&
+        ["Artillery", "ROCKET_LAUNCHER", "CANNON"].includes(
+          platform.base.type
+        ) &&
         !platform.base?.broken &&
         platform.base?.side === "red"
     )
@@ -884,58 +1149,10 @@ const artilleryOptions = computed<ArtilleryOption[]>(() => {
       value: platform.base.name || "",
       platform: platform,
     }));
-
-  // 如果有真实数据，直接返回
-  if (realArtillery.length > 0) {
-    return realArtillery;
-  }
-
-  // 如果没有真实数据，使用默认火炮数据
-  const fakeArtillery: ArtilleryOption[] = [];
-  if (selectedGroup.value === "第一火炮营") {
-    fakeArtillery.push(
-      {
-        label: "155mm榆弹炮-01",
-        value: "155mm榆弹炮-01",
-        platform: {} as Platform,
-      },
-      {
-        label: "155mm榆弹炮-02",
-        value: "155mm榆弹炮-02",
-        platform: {} as Platform,
-      },
-      {
-        label: "120mm迫击炮-01",
-        value: "120mm迫击炮-01",
-        platform: {} as Platform,
-      }
-    );
-  } else if (selectedGroup.value === "第二火炮营") {
-    fakeArtillery.push(
-      {
-        label: "203mm榆弹炮-01",
-        value: "203mm榆弹炮-01",
-        platform: {} as Platform,
-      },
-      {
-        label: "203mm榆弹炮-02",
-        value: "203mm榆弹炮-02",
-        platform: {} as Platform,
-      }
-    );
-  } else if (selectedGroup.value === "第三火炮营") {
-    fakeArtillery.push(
-      { label: "火箭炮-01", value: "火箭炮-01", platform: {} as Platform },
-      { label: "火箭炮-02", value: "火箭炮-02", platform: {} as Platform },
-      { label: "火箭炮-03", value: "火箭炮-03", platform: {} as Platform }
-    );
-  }
-
-  return fakeArtillery;
 });
 
 // 获取任务目标（同组side为blue的平台）
-const getMissionTarget = () => {
+const getMissionTarget = async () => {
   if (!selectedGroup.value || !platforms.value) {
     missionTarget.value = null;
     return;
@@ -950,6 +1167,12 @@ const getMissionTarget = () => {
   );
 
   if (targetPlatform && targetPlatform.base) {
+    // 检测目标是否被摧毁（根据业务规则判断）
+    const targetStatus = checkMissionTargetStatus(targetPlatform.base.name);
+
+    // 加载目标图片
+    const imageData = await getPlatformImage(targetPlatform.base.type);
+
     missionTarget.value = {
       name: targetPlatform.base.name || "未知目标",
       coordinates: {
@@ -958,14 +1181,68 @@ const getMissionTarget = () => {
         altitude: targetPlatform.base.location.altitude,
       },
       platformType: targetPlatform.base.type || "未知类型",
+      status: targetStatus, // 新增目标状态字段
+      imageData: imageData, // 添加图片数据
     };
     console.log(
-      `[ArtilleryPage] 找到任务目标: ${missionTarget.value.name}`,
+      `[ArtilleryPage] 找到任务目标: ${missionTarget.value.name}, 状态: ${targetStatus}`,
       missionTarget.value
     );
   } else {
+    // 如果找不到对应的平台，但之前有任务目标，则可能被摧毁
+    if (missionTarget.value && missionTarget.value.name) {
+      const targetName = missionTarget.value.name;
+      // 检查是否在所有平台中都找不到该目标
+      const targetStillExists = platforms.value.some(
+        (platform: any) => platform.base?.name === targetName
+      );
+
+      if (!targetStillExists) {
+        // 目标不存在于任何平台中，判定为已摧毁
+        console.log(`[ArtilleryPage] 任务目标 ${targetName} 已被摧毁`);
+        missionTarget.value.status = "destroyed";
+      } else {
+        // 目标仍然存在但不在同组中，可能被重新分组或失联
+        missionTarget.value.status = "inactive";
+      }
+      return;
+    }
+
     missionTarget.value = null;
     console.log(`[ArtilleryPage] 未找到组 ${selectedGroup.value} 中的蓝方目标`);
+  }
+};
+
+// 检测任务目标状态的专用函数
+const checkMissionTargetStatus = (targetName: string): string => {
+  if (!targetName || !platforms.value) {
+    return "inactive";
+  }
+
+  // 检查目标是否在任何平台的tracks中被跟踪
+  const isBeingTracked = platforms.value.some((platform: any) => {
+    if (!platform.tracks || !Array.isArray(platform.tracks)) {
+      return false;
+    }
+    return platform.tracks.some(
+      (track: any) => track.targetName === targetName
+    );
+  });
+
+  // 检查目标平台是否仍然存在
+  const targetPlatformExists = platforms.value.some(
+    (platform: any) => platform.base?.name === targetName
+  );
+
+  if (!targetPlatformExists) {
+    // 目标平台不存在，判定为已摧毁
+    return "destroyed";
+  } else if (isBeingTracked) {
+    // 目标平台存在且正在被跟踪，状态正常
+    return "active";
+  } else {
+    // 目标平台存在但未被跟踪，可能失联
+    return "inactive";
   }
 };
 
@@ -1017,18 +1294,6 @@ const getLatestShell = () => {
   });
 
   return latestShell;
-};
-
-// 获取炮弹武器名称（从炮弹平台名称中提取）
-const getShellWeaponName = (shellPlatform) => {
-  if (!shellPlatform?.base?.name) return "未知武器";
-
-  const nameParts = shellPlatform.base.name.split("_");
-  if (nameParts.length < 3) return "未知武器";
-
-  // 去掉火炮名称和发射顺序，中间的部分就是武器名称
-  const weaponParts = nameParts.slice(1, -1);
-  return weaponParts.join("_");
 };
 
 const getEnvironmentDataSourceClass = () => {
@@ -1123,26 +1388,6 @@ const getTargetDataSourceText = () => {
   }
 };
 
-// 炮弹数据源判断
-const hasShellData = () => {
-  // 未连接时使用模拟数据
-  if (!isConnected.value) {
-    return true;
-  }
-  // 已连接时检查是否有最新炮弹或武器数据
-  const latestShell = getLatestShell();
-  if (latestShell) {
-    return true;
-  }
-
-  return (
-    connectedPlatform.value &&
-    connectedPlatform.value.weapons &&
-    Array.isArray(connectedPlatform.value.weapons) &&
-    connectedPlatform.value.weapons.length > 0
-  );
-};
-
 const getShellDataSourceClass = () => {
   if (!isConnected.value) {
     return "simulated";
@@ -1164,39 +1409,230 @@ const getShellDataSourceText = () => {
   }
 };
 
-// 监听分组变化，重置火炮选择
-const onGroupChange = (value: string) => {
-  selectedInstance.value = "";
+// 按钮点击事件处理函数（参照无人机页面实现）
+const handleSelectGroup = (value: string) => {
+  selectedGroup.value = value;
+  selectedInstance.value = ""; // 重置火炮选择
 
   if (value) {
-    // 选择了分组
-    if (artilleryOptions.value.length === 1) {
-      // 如果只有一个火炮，自动选择
-      selectedInstance.value = artilleryOptions.value[0].value;
-    }
-
-    console.log(`[ArtilleryPage] 选择分组: ${value}`);
+    console.log(
+      `[ArtilleryPage] 选择分组: ${
+        groupOptions.value.find((g) => g.value === value)?.label || value
+      }`
+    );
+    ElMessage.info(
+      `已选择分组: ${
+        groupOptions.value.find((g) => g.value === value)?.label || value
+      }`
+    );
   } else {
-    // 清空分组
-    console.log(`[ArtilleryPage] 已清空分组选择`);
+    console.log("[ArtilleryPage] 已清空分组选择");
+    ElMessage.info("已清空分组选择");
   }
 };
 
-// 连接到仿真端
-const connectToSimulation = () => {
-  if (!selectedGroup.value || !selectedInstance.value) {
-    ElMessage.warning("请选择组和实例");
+const handleSelectArtillery = (value: string) => {
+  selectedInstance.value = value;
+
+  if (value) {
+    console.log(
+      `[ArtilleryPage] 选择火炮: ${
+        artilleryOptions.value.find((a) => a.value === value)?.label || value
+      }`
+    );
+    ElMessage.info(
+      `已选择火炮: ${
+        artilleryOptions.value.find((a) => a.value === value)?.label || value
+      }`
+    );
+  } else {
+    console.log("[ArtilleryPage] 已清空火炮选择");
+    ElMessage.info("已清空火炮选择");
+  }
+};
+
+// 获取平台图片
+const getPlatformImage = async (platformType: string): Promise<string> => {
+  // 先检查缓存
+  if (platformImages.value.has(platformType)) {
+    return platformImages.value.get(platformType) || "";
+  }
+
+  try {
+    const imageData = await platformImageService.getPlatformImageData(
+      platformType
+    );
+    if (imageData) {
+      platformImages.value.set(platformType, imageData);
+      return imageData;
+    }
+  } catch (error) {
+    console.error(`[ArtilleryPage] 获取平台图片失败: ${platformType}`, error);
+  }
+
+  // 返回默认图片或空字符串
+  return "";
+};
+
+// 图片加载错误处理
+const onImageError = (platform: any) => {
+  console.warn(`[ArtilleryPage] 平台图片加载失败: ${platform.type}`);
+  // 清除错误的缓存
+  platformImages.value.delete(platform.type);
+  // 可以在这里设置一个错误标记，让组件显示默认图标
+  platform.imageError = true;
+};
+
+// 任务目标图片加载错误处理
+const onTargetImageError = (target: any) => {
+  console.warn(`[ArtilleryPage] 任务目标图片加载失败: ${target.platformType}`);
+  // 清除错误的缓存
+  platformImages.value.delete(target.platformType);
+  // 设置错误标记，让组件显示默认图标
+  target.imageError = true;
+  // 清除图片数据，让模板显示默认图标
+  target.imageData = null;
+};
+
+// 获取平台图标
+const getPlatformIcon = (type: string): string => {
+  const iconMap: { [key: string]: string } = {
+    UAV01: "✈️", // 飞机
+    Artillery: "⚙️", // 齿轮(代表机械设备)
+    ROCKET_LAUNCHER: "🚀", // 火箭
+    CANNON: "⚫", // 黑圆(代表炮弹)
+    RADAR: "📡", // 卫星
+    SHIP: "🚢", // 舰船
+    GDS_CAR: "🚚", // 卡车
+  };
+  return iconMap[type] || "📦"; // 默认包裹图标
+};
+
+// 获取平台图标样式类
+const getPlatformIconClass = (type: string): string => {
+  const classMap: { [key: string]: string } = {
+    UAV01: "uav-icon",
+    Artillery: "artillery-icon",
+    ROCKET_LAUNCHER: "rocket-icon",
+    CANNON: "cannon-icon",
+    RADAR: "radar-icon",
+    SHIP: "ship-icon",
+    GDS_CAR: "vehicle-icon",
+  };
+  return classMap[type] || "default-icon";
+};
+
+// 更新平台心跳状态
+const updatePlatformHeartbeat = (platformName: string) => {
+  const now = Date.now();
+  platformHeartbeats.value.set(platformName, {
+    lastHeartbeat: now,
+    isOnline: true,
+  });
+  console.log(`[ArtilleryPage] 更新平台心跳: ${platformName}`);
+};
+
+// 检查平台心跳超时
+const checkHeartbeatTimeouts = () => {
+  const now = Date.now();
+  platformHeartbeats.value.forEach((heartbeat, platformName) => {
+    if (now - heartbeat.lastHeartbeat > heartbeatTimeout) {
+      if (heartbeat.isOnline) {
+        heartbeat.isOnline = false;
+        console.log(`[ArtilleryPage] 平台心跳超时: ${platformName}`);
+        // 更新同组平台信息，触发界面更新
+        updateSameGroupPlatforms();
+      }
+    }
+  });
+};
+
+// 判断平台是否在线（基于心跳数据）
+const isPlatformOnlineByHeartbeat = (platformName: string): boolean => {
+  const heartbeat = platformHeartbeats.value.get(platformName);
+  return heartbeat ? heartbeat.isOnline : false;
+};
+
+// 更新同组平台信息
+const updateSameGroupPlatforms = async () => {
+  if (!isConnected.value || !selectedGroup.value || !platforms.value) {
+    sameGroupPlatforms.value = [];
     return;
   }
 
-  ElMessage.success(
-    `正在连接到 ${selectedGroup.value} - ${selectedInstance.value}`
+  // 获取同组的红方平台（支持多种火炮类型）
+  const groupPlatforms = platforms.value.filter(
+    (platform: any) =>
+      platform.base?.group === selectedGroup.value &&
+      platform.base?.side === "red" &&
+      (platform.base?.type === "ROCKET_LAUNCHER" ||
+        platform.base?.type === "Artillery" ||
+        platform.base?.type === "CANNON" ||
+        platform.base?.type === "UAV01") && // 也包括同组的无人机
+      platform.base?.name // 确保有名称
   );
-  connectionStatus.isConnected = true;
-  connectionStatus.simulationEndpoint = `${selectedGroup.value}/${selectedInstance.value}`;
-  artilleryStatus.isReady = true;
 
-  // TODO: 实际的连接逻辑
+  // 转换为展示格式
+  const platformPromises = groupPlatforms.map(async (platform: any) => {
+    const isCurrentPlatform =
+      platform.base.name === connectedPlatformName.value;
+
+    // 对于当前连接的平台，显示为已连接状态
+    // 对于其他平台，基于心跳数据判断在线状态
+    let isOnline;
+    let statusText;
+
+    if (isCurrentPlatform) {
+      isOnline = true; // 当前连接平台总是在线
+      statusText = "已连接";
+    } else {
+      isOnline = isPlatformOnlineByHeartbeat(platform.base.name);
+      statusText = isOnline ? "在线" : "离线";
+    }
+
+    // 平台类型显示映射
+    const getDisplayType = (type: string) => {
+      const typeMap: { [key: string]: string } = {
+        UAV01: "无人机",
+        Artillery: "火炮",
+        ROCKET_LAUNCHER: "火炮",
+        CANNON: "加农炮",
+        RADAR: "雷达",
+        SHIP: "舰船",
+      };
+      return typeMap[type] || type || "未知";
+    };
+
+    // 异步加载平台图片
+    const imageData = await getPlatformImage(platform.base.type);
+
+    return {
+      name: platform.base.name,
+      type: platform.base.type,
+      displayType: getDisplayType(platform.base.type),
+      isOnline,
+      isCurrentPlatform,
+      statusText,
+      platform: platform,
+      imageData: imageData, // 添加图片数据
+    };
+  });
+
+  // 等待所有平台图片加载完成
+  sameGroupPlatforms.value = await Promise.all(platformPromises);
+
+  // 按平台类型和名称排序，当前连接的平台排在前面
+  sameGroupPlatforms.value.sort((a, b) => {
+    if (a.isCurrentPlatform && !b.isCurrentPlatform) return -1;
+    if (!a.isCurrentPlatform && b.isCurrentPlatform) return 1;
+    if (a.type !== b.type) return a.type.localeCompare(b.type);
+    return a.name.localeCompare(b.name);
+  });
+
+  console.log(
+    `[ArtilleryPage] 更新同组平台信息: ${selectedGroup.value}组，共${sameGroupPlatforms.value.length}个平台`,
+    sameGroupPlatforms.value
+  );
 };
 
 // 直接在连接后从平台数据初始化状态
@@ -1214,13 +1650,17 @@ const initializeArtilleryStatus = () => {
 };
 
 // 处理连接平台
-const handleConnectPlatform = () => {
+const handleConnectPlatform = async () => {
   if (isConnected.value) {
     // 断开连接
     isConnected.value = false;
     connectionStatus.isConnected = false;
     connectedPlatform.value = null;
     connectedPlatformName.value = "";
+
+    // 停止平台心跳
+    await platformHeartbeatService.stopHeartbeat();
+    console.log("[ArtilleryPage] 平台心跳已停止");
 
     // 重置弹药选择和装填状态
     selectedAmmunitionType.value = "";
@@ -1230,6 +1670,18 @@ const handleConnectPlatform = () => {
 
     // 清除任务目标
     missionTarget.value = null;
+
+    // 清空目标装订状态
+    currentTarget.name = "";
+    currentTarget.coordinates = "";
+
+    // 清空协同目标状态
+    receivedCoordinationTarget.name = "";
+    receivedCoordinationTarget.coordinates = "";
+    receivedCoordinationTarget.sourcePlatform = "";
+
+    // 清空协同报文状态
+    cooperationMessages.value = [];
 
     ElMessage.warning("平台连接已断开");
     return;
@@ -1270,7 +1722,23 @@ const handleConnectPlatform = () => {
     artilleryStatus.isLoaded = false;
 
     // 获取任务目标
-    getMissionTarget();
+    await getMissionTarget();
+
+    // 更新同组平台信息
+    await updateSameGroupPlatforms();
+
+    // 启动平台心跳（每3秒发送一次）
+    const heartbeatStarted = await platformHeartbeatService.startHeartbeat(
+      selectedInstance.value,
+      3000
+    );
+    if (heartbeatStarted) {
+      console.log(`[ArtilleryPage] 平台心跳已启动: ${selectedInstance.value}`);
+    } else {
+      console.error(
+        `[ArtilleryPage] 平台心跳启动失败: ${selectedInstance.value}`
+      );
+    }
 
     console.log(`[ArtilleryPage] 连接到真实平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功: ${selectedInstance.value}`);
@@ -1283,7 +1751,18 @@ const handleConnectPlatform = () => {
     artilleryStatus.isReady = true;
 
     // 获取任务目标
-    getMissionTarget();
+    await getMissionTarget();
+
+    // 即使是模拟模式，也启动心跳发送
+    const heartbeatStarted = await platformHeartbeatService.startHeartbeat(
+      selectedInstance.value,
+      3000
+    );
+    if (heartbeatStarted) {
+      console.log(
+        `[ArtilleryPage] 模拟平台心跳已启动: ${selectedInstance.value}`
+      );
+    }
 
     console.log(`[ArtilleryPage] 连接到模拟平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功（模拟模式）: ${selectedInstance.value}`);
@@ -1302,25 +1781,16 @@ const formatAngle = (angle: number | undefined) => {
   return angle.toFixed(1) + "°";
 };
 
-// TargetLoad数据格式化函数
-const formatTargetLoadDistance = (distance: number | undefined) => {
-  if (distance === undefined || distance === null) return "未知";
-  return distance.toFixed(0) + "m";
-};
-
-const formatTargetLoadBearing = (bearing: number | undefined) => {
-  if (bearing === undefined || bearing === null) return "未知";
-  return bearing.toFixed(1) + "°";
-};
-
-const formatTargetLoadElevation = (elevation: number | undefined) => {
-  if (elevation === undefined || elevation === null) return "未知";
-  return (elevation >= 0 ? "+" : "") + elevation.toFixed(1) + "m";
-};
-
-const formatTargetLoadAngle = (angle: number | undefined) => {
-  if (angle === undefined || angle === null) return "未知";
-  return angle.toFixed(2) + "°";
+// 格式化函数统一处理
+const formatValue = (
+  value: number | undefined,
+  unit: string,
+  precision: number = 1,
+  prefix?: string
+) => {
+  if (value === undefined || value === null) return "未知";
+  const formatted = value.toFixed(precision);
+  return `${prefix && value >= 0 ? prefix : ""}${formatted}${unit}`;
 };
 
 // 采用协同目标
@@ -1402,36 +1872,6 @@ const handleTargetSetting = async () => {
   }
 };
 
-// 处理武器名称输入
-const handleInputWeaponName = () => {
-  if (isWeaponNameEditing.value) {
-    if (!weaponName.value.trim()) {
-      ElMessage.warning("请输入武器名称");
-      return;
-    }
-    isWeaponNameEditing.value = false;
-    ElMessage.success(`武器名称已设置: ${weaponName.value}`);
-  } else {
-    isWeaponNameEditing.value = true;
-  }
-};
-
-// 处理目标名称输入
-const handleInputTargetName = () => {
-  if (isTargetNameEditing.value) {
-    if (!targetName.value.trim()) {
-      ElMessage.warning("请输入目标名称");
-      return;
-    }
-    // 同步更新当前目标信息
-    currentTarget.name = targetName.value;
-    isTargetNameEditing.value = false;
-    ElMessage.success(`目标名称已设置: ${targetName.value}`);
-  } else {
-    isTargetNameEditing.value = true;
-  }
-};
-
 // 处理装填数量输入
 const handleSetLoadCount = () => {
   if (isLoadCountEditing.value) {
@@ -1504,12 +1944,21 @@ const handleSendCooperationCommand = async () => {
       ElMessage.success("发射协同指令已发送");
 
       // 添加新的协同报文
-      cooperationMessages.value.unshift({
-        time: new Date().toLocaleTimeString(),
-        message: `火炮发出发射协同报文（目标：${
+      addCooperationMessage({
+        type: "sent",
+        commandType: "fire_coordinate",
+        sourcePlatform: connectedPlatformName.value || "本火炮",
+        targetPlatform: coordinatedUavName.value || "协同无人机",
+        content: `火炮发出发射协同报文（目标：${
           currentTarget.name || "未指定"
         }）`,
-        type: "artillery",
+        details: {
+          targetName: currentTarget.name || "未指定",
+          weaponName: loadedAmmunitionType.value,
+          commandId: commandData.commandID,
+          coordinates: targetCoordinate,
+        },
+        status: "success",
       });
     } else {
       ElMessage.error(`协同指令发送失败: ${result.error}`);
@@ -1685,10 +2134,19 @@ const fireAtDrone = async () => {
             console.log(`[ArtilleryPage] 发射协同命令发送成功`);
 
             // 添加协同报文
-            cooperationMessages.value.unshift({
-              time: new Date().toLocaleTimeString(),
-              message: `火炮发出发射协同报文（目标：${currentTarget.name}）`,
-              type: "fire_coordination",
+            addCooperationMessage({
+              type: "sent",
+              commandType: "fire_coordinate",
+              sourcePlatform: connectedPlatformName.value || "本火炮",
+              targetPlatform: coordinatedUavName.value || "协同无人机",
+              content: `火炮发出发射协同报文（目标：${currentTarget.name}）`,
+              details: {
+                targetName: currentTarget.name,
+                weaponName: loadedAmmunitionType.value,
+                commandId: coordinationCommandData.commandID,
+                coordinates: targetCoordinate,
+              },
+              status: "success",
             });
           } else {
             console.warn(
@@ -1746,25 +2204,52 @@ const fireAtDrone = async () => {
 
 // 更新火炮平台状态显示
 const updateArtilleryStatusDisplay = (platform: any) => {
-  if (!platform?.base) return;
+  if (!platform?.base) {
+    console.warn("[ArtilleryPage] 平台数据缺失 base 字段");
+    return;
+  }
+
+  console.log(`[ArtilleryPage] 开始更新火炮状态显示:`, platform.base.name);
 
   // 更新平台位置信息
   if (platform.base.location) {
     // 更新目标信息（距离和方位计算需要对比坐标）
-    targetInfo.distance = Math.floor(Math.random() * 1000) + 2000; // 模拟距离
-    targetInfo.bearing = Math.floor(Math.random() * 360); // 模拟方位
-    targetInfo.altitude = platform.base.location.altitude + 200; // 模拟高度差
+    const newDistance = Math.floor(Math.random() * 1000) + 2000; // 模拟距离
+    const newBearing = Math.floor(Math.random() * 360); // 模拟方位
+    const newAltitude = platform.base.location.altitude + 200; // 模拟高度差
+
+    if (
+      targetInfo.distance !== newDistance ||
+      targetInfo.bearing !== newBearing ||
+      targetInfo.altitude !== newAltitude
+    ) {
+      targetInfo.distance = newDistance;
+      targetInfo.bearing = newBearing;
+      targetInfo.altitude = newAltitude;
+      console.log(`[ArtilleryPage] 目标信息已更新:`, targetInfo);
+    }
   }
 
   // 更新火炮系统状态
-  artilleryStatus.isReady = !platform.base?.broken;
-  artilleryStatus.systemStatus = platform.base?.broken ? "故障" : "正常";
+  const newIsReady = !platform.base?.broken;
+  const newSystemStatus = platform.base?.broken ? "故障" : "正常";
+
+  if (
+    artilleryStatus.isReady !== newIsReady ||
+    artilleryStatus.systemStatus !== newSystemStatus
+  ) {
+    artilleryStatus.isReady = newIsReady;
+    artilleryStatus.systemStatus = newSystemStatus;
+    console.log(`[ArtilleryPage] 系统状态已更新: ${newSystemStatus}`);
+  }
 
   // 根据平台状态动态计算炮管温度
-  if (artilleryStatus.isLoaded) {
-    artilleryStatus.temperature = Math.round(35 + Math.random() * 10); // 装填后温度上升
-  } else {
-    artilleryStatus.temperature = Math.round(25 + Math.random() * 5); // 正常温度
+  const newTemperature = artilleryStatus.isLoaded
+    ? Math.round(35 + Math.random() * 10) // 装填后温度上升
+    : Math.round(25 + Math.random() * 5); // 正常温度
+
+  if (artilleryStatus.temperature !== newTemperature) {
+    artilleryStatus.temperature = newTemperature;
   }
 
   // 更新武器状态（从武器信息获取）
@@ -1776,9 +2261,14 @@ const updateArtilleryStatusDisplay = (platform: any) => {
       },
       0
     );
-    ammunitionCount.value = totalAmmunition;
 
-    console.log(`[ArtilleryPage] 更新武器信息:`, {
+    // 只在数据变化时才更新
+    if (ammunitionCount.value !== totalAmmunition) {
+      ammunitionCount.value = totalAmmunition;
+      console.log(`[ArtilleryPage] 弹药数量已更新: ${totalAmmunition}`);
+    }
+
+    console.log(`[ArtilleryPage] 武器信息处理完成:`, {
       武器数量: platform.weapons.length,
       总弹药数: totalAmmunition,
       武器列表: platform.weapons.map((w: any) => ({
@@ -1789,8 +2279,19 @@ const updateArtilleryStatusDisplay = (platform: any) => {
     });
   }
 
-  // 更新平台状态信息（类似无人机页面的实现）
-  console.log(`[ArtilleryPage] 更新火炮平台状态:`, {
+  // 更新 TargetLoad 信息（火炮特有的目标装订信息）
+  if (platform.targetLoad) {
+    console.log(`[ArtilleryPage] 目标装订信息:`, {
+      目标名称: platform.targetLoad.targetName,
+      距离: platform.targetLoad.distance,
+      方位: platform.targetLoad.bearing,
+      高差: platform.targetLoad.elevationDifference,
+      方位角: platform.targetLoad.azimuth,
+      高低角: platform.targetLoad.pitch,
+    });
+  }
+
+  console.log(`[ArtilleryPage] 火炮状态显示更新完成:`, {
     平台名称: platform.base.name,
     位置: platform.base.location,
     系统状态: artilleryStatus.systemStatus,
@@ -1801,7 +2302,7 @@ const updateArtilleryStatusDisplay = (platform: any) => {
 };
 
 // 处理平台状态数据包
-const handlePlatformStatus = (packet: any) => {
+const handlePlatformStatus = async (packet: any) => {
   try {
     if (packet.parsedPacket?.packageType === 0x29) {
       // 平台状态数据包
@@ -1811,6 +2312,35 @@ const handlePlatformStatus = (packet: any) => {
         // 更新平台数据
         platforms.value = parsedData.platform;
         lastUpdateTime.value = Date.now();
+
+        // 如果已连接平台，实时更新已连接平台的状态
+        if (isConnected.value && connectedPlatformName.value) {
+          const updatedPlatform = parsedData.platform.find(
+            (platform: any) =>
+              platform.base?.name === connectedPlatformName.value
+          );
+
+          if (updatedPlatform) {
+            // 更新已连接平台的引用
+            connectedPlatform.value = updatedPlatform;
+
+            // 实时更新平台状态显示
+            updateArtilleryStatusDisplay(updatedPlatform);
+
+            console.log(
+              `[ArtilleryPage] 实时更新已连接平台状态: ${connectedPlatformName.value}`,
+              {
+                位置: updatedPlatform.base?.location,
+                武器数: updatedPlatform.weapons?.length || 0,
+                目标装订: updatedPlatform.targetLoad?.targetName || "无",
+              }
+            );
+          } else {
+            console.warn(
+              `[ArtilleryPage] 未找到已连接平台的更新数据: ${connectedPlatformName.value}`
+            );
+          }
+        }
 
         // 更新环境参数（从 evironment 字段获取）- 完全复制无人机页面逻辑
         if (parsedData.evironment) {
@@ -1906,14 +2436,14 @@ const handlePlatformStatus = (packet: any) => {
             environmentParams.pressure = pressure.toFixed(0) + "hPa";
           }
 
-          // 更新演习时间（使用第一个平台的updateTime）
+          // 更新演习时间（直接使用平台数据中的updateTime）
           if (
             parsedData.platform.length > 0 &&
             parsedData.platform[0].updateTime
           ) {
             environmentParams.exerciseTime = `T + ${parsedData.platform[0].updateTime.toFixed(
               0
-            )}`;
+            )}秒`;
           }
 
           console.log("[ArtilleryPage] 处理后的环境参数:", {
@@ -1925,6 +2455,13 @@ const handlePlatformStatus = (packet: any) => {
             气压: environmentParams.pressure,
           });
         }
+
+        // 逐个更新平台心跳状态（与无人机页面保持一致）
+        parsedData.platform.forEach((platform: any) => {
+          if (platform.base?.name) {
+            updatePlatformHeartbeat(platform.base.name);
+          }
+        });
 
         // 如果已连接，更新已连接平台的状态
         if (isConnected.value && connectedPlatformName.value) {
@@ -1959,7 +2496,10 @@ const handlePlatformStatus = (packet: any) => {
           }
 
           // 更新任务目标信息
-          getMissionTarget();
+          await getMissionTarget();
+
+          // 更新同组平台信息
+          await updateSameGroupPlatforms();
         }
 
         console.log("[ArtilleryPage] 收到平台状态数据:", {
@@ -2037,17 +2577,30 @@ const handlePlatformStatus = (packet: any) => {
 
             // 更新目标名称输入框
             targetName.value = strikeParam.targetName;
-            isTargetNameEditing.value = false;
 
             ElMessage.success(
               `收到来自 ${sourcePlatform} 的打击协同命令，目标：${strikeParam.targetName}，已自动更新目标装订`
             );
 
             // 添加协同报文到报文区域
-            cooperationMessages.value.unshift({
-              time: new Date().toLocaleTimeString(),
-              message: `收到来自 ${sourcePlatform} 的打击协同命令（目标：${strikeParam.targetName}）`,
-              type: "coordination_received",
+            addCooperationMessage({
+              type: "received",
+              commandType: "strike_coordinate",
+              sourcePlatform: sourcePlatform || "未知平台",
+              targetPlatform: connectedPlatformName.value || "本火炮",
+              content: `收到来自 ${sourcePlatform} 的打击协同命令（目标：${strikeParam.targetName}）`,
+              details: {
+                targetName: strikeParam.targetName,
+                commandId: parsedData.commandID,
+                coordinates: strikeParam.coordinate
+                  ? {
+                      longitude: strikeParam.coordinate.longitude,
+                      latitude: strikeParam.coordinate.latitude,
+                      altitude: strikeParam.coordinate.altitude,
+                    }
+                  : undefined,
+              },
+              status: "success",
             });
           }
         }
@@ -2134,6 +2687,9 @@ onMounted(() => {
 
   // 模拟数据更新（与无人机页面保持一致）
   setInterval(() => {
+    // 每秒检查心跳超时（与无人机页面保持一致）
+    checkHeartbeatTimeouts();
+
     // 演习时间现在从平台数据获取，不再在这里更新
     // 只在没有真实平台数据时使用默认时间
     if (platforms.value.length === 0) {
@@ -2160,23 +2716,38 @@ onUnmounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* 任务目标提醒栏 */
+/* 任务目标提醒栏（在右侧列） */
 .mission-target-banner {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-left: 4px solid #007bff;
   border-radius: 4px;
   padding: 12px 16px;
+  position: relative; /* 为绝对定位提供参考点 */
 }
 
 .banner-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .banner-icon {
   color: #007bff;
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.target-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative; /* 为状态标签提供参考点 */
+}
+
+.target-header {
   display: flex;
   align-items: center;
 }
@@ -2185,6 +2756,153 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #495057;
+}
+
+.target-status-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.target-status {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.target-status.active {
+  background: #e8f5e8;
+  color: #52c41a;
+  border-color: rgba(82, 196, 26, 0.3);
+}
+
+.target-status.active .status-icon {
+  color: #52c41a;
+  font-size: 10px;
+}
+
+.target-status.inactive {
+  background: #fff7e6;
+  color: #faad14;
+  border-color: rgba(250, 173, 20, 0.3);
+}
+
+.target-status.inactive .status-icon {
+  color: #faad14;
+  font-size: 10px;
+}
+
+.target-status.destroyed {
+  background: #fef0f0;
+  color: #f56c6c;
+  border-color: rgba(245, 108, 108, 0.3);
+  animation: targetDestroyedPulse 2s infinite;
+}
+
+.target-status.destroyed .status-icon {
+  color: #f56c6c;
+  font-size: 10px;
+}
+
+@keyframes targetDestroyedPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.target-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 目标图片和名称区域 */
+.target-avatar-name-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 目标头像 */
+.target-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 目标图片样式 */
+.target-avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  object-fit: cover;
+  object-position: center;
+  border: none;
+  background: #f8f9fa;
+}
+
+.target-avatar-image:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease;
+}
+
+/* 目标默认图标 */
+.target-avatar-icon {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.target-avatar:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s ease;
+}
+
+.target-type {
+  font-size: 11px;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.target-coordinates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coordinate-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.coordinate-value {
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+  font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
 .target-info {
@@ -2196,6 +2914,14 @@ onUnmounted(() => {
 .target-info.no-target {
   color: #6c757d;
   font-style: italic;
+}
+
+/* 大屏布局优化 */
+.large-screen-layout {
+  min-width: 1600px;
+  width: 100%;
+  max-width: none;
+  overflow-x: auto;
 }
 
 /* 顶部控制区域 */
@@ -2269,32 +2995,6 @@ onUnmounted(() => {
   width: 180px;
 }
 
-/* 打击次数选择 */
-.strike-count-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-
-.strike-label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.strike-select {
-  flex: 1;
-  min-width: 120px;
-}
-
-/* 数字输入框 */
-.strike-input-number {
-  flex: 1;
-  min-width: 120px;
-}
-
 /* 席位标题 */
 .seat-title {
   font-size: 16px;
@@ -2331,7 +3031,7 @@ onUnmounted(() => {
 /* 下拉框样式 */
 .control-select {
   height: 40px;
-  min-width: 150px;
+  min-width: 180px;
 }
 
 .control-select.short {
@@ -2340,9 +3040,8 @@ onUnmounted(() => {
 }
 
 .control-select.large {
-  flex: 1;
-  max-width: 300px;
-  min-width: 200px;
+  width: 280px;
+  min-width: 280px;
 }
 
 /* 功能分隔符 */
@@ -2353,9 +3052,9 @@ onUnmounted(() => {
   margin: 0 8px;
 }
 
-/* 主要内容区域 */
+/* 主要内容区域 - 大屏全屏展示 */
 .main-content {
-  min-height: 500px;
+  min-height: 600px;
 }
 
 /* 左侧控制面板 */
@@ -2368,7 +3067,7 @@ onUnmounted(() => {
 /* 中间状态显示区域 */
 .middle-panel {
   flex: 1;
-  min-width: 300px;
+  width: 300px;
 }
 
 /* 右侧报文面板 */
@@ -2379,55 +3078,18 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* 任务目标提醒栏（在右侧列） */
-.mission-target-banner {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-left: 4px solid #007bff;
-  border-radius: 4px;
-  padding: 12px 16px;
-}
-
-.banner-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.banner-icon {
-  color: #007bff;
-  display: flex;
-  align-items: center;
-}
-
-.banner-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #495057;
-}
-
-.target-info {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.target-info.no-target {
-  color: #6c757d;
-  font-style: italic;
-}
-
-/* 报文面板样式 */
+/* 报文面板样式 - 大屏优化 */
 .report-panel {
   background: white;
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #d0d0d0;
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 500px;
+  max-height: 700px;
 }
 
 .report-header {
@@ -2465,29 +3127,202 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* 确保能够正常收缩 */
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .report-section {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  padding-right: 4px; /* 为滚动条留出空间 */
+}
+
+/* 自定义滚动条样式 */
+.report-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.report-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.report-section::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.report-section::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
 }
 
 .report-messages {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  height: 100%;
+  gap: 8px;
+  padding-bottom: 8px; /* 在底部留出一些空间 */
 }
 
+/* 优化后的报文消息样式 */
 .message-item {
-  font-size: 13px;
-  color: #666;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.message-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+/* 发送消息hover状态 */
+.message-sent:hover {
+  background: linear-gradient(135deg, #d1e7fd, #ebf5ff);
+  border-color: #90caf9;
+}
+
+/* 接收消息hover状态 */
+.message-received:hover {
+  background: linear-gradient(135deg, #dcedc8, #e8f4e8);
+  border-color: #a5d6a7;
+}
+
+/* 发送消息样式 - 增强背景颜色区分 */
+.message-sent {
+  border-left: 4px solid #409eff;
+  background: linear-gradient(135deg, #e3f2fd, #f3f9ff);
+  border: 1px solid #bbdefb;
+}
+
+.message-sent .message-header {
+  background: linear-gradient(135deg, #409eff30, #409eff20);
+}
+
+/* 接收消息样式 - 增强背景颜色区分 */
+.message-received {
+  border-left: 4px solid #67c23a;
+  background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+  border: 1px solid #c8e6c9;
+}
+
+.message-received .message-header {
+  background: linear-gradient(135deg, #67c23a30, #67c23a20);
+}
+
+/* 状态样式 */
+.message-success {
+  border-color: #67c23a;
+}
+
+.message-failed {
+  border-color: #f56c6c;
+  background: #fef0f0;
+}
+
+.message-pending {
+  border-color: #e6a23c;
+}
+
+/* 消息头部 */
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 8px 12px;
   background: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #007bff;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 12px;
+}
+
+.message-direction {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.direction-icon {
+  font-size: 14px;
+}
+
+.sent-icon {
+  color: #409eff;
+}
+
+.received-icon {
+  color: #67c23a;
+}
+
+.direction-text {
+  color: #606266;
+}
+
+.message-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.exercise-time {
+  font-weight: 600;
+  color: #e6a23c;
+  font-family: "Courier New", monospace;
+}
+
+.clock-time {
+  color: #909399;
+  font-size: 11px;
+}
+
+/* 消息主体 */
+.message-body {
+  padding: 12px;
+}
+
+.message-platform-info {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.platform-info strong {
+  color: #303133;
+  font-weight: 600;
+}
+
+.message-content {
+  font-size: 14px;
+  color: #303133;
   line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.message-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.message-details .el-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+/* 空消息样式 */
+.message-empty {
+  text-align: center;
+  color: #c0c4cc;
+  font-style: italic;
+  padding: 20px;
+  border: 1px dashed #e0e0e0;
+  background: #fafafa;
 }
 
 /* 目标装订按钮 */
@@ -2570,14 +3405,15 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* 任务控制区域 */
+/* 任务控制区域 - 大屏优化 */
 .task-control {
   background: white;
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #d0d0d0;
   flex: 1;
+  min-height: 600px;
 }
 
 .task-header {
@@ -2683,14 +3519,15 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 状态卡片 */
+/* 状态卡片 - 大屏优化 */
 .status-card {
   background: white;
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #d0d0d0;
-  height: 120px;
+  height: 140px;
+  min-height: 140px;
 }
 
 .status-content {
@@ -2850,5 +3687,442 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* =========================== 连接卡片样式 =========================== */
+/* 连接控制卡片（全宽） */
+.connection-card {
+  flex: 1;
+  width: 100%;
+  /* background: white; */
+  /* border-radius: 8px; */
+  /* padding: 16px; */
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
+  /* border: 2px solid #d0d0d0; */
+}
+
+.control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 16px;
+}
+
+/* 左侧标题区域 */
+.title-section {
+  flex: 0 0 auto;
+}
+
+/* 席位标题 */
+.seat-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+/* 右侧控制区域 */
+.controls-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* 控制按钮样式 */
+.control-btn {
+  height: 40px;
+  border: 2px solid #d0d0d0;
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+}
+
+/* 演练方案按钮 */
+.exercise-btn {
+  height: 40px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* 功能区域分隔符 */
+.function-separator {
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #dee2e6 20%,
+    #dee2e6 80%,
+    transparent
+  );
+  margin: 0 12px;
+}
+
+/* 下拉框样式 */
+.control-select {
+  height: 40px;
+  min-width: 120px;
+}
+
+.control-select.short {
+  min-width: 100px;
+}
+
+.control-select.large {
+  width: 280px;
+  min-width: 280px;
+}
+
+/* =========================== 已连接布局样式 =========================== */
+/* 三等分连接后布局 */
+.connected-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  gap: 16px;
+}
+
+.layout-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+}
+
+/* 第一部分：组别平台展示区域样式 */
+.group-platforms-section {
+  justify-content: flex-start;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.platforms-container {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 20px;
+  width: 100%;
+}
+
+.platforms-list {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex: 1;
+  max-height: 80px;
+}
+
+.platform-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  min-width: 180px;
+  min-height: 84px;
+  position: relative;
+}
+
+.platform-item.current-platform {
+  border: 2px solid #007bff;
+  font-weight: 600;
+}
+
+.platform-item.current-platform .platform-name {
+  color: #007bff;
+  font-weight: 700;
+}
+
+.platform-item.offline {
+  border-left: 4px solid #dc3545;
+  background: #f8f9fa;
+  opacity: 0.8;
+}
+
+.platform-item.offline .platform-name {
+  color: #6c757d;
+}
+
+/* 已连接平台特殊样式 */
+.platform-item.connected-platform {
+  border: 2px solid #28a745;
+  background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+}
+
+.platform-item.connected-platform .platform-status-text {
+  color: #28a745;
+  font-weight: 700;
+}
+
+/* 第二部分：时间显示区域 */
+.time-section {
+  position: relative;
+  justify-content: center;
+}
+
+.time-content {
+  text-align: center;
+  padding: 8px 16px;
+  /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
+  /* border: 1px solid #dee2e6; */
+  /* border-radius: 8px; */
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+}
+
+.exercise-time {
+  font-size: 18px;
+  font-weight: 600;
+  color: #007bff;
+  margin-bottom: 4px;
+}
+
+.astronomical-time {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* 第三部分：控制按钮区域 */
+.controls-section {
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.controls-section .control-btn {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 平台头像 */
+.platform-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.avatar-icon {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.avatar-icon.uav-icon {
+  color: #007bff;
+}
+
+.avatar-icon.artillery-icon {
+  color: #dc3545;
+}
+
+.avatar-icon.rocket-icon {
+  color: #fd7e14;
+}
+
+.avatar-icon.cannon-icon {
+  color: #6f42c1;
+}
+
+.avatar-icon.radar-icon {
+  color: #20c997;
+}
+
+.avatar-icon.ship-icon {
+  color: #0dcaf0;
+}
+
+.avatar-icon.vehicle-icon {
+  color: #6c757d;
+}
+
+.avatar-icon.default-icon {
+  color: #adb5bd;
+}
+
+/* 平台图片样式 */
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: center;
+  border: none;
+  background: #f8f9fa;
+}
+
+.avatar-image:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.platform-avatar:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.2s ease;
+}
+
+.platform-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.platform-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.2;
+}
+
+.platform-type {
+  font-size: 12px;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 0px 3px;
+  border-radius: 8px;
+  align-self: flex-start;
+  font-weight: 500;
+}
+
+.platform-status-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.platform-item.online .platform-status-text {
+  color: #28a745;
+}
+
+.platform-item.offline .platform-status-text {
+  color: #dc3545;
+}
+
+/* 已连接平台特殊样式 */
+.platform-item.connected-platform {
+  border: 2px solid #28a745;
+  background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+}
+
+.platform-item.connected-platform .platform-status-text {
+  color: #28a745;
+  font-weight: 700;
+}
+
+.time-content {
+  text-align: center;
+  padding: 8px 16px;
+  /* background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); */
+  /* border: 1px solid #dee2e6; */
+  /* border-radius: 8px; */
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+}
+
+.exercise-time {
+  font-size: 18px;
+  font-weight: 600;
+  color: #007bff;
+  margin-bottom: 4px;
+}
+
+.astronomical-time {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* 控制按钮样式 */
+.control-btn,
+.exercise-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.function-separator {
+  width: 1px;
+  height: 24px;
+  background: #dee2e6;
+  margin: 0 12px;
+}
+
+.target-name-type {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.target-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.target-type {
+  font-size: 11px;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.target-coordinates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coordinate-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.coordinate-value {
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+  font-family: "SF Mono", "Monaco", "Menlo", monospace;
+}
+
+.target-info {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.target-info.no-target {
+  color: #6c757d;
+  font-style: italic;
 }
 </style>

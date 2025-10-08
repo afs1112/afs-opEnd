@@ -32,29 +32,59 @@ Promise.allSettled([buildRenderer(), buildMain()]).then(() => {
   );
 
   // === 自动复制protobuf目录 ===
-  const fs = require('fs');
-  const path = require('path');
-  const src = path.join(__dirname, '../src/protobuf');
-  const dest = path.join(__dirname, '../build/main/src/protobuf');
+  const fs = require("fs");
+  const path = require("path");
+  const src = path.join(__dirname, "../src/protobuf");
+  const dest = path.join(__dirname, "../build/main/src/protobuf");
   if (fs.existsSync(src)) {
     fs.mkdirSync(dest, { recursive: true });
-    fs.readdirSync(src).forEach(file => {
+    fs.readdirSync(src).forEach((file) => {
       fs.copyFileSync(path.join(src, file), path.join(dest, file));
     });
-    console.log(Chalk.greenBright('Protobuf definitions copied to build/main/src/protobuf'));
+    console.log(
+      Chalk.greenBright(
+        "Protobuf definitions copied to build/main/src/protobuf"
+      )
+    );
   } else {
-    console.warn(Chalk.yellow('src/protobuf directory does not exist, skip copy.'));
+    console.warn(
+      Chalk.yellow("src/protobuf directory does not exist, skip copy.")
+    );
+  }
+
+  // === 自动复制images目录 ===
+  const imagesSrc = path.join(__dirname, "../src/images");
+  const imagesDest = path.join(__dirname, "../build/images");
+  if (fs.existsSync(imagesSrc)) {
+    fs.mkdirSync(imagesDest, { recursive: true });
+    fs.readdirSync(imagesSrc).forEach((file) => {
+      const filePath = path.join(imagesSrc, file);
+      if (fs.statSync(filePath).isFile()) {
+        fs.copyFileSync(filePath, path.join(imagesDest, file));
+      }
+    });
+    console.log(Chalk.greenBright("Images copied to build/images"));
+  } else {
+    console.warn(
+      Chalk.yellow("src/images directory does not exist, skip copy.")
+    );
   }
 
   // === 复制生产环境配置文件 ===
-  const prodConfigSrc = path.join(__dirname, '../config.production.env');
-  const buildConfigDest = path.join(__dirname, '../build/config.env');
+  const prodConfigSrc = path.join(__dirname, "../config.production.env");
+  const buildConfigDest = path.join(__dirname, "../build/config.env");
   if (fs.existsSync(prodConfigSrc)) {
     fs.copyFileSync(prodConfigSrc, buildConfigDest);
-    console.log(Chalk.greenBright('Production config copied to build/config.env'));
+    console.log(
+      Chalk.greenBright("Production config copied to build/config.env")
+    );
   } else {
-    console.warn(Chalk.yellow('config.production.env does not exist, using development config'));
-    const devConfigSrc = path.join(__dirname, '../config.env');
+    console.warn(
+      Chalk.yellow(
+        "config.production.env does not exist, using development config"
+      )
+    );
+    const devConfigSrc = path.join(__dirname, "../config.env");
     if (fs.existsSync(devConfigSrc)) {
       fs.copyFileSync(devConfigSrc, buildConfigDest);
     }
