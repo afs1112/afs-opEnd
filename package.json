@@ -1,7 +1,7 @@
 {
-  "name": "hnvs-mini-app",
-  "version": "0.1.0",
-  "description": "A Hvms mini app for creating and managing documents.",
+  "name": "opEnd",
+  "version": "1.0.0",
+  "description": " 无人机/火炮 操作端",
   "main": "main/main.js",
   "scripts": {
     "dev": "node scripts/dev-server.js",
@@ -14,8 +14,8 @@
     "doc:list": "ls -la docs/"
   },
   "author": {
-    "name": "Huynh Quoc Bao",
-    "url": "https://github.com/NinelXram"
+    "name": "xinnix",
+    "url": "https://github.com/xinnix2000"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.1",
