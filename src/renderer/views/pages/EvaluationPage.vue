@@ -26,20 +26,33 @@
         </div>
       </div>
       <div class="header-right">
-        <!-- 数据来源指示器 -->
-        <div class="data-source-indicator">
-          <div v-if="hasRealData" class="source-badge real-data">
-            <div class="indicator-dot"></div>
-            <span>实时数据</span>
+        <!-- 数据来源指示器和新演习按钮 -->
+        <div class="header-controls">
+          <div class="data-source-indicator">
+            <div v-if="hasRealData" class="source-badge real-data">
+              <div class="indicator-dot"></div>
+              <span>实时数据</span>
+            </div>
+            <div
+              v-else-if="allGroups.length === 0"
+              class="source-badge no-data"
+            >
+              <div class="indicator-dot"></div>
+              <span>无数据</span>
+            </div>
+            <div v-else class="source-badge cached-data">
+              <div class="indicator-dot"></div>
+              <span>缓存数据</span>
+            </div>
           </div>
-          <div v-else-if="allGroups.length === 0" class="source-badge no-data">
-            <div class="indicator-dot"></div>
-            <span>无数据</span>
-          </div>
-          <div v-else class="source-badge mock-data">
-            <div class="indicator-dot"></div>
-            <span>模拟数据</span>
-          </div>
+          <el-button
+            type="danger"
+            size="small"
+            @click="startNewExercise"
+            :disabled="allGroups.length === 0"
+          >
+            新演习
+          </el-button>
         </div>
       </div>
     </div>
@@ -54,73 +67,67 @@
         </div>
       </div>
 
-      <!-- 所有分组平铺显示，一行最多3个组 -->
-      <div v-else class="groups-grid">
-        <div v-for="group in allGroups" :key="group.name" class="group-column">
-          <!-- 组成员区域 -->
-          <div class="group-members-section">
-            <h3 class="section-title">{{ group.name }}成员</h3>
-            <div class="members-grid">
-              <!-- 红方成员 -->
-              <div class="red-members">
-                <h4 class="member-type-title">红方成员</h4>
-                <div class="member-cards">
-                  <div
-                    v-for="member in group.redMembers"
-                    :key="member.name"
-                    class="member-card red-member"
-                  >
-                    <div class="member-info">
-                      <span class="member-name">{{ member.name }}</span>
-                      <span class="member-type">{{
-                        getDisplayType(member.type)
-                      }}</span>
-                      <span class="member-status" :class="member.statusClass">
-                        {{ member.statusText }}
-                      </span>
-                    </div>
-                  </div>
+      <!-- 所有分组行列式布局 -->
+      <div v-else class="groups-table">
+        <div v-for="group in allGroups" :key="group.name" class="group-row">
+          <!-- 第一列：基本情况（成员和目标） -->
+          <div class="group-basic-info">
+            <h3 class="group-title">{{ group.name }}</h3>
+
+            <!-- 成员信息 -->
+            <div class="members-section">
+              <h4 class="section-subtitle">红方成员</h4>
+              <div class="member-list">
+                <div
+                  v-for="member in group.redMembers"
+                  :key="member.name"
+                  class="member-item"
+                >
+                  <span class="member-name">{{ member.name }}</span>
+                  <span class="member-type">{{
+                    getDisplayType(member.type)
+                  }}</span>
+                  <span class="member-status" :class="member.statusClass">
+                    {{ member.statusText }}
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- 任务目标状态 -->
-          <div class="group-target-status">
-            <h3 class="section-title">{{ group.name }}任务目标状态</h3>
-            <div class="target-status-display">
-              <div v-if="group.currentTarget" class="current-target-info">
-                <div class="target-detail">
-                  <span class="target-name">{{
-                    group.currentTarget.name
-                  }}</span>
-                  <div class="target-status-indicator">
-                    <div
-                      v-if="group.currentTarget.status === 'destroyed'"
-                      class="target-status destroyed"
-                    >
-                      <el-icon class="status-icon"><CircleClose /></el-icon>
-                      <span class="status-text">已摧毁</span>
-                    </div>
-                    <div
-                      v-else-if="group.currentTarget.status === 'active'"
-                      class="target-status active"
-                    >
-                      <el-icon class="status-icon"><SuccessFilled /></el-icon>
-                      <span class="status-text">已扫到</span>
-                    </div>
-                    <div v-else class="target-status inactive">
-                      <el-icon class="status-icon"><WarningFilled /></el-icon>
-                      <span class="status-text">未扫到</span>
-                    </div>
+            <!-- 目标信息 -->
+            <div class="target-section">
+              <h4 class="section-subtitle">任务目标</h4>
+              <div v-if="group.currentTarget" class="target-info">
+                <div class="target-name">{{ group.currentTarget.name }}</div>
+                <div class="target-type">
+                  {{ getDisplayType(group.currentTarget.type) }}
+                </div>
+                <div class="target-status-indicator">
+                  <div
+                    v-if="group.currentTarget.status === 'destroyed'"
+                    class="target-status destroyed"
+                  >
+                    <el-icon class="status-icon"><CircleClose /></el-icon>
+                    <span class="status-text">已摧毁</span>
+                  </div>
+                  <div
+                    v-else-if="group.currentTarget.status === 'active'"
+                    class="target-status active"
+                  >
+                    <el-icon class="status-icon"><SuccessFilled /></el-icon>
+                    <span class="status-text">已被发现</span>
+                  </div>
+                  <div v-else class="target-status inactive">
+                    <el-icon class="status-icon"><WarningFilled /></el-icon>
+                    <span class="status-text">未被发现</span>
                   </div>
                 </div>
                 <div
                   v-if="group.currentTarget.coordinates"
                   class="target-coordinates"
                 >
-                  经纬高：{{ group.currentTarget.coordinates.longitude }}°,
-                  {{ group.currentTarget.coordinates.latitude }}°,
+                  {{ group.currentTarget.coordinates.longitude.toFixed(6) }}°,
+                  {{ group.currentTarget.coordinates.latitude.toFixed(6) }}°,
                   {{ group.currentTarget.coordinates.altitude }}m
                 </div>
               </div>
@@ -128,121 +135,134 @@
             </div>
           </div>
 
-          <!-- 关键事件展示区 -->
-          <div class="group-events-section">
-            <h3 class="section-title">{{ group.name }}关键事件推送</h3>
-            <div class="events-timeline">
+          <!-- 第二列：关键事件 -->
+          <div class="group-events">
+            <h4 class="section-subtitle">
+              关键事件 ({{ group.events.length }})
+            </h4>
+            <div class="events-list">
               <div
-                v-for="event in group.events"
+                v-for="event in group.events.slice(0, 8)"
                 :key="event.id"
                 class="event-item"
                 :class="event.typeClass"
               >
-                <div class="event-header">
-                  <span class="event-time">{{ event.exerciseTime }}</span>
-                  <span class="event-type">{{ event.typeDisplay }}</span>
-                </div>
-                <div class="event-content">
-                  <div class="event-description">{{ event.description }}</div>
-                  <div v-if="event.details" class="event-details">
-                    <span v-if="event.details.targetName"
-                      >目标：{{ event.details.targetName }}</span
-                    >
-                    <span v-if="event.details.weaponName"
-                      >武器：{{ event.details.weaponName }}</span
-                    >
-                    <span v-if="event.details.artilleryName"
-                      >火炮：{{ event.details.artilleryName }}</span
-                    >
-                  </div>
-                </div>
+                <div class="event-time">{{ event.exerciseTime }}</div>
+                <div class="event-type">{{ event.typeDisplay }}</div>
+                <div class="event-description">{{ event.description }}</div>
                 <div class="event-platforms">
-                  <span class="source-platform">{{
-                    event.sourcePlatform
-                  }}</span>
-                  <el-icon class="arrow-icon"><ArrowRight /></el-icon>
-                  <span class="target-platform">{{
-                    event.targetPlatform
-                  }}</span>
+                  {{ event.sourcePlatform }} → {{ event.targetPlatform }}
                 </div>
               </div>
-
               <div v-if="group.events.length === 0" class="no-events">
                 暂无关键事件
+              </div>
+              <div v-if="group.events.length > 8" class="more-events">
+                还有 {{ group.events.length - 8 }} 个事件...
               </div>
             </div>
           </div>
 
-          <!-- 专家评分区域 -->
-          <div class="expert-scoring-section">
-            <h3 class="section-title">{{ group.name }}专家评价</h3>
-            <div class="scoring-panel">
-              <div class="scoring-criteria">
-                <div class="criteria-item">
-                  <label>协同效率：</label>
+          <!-- 第三列：专家评价 -->
+          <div class="group-evaluation">
+            <h4 class="section-subtitle">专家评价</h4>
+            <div class="evaluation-panel">
+              <div class="scores-grid">
+                <div class="score-item">
+                  <span class="score-label">协同效率</span>
                   <el-rate
                     v-model="group.scores.coordination"
                     :max="5"
                     allow-half
-                    show-score
-                    score-template="{value} 分"
+                    size="small"
+                    :disabled="group.isSaved"
                   />
+                  <span class="score-value">{{
+                    group.scores.coordination || 0
+                  }}</span>
                 </div>
-                <div class="criteria-item">
-                  <label>目标识别：</label>
+                <div class="score-item">
+                  <span class="score-label">目标识别</span>
                   <el-rate
                     v-model="group.scores.targetIdentification"
                     :max="5"
                     allow-half
-                    show-score
-                    score-template="{value} 分"
+                    size="small"
+                    :disabled="group.isSaved"
                   />
+                  <span class="score-value">{{
+                    group.scores.targetIdentification || 0
+                  }}</span>
                 </div>
-                <div class="criteria-item">
-                  <label>指令执行：</label>
+                <div class="score-item">
+                  <span class="score-label">指令执行</span>
                   <el-rate
                     v-model="group.scores.commandExecution"
                     :max="5"
                     allow-half
-                    show-score
-                    score-template="{value} 分"
+                    size="small"
+                    :disabled="group.isSaved"
                   />
+                  <span class="score-value">{{
+                    group.scores.commandExecution || 0
+                  }}</span>
                 </div>
-                <div class="criteria-item">
-                  <label>整体表现：</label>
+                <div class="score-item">
+                  <span class="score-label">整体表现</span>
                   <el-rate
                     v-model="group.scores.overall"
                     :max="5"
                     allow-half
-                    show-score
-                    score-template="{value} 分"
+                    size="small"
+                    :disabled="group.isSaved"
                   />
+                  <span class="score-value">{{
+                    group.scores.overall || 0
+                  }}</span>
                 </div>
               </div>
 
-              <div class="scoring-comments">
-                <label>评价备注：</label>
+              <div class="evaluation-comments">
                 <el-input
                   v-model="group.comments"
                   type="textarea"
-                  :rows="3"
-                  placeholder="请输入对该小组的评价和建议..."
-                  maxlength="500"
+                  :rows="6"
+                  placeholder="评价备注..."
+                  maxlength="200"
                   show-word-limit
+                  :disabled="group.isSaved"
                 />
               </div>
 
-              <div class="scoring-actions">
-                <el-button
-                  type="primary"
-                  @click="saveGroupEvaluation(group.name)"
-                  :disabled="!hasValidScores(group.scores)"
-                >
-                  保存评价
-                </el-button>
-                <el-button @click="resetGroupScores(group.name)">
-                  重置评分
-                </el-button>
+              <div class="evaluation-actions">
+                <!-- 保存状态指示 -->
+                <div v-if="group.isSaved" class="saved-indicator">
+                  <el-icon class="saved-icon"><SuccessFilled /></el-icon>
+                  <span class="saved-text">已保存</span>
+                  <span v-if="group.savedAt" class="saved-time">
+                    {{
+                      new Date(group.savedAt).toLocaleTimeString("zh-CN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    }}
+                  </span>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="action-buttons">
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="saveGroupEvaluation(group.name)"
+                    :disabled="!hasValidScores(group.scores) || group.isSaved"
+                  >
+                    {{ group.isSaved ? "已保存" : "保存评价" }}
+                  </el-button>
+                  <el-button size="small" @click="resetGroupScores(group.name)">
+                    重置
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
@@ -260,10 +280,10 @@
             <span class="stat-value">{{ allGroups.length }}</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">平均协同效率：</span>
-            <span class="stat-value">{{
-              calculateAverageScore("coordination")
-            }}</span>
+            <span class="stat-label">已保存评价：</span>
+            <span class="stat-value" :class="{ 'all-saved': allGroupsSaved }"
+              >{{ savedGroupsCount }}/{{ allGroups.length }}</span
+            >
           </div>
           <div class="stat-item">
             <span class="stat-label">总体事件数：</span>
@@ -271,11 +291,81 @@
           </div>
         </div>
 
+        <!-- 评价维度平均分统计 -->
+        <div class="average-scores-section">
+          <h4 class="scores-title">各维度平均评分</h4>
+          <div class="scores-stats">
+            <div class="score-stat-item">
+              <span class="score-stat-label">协同效率：</span>
+              <div class="score-stat-value">
+                <span
+                  class="score-number"
+                  :class="
+                    getScoreColorClass(calculateAverageScore('coordination'))
+                  "
+                  >{{ calculateAverageScore("coordination") }}</span
+                >
+                <span class="score-unit">/5.0</span>
+              </div>
+            </div>
+            <div class="score-stat-item">
+              <span class="score-stat-label">目标识别：</span>
+              <div class="score-stat-value">
+                <span
+                  class="score-number"
+                  :class="
+                    getScoreColorClass(
+                      calculateAverageScore('targetIdentification')
+                    )
+                  "
+                  >{{ calculateAverageScore("targetIdentification") }}</span
+                >
+                <span class="score-unit">/5.0</span>
+              </div>
+            </div>
+            <div class="score-stat-item">
+              <span class="score-stat-label">指令执行：</span>
+              <div class="score-stat-value">
+                <span
+                  class="score-number"
+                  :class="
+                    getScoreColorClass(
+                      calculateAverageScore('commandExecution')
+                    )
+                  "
+                  >{{ calculateAverageScore("commandExecution") }}</span
+                >
+                <span class="score-unit">/5.0</span>
+              </div>
+            </div>
+            <div class="score-stat-item">
+              <span class="score-stat-label">整体表现：</span>
+              <div class="score-stat-value">
+                <span
+                  class="score-number"
+                  :class="getScoreColorClass(calculateAverageScore('overall'))"
+                  >{{ calculateAverageScore("overall") }}</span
+                >
+                <span class="score-unit">/5.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="summary-actions">
-          <el-button type="success" @click="exportEvaluationReport">
-            导出评价报告
+          <el-button
+            type="success"
+            @click="exportEvaluationReport"
+            :disabled="!allGroupsSaved"
+            :class="{ 'export-ready': allGroupsSaved }"
+          >
+            {{
+              allGroupsSaved
+                ? "导出Excel报告"
+                : `待保存完成(${savedGroupsCount}/${allGroups.length})`
+            }}
           </el-button>
-          <el-button @click="clearAllEvaluations">清空所有评价</el-button>
+          <el-button @click="clearAllEvaluations">清空评价</el-button>
         </div>
       </div>
     </div>
@@ -341,6 +431,8 @@ interface GroupData {
   events: GroupEvent[];
   scores: GroupScores;
   comments: string;
+  isSaved: boolean; // 新增：标记是否已保存
+  savedAt?: string; // 新增：保存时间戳
 }
 
 // 响应式数据
@@ -362,6 +454,21 @@ const totalEvents = computed(() => {
     (total, group) => total + group.events.length,
     0
   );
+});
+
+// 新增：检查是否所有组别都已保存且有有效评分
+const allGroupsSaved = computed(() => {
+  if (allGroups.value.length === 0) return false;
+  return allGroups.value.every(
+    (group) => group.isSaved && hasValidScores(group.scores)
+  );
+});
+
+// 新增：统计已保存且有效的组别数量
+const savedGroupsCount = computed(() => {
+  return allGroups.value.filter(
+    (group) => group.isSaved && hasValidScores(group.scores)
+  ).length;
 });
 
 // 获取平台类型显示名称
@@ -421,11 +528,11 @@ const checkMissionTargetStatus = (targetName: string): string => {
   }
 };
 
-// 更新所有分组数据（平铺展示）
+// 更新所有分组数据（平铺展示）- 支持数据持久化
 const updateAllGroupsData = () => {
   if (!platforms.value || platforms.value.length === 0) {
-    console.log("[EvaluationPage] 无平台数据，跳过小组更新");
-    allGroups.value = [];
+    console.log("[EvaluationPage] 无平台数据，保持现有分组数据");
+    // 不清空现有数据，保持组别信息持久化
     return;
   }
 
@@ -476,6 +583,7 @@ const updateAllGroupsData = () => {
             overall: 0,
           },
           comments: "",
+          isSaved: false, // 新增：初始状态为未保存
         };
       }
 
@@ -546,7 +654,7 @@ const updateAllGroupsData = () => {
           currentTarget = {
             ...existingGroup.currentTarget,
             status: "inactive",
-            statusText: "失联",
+            statusText: "未被发现",
             statusClass: "status-inactive",
           };
         }
@@ -570,8 +678,8 @@ const updateAllGroupsData = () => {
 // 获取目标状态文本
 const getTargetStatusText = (status: string): string => {
   const statusMap: { [key: string]: string } = {
-    active: "正常",
-    inactive: "失联",
+    active: "已被发现",
+    inactive: "未被发现",
     destroyed: "已摧毁",
   };
   return statusMap[status] || "未知";
@@ -879,11 +987,26 @@ const formatExerciseTime = (updateTime: number): string => {
 const calculateAverageScore = (criteria: keyof GroupScores): string => {
   if (allGroups.value.length === 0) return "0.0";
 
-  const total = allGroups.value.reduce(
+  const validGroups = allGroups.value.filter(
+    (group) => group.isSaved && hasValidScores(group.scores)
+  );
+  if (validGroups.length === 0) return "0.0";
+
+  const total = validGroups.reduce(
     (sum, group) => sum + group.scores[criteria],
     0
   );
-  return (total / allGroups.value.length).toFixed(1);
+  return (total / validGroups.length).toFixed(1);
+};
+
+// 获取评分颜色等级
+const getScoreColorClass = (score: string): string => {
+  const numScore = parseFloat(score);
+  if (numScore >= 4.5) return "score-excellent";
+  if (numScore >= 4.0) return "score-good";
+  if (numScore >= 3.0) return "score-average";
+  if (numScore > 0) return "score-poor";
+  return "score-none";
 };
 
 // 检查评分是否有效
@@ -896,14 +1019,43 @@ const saveGroupEvaluation = (groupName: string) => {
   const group = allGroups.value.find((g) => g.name === groupName);
   if (!group) return;
 
-  ElMessage.success(`已保存 ${groupName} 的评价`);
+  // 检查是否已经保存
+  if (group.isSaved) {
+    ElMessage.warning(`${groupName} 的评价已经保存，无法修改`);
+    return;
+  }
+
+  // 检查评分有效性
+  if (!hasValidScores(group.scores)) {
+    ElMessage.error("请先完成评分后再保存");
+    return;
+  }
+
+  // 保存评价
+  group.isSaved = true;
+  group.savedAt = new Date().toISOString();
+
+  ElMessage.success({
+    message: `已保存 ${groupName} 的评价（${savedGroupsCount.value}/${allGroups.value.length}）`,
+    duration: 3000,
+  });
 
   console.log("保存小组评价:", {
     group: groupName,
     scores: group.scores,
     comments: group.comments,
+    savedAt: group.savedAt,
     timestamp: new Date().toISOString(),
   });
+
+  // 如果所有组别都已保存，显示提示
+  if (allGroupsSaved.value) {
+    ElMessage.success({
+      message: "所有分组评价已完成，现在可以导出报告",
+      duration: 5000,
+      showClose: true,
+    });
+  }
 };
 
 // 重置小组评分
@@ -919,36 +1071,38 @@ const resetGroupScores = (groupName: string) => {
   };
   group.comments = "";
 
+  // 重置保存状态，允许重新编辑
+  group.isSaved = false;
+  group.savedAt = undefined;
+
   ElMessage.info(`已重置 ${groupName} 的评分`);
 };
 
 // 导出评价报告
 const exportEvaluationReport = () => {
-  const report = {
-    timestamp: new Date().toISOString(),
-    exerciseTime: exerciseTime.value,
-    groups: allGroups.value.map((group) => ({
-      name: group.name,
-      memberCount: group.redMembers.length + group.blueTargets.length,
-      eventCount: group.events.length,
-      scores: group.scores,
-      comments: group.comments,
-    })),
-    summary: {
-      totalGroups: allGroups.value.length,
-      totalEvents: totalEvents.value,
-      averageScores: {
-        coordination: calculateAverageScore("coordination"),
-        targetIdentification: calculateAverageScore("targetIdentification"),
-        commandExecution: calculateAverageScore("commandExecution"),
-        overall: calculateAverageScore("overall"),
-      },
-    },
-  };
+  // 检查是否所有组别都已保存且有有效评分
+  const unsavedGroups = allGroups.value.filter(
+    (group) => !group.isSaved || !hasValidScores(group.scores)
+  );
+  if (unsavedGroups.length > 0) {
+    const unsavedNames = unsavedGroups.map((g) => g.name).join("、");
+    ElMessage.error({
+      message: `请先保存以下分组的有效评价后再导出：${unsavedNames}（已保存: ${savedGroupsCount.value}/${allGroups.value.length}）`,
+      duration: 4000,
+      showClose: true,
+    });
+    return;
+  }
+
+  // 准备Excel数据
+  const excelData = prepareExcelData();
+
+  // 生成CSV格式内容（可以被Excel直接打开）
+  const csvContent = generateCSVContent(excelData);
 
   // 创建并下载文件
-  const blob = new Blob([JSON.stringify(report, null, 2)], {
-    type: "application/json",
+  const blob = new Blob([csvContent], {
+    type: "text/csv;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -956,13 +1110,151 @@ const exportEvaluationReport = () => {
   a.download = `evaluation_report_${new Date()
     .toISOString()
     .slice(0, 19)
-    .replace(/:/g, "-")}.json`;
+    .replace(/:/g, "-")}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  ElMessage.success("评价报告已导出");
+  ElMessage.success({
+    message: `评价报告已导出为Excel表格，包含${allGroups.value.length}个分组的详细评价数据`,
+    duration: 4000,
+    showClose: true,
+  });
+};
+
+// 准备Excel数据
+const prepareExcelData = () => {
+  return allGroups.value.map((group) => {
+    // 组装成员信息
+    const redMemberNames = group.redMembers.map((m) => m.name).join("、");
+    const redMemberTypes = group.redMembers
+      .map((m) => getDisplayType(m.type))
+      .join("、");
+    const redMemberStatus = group.redMembers
+      .map((m) => m.statusText)
+      .join("、");
+
+    // 任务目标信息
+    const targetInfo = group.currentTarget
+      ? {
+          name: group.currentTarget.name,
+          type: getDisplayType(group.currentTarget.type),
+          status: group.currentTarget.statusText,
+          coordinates: group.currentTarget.coordinates
+            ? `${group.currentTarget.coordinates.longitude.toFixed(
+                6
+              )}, ${group.currentTarget.coordinates.latitude.toFixed(6)}, ${
+                group.currentTarget.coordinates.altitude
+              }m`
+            : "无坐标",
+        }
+      : {
+          name: "无目标",
+          type: "",
+          status: "",
+          coordinates: "",
+        };
+
+    return {
+      groupName: group.name,
+      redMemberNames,
+      redMemberTypes,
+      redMemberStatus,
+      targetName: targetInfo.name,
+      targetType: targetInfo.type,
+      targetStatus: targetInfo.status,
+      targetCoordinates: targetInfo.coordinates,
+      coordinationScore: group.scores.coordination || 0,
+      targetIdentificationScore: group.scores.targetIdentification || 0,
+      commandExecutionScore: group.scores.commandExecution || 0,
+      overallScore: group.scores.overall || 0,
+      comments: group.comments || "",
+      eventCount: group.events.length,
+      memberCount: group.redMembers.length,
+    };
+  });
+};
+
+// 生成CSV内容
+const generateCSVContent = (data) => {
+  // CSV标题行
+  const headers = [
+    "分组名称",
+    "红方成员",
+    "成员类型",
+    "成员状态",
+    "任务目标",
+    "目标类型",
+    "目标状态",
+    "目标坐标",
+    "协同效率评分",
+    "目标识别评分",
+    "指令执行评分",
+    "整体表现评分",
+    "评价备注",
+    "关键事件数",
+    "成员总数",
+  ];
+
+  // 构建CSV内容
+  let csvContent = "\uFEFF"; // BOM for UTF-8
+  csvContent += headers.join(",") + "\n";
+
+  data.forEach((row) => {
+    const csvRow = [
+      escapeCSVField(row.groupName),
+      escapeCSVField(row.redMemberNames),
+      escapeCSVField(row.redMemberTypes),
+      escapeCSVField(row.redMemberStatus),
+      escapeCSVField(row.targetName),
+      escapeCSVField(row.targetType),
+      escapeCSVField(row.targetStatus),
+      escapeCSVField(row.targetCoordinates),
+      row.coordinationScore,
+      row.targetIdentificationScore,
+      row.commandExecutionScore,
+      row.overallScore,
+      escapeCSVField(row.comments),
+      row.eventCount,
+      row.memberCount,
+    ];
+    csvContent += csvRow.join(",") + "\n";
+  });
+
+  // 添加汇总信息
+  csvContent += "\n汇总信息\n";
+  csvContent += `演习时间,${exerciseTime.value}\n`;
+  csvContent += `天文时间,${astronomicalTime.value}\n`;
+  csvContent += `参与分组数,${allGroups.value.length}\n`;
+  csvContent += `总平台数,${platforms.value.length}\n`;
+  csvContent += `总事件数,${totalEvents.value}\n`;
+  csvContent += `平均协同效率,${calculateAverageScore("coordination")}\n`;
+  csvContent += `平均目标识别,${calculateAverageScore(
+    "targetIdentification"
+  )}\n`;
+  csvContent += `平均指令执行,${calculateAverageScore("commandExecution")}\n`;
+  csvContent += `平均整体表现,${calculateAverageScore("overall")}\n`;
+
+  return csvContent;
+};
+
+// CSV字段转义
+const escapeCSVField = (field) => {
+  if (field === null || field === undefined) {
+    return "";
+  }
+  const str = String(field);
+  // 如果包含逗号、引号或换行符，需要用引号包围并转义内部引号
+  if (
+    str.includes(",") ||
+    str.includes('"') ||
+    str.includes("\n") ||
+    str.includes("\r")
+  ) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
 };
 
 // 清空所有评价
@@ -987,9 +1279,50 @@ const clearAllEvaluations = async () => {
       };
       group.comments = "";
       group.events = [];
+      // 重置保存状态
+      group.isSaved = false;
+      group.savedAt = undefined;
     });
 
     ElMessage.success("已清空所有评价数据");
+  } catch {
+    ElMessage.info("已取消操作");
+  }
+};
+
+// 开始新演习 - 清除所有状态
+const startNewExercise = async () => {
+  try {
+    await ElMessageBox.confirm(
+      "开始新演习将清除所有组别信息和评价数据，此操作不可恢复。确定要继续吗？",
+      "确认开始新演习",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+        message:
+          '<div style="color: #f56c6c; font-weight: 600;">⚠️ 警告：此操作将：</div><ul style="margin: 8px 0; text-align: left;"><li>清除所有分组信息</li><li>清除所有评价数据</li><li>重置演习时间</li><li>清除所有事件记录</li></ul><div>请确保已导出重要数据！</div>',
+      }
+    );
+
+    // 清除所有分组数据
+    allGroups.value = [];
+
+    // 清除平台数据
+    platforms.value = [];
+
+    // 重置状态
+    hasRealData.value = false;
+    exerciseTime.value = "T + 0秒";
+
+    ElMessage.success({
+      message: "已开始新演习，所有数据已清除",
+      duration: 3000,
+      showClose: true,
+    });
+
+    console.log("[EvaluationPage] 新演习已开始，所有状态已重置");
   } catch {
     ElMessage.info("已取消操作");
   }
@@ -1039,7 +1372,7 @@ onUnmounted(() => {
 
 <style scoped>
 .evaluation-page {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -1057,6 +1390,7 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   min-height: 60px;
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
 .header-left {
@@ -1108,7 +1442,13 @@ onUnmounted(() => {
   color: #0969da;
 }
 
-/* 数据来源指示器 */
+/* 数据来源指示器和控制按钮 */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .data-source-indicator {
   display: flex;
   align-items: center;
@@ -1136,6 +1476,19 @@ onUnmounted(() => {
   height: 6px;
   border-radius: 50%;
   background: #10b981;
+}
+
+.source-badge.cached-data {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #4b5563;
+}
+
+.source-badge.cached-data .indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9ca3af;
 }
 
 .source-badge.mock-data {
@@ -1167,6 +1520,7 @@ onUnmounted(() => {
 /* 所有分组容器 */
 .all-groups-container {
   margin-bottom: 20px;
+  flex: 1; /* 允许容器扩展 */
 }
 
 .no-groups-hint {
@@ -1194,42 +1548,302 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
-/* 分组网格布局 - 一行最多3个组 */
-.groups-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 20px;
-  max-width: 100%;
-}
-
-/* 确保每行最多3个组 */
-@media (min-width: 1200px) {
-  .groups-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  .groups-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .groups-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.group-column {
+/* 分组表格布局 */
+.groups-table {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+.group-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
   padding: 16px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #e1e8ed;
+  min-height: 320px;
+}
+
+/* 分组标题 */
+.group-title {
+  margin: 0 0 12px 0;
+  padding: 8px 12px;
+  background: #34495e;
+  color: white;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 第一列：基本情况 */
+.group-basic-info {
+  border-right: 1px solid #e1e8ed;
+  padding-right: 12px;
+}
+
+.section-subtitle {
+  margin: 8px 0 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #656d76;
+  border-bottom: 1px solid #e1e8ed;
+  padding-bottom: 4px;
+}
+
+.members-section {
+  margin-bottom: 16px;
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.member-name {
+  font-weight: 600;
+  color: #24292f;
+}
+
+.member-type {
+  color: #656d76;
+  font-size: 11px;
+}
+
+.target-section {
+  margin-bottom: 8px;
+}
+
+.target-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+}
+
+.target-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #24292f;
+}
+
+.target-type {
+  font-size: 11px;
+  color: #656d76;
+}
+
+.target-coordinates {
+  font-size: 10px;
+  color: #0969da;
+  font-family: monospace;
+}
+
+/* 第二列：关键事件 */
+.group-events {
+  border-right: 1px solid #e1e8ed;
+  padding: 0 12px;
+}
+
+.events-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.events-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.events-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.events-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.events-list::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.events-list .event-item {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border-left: 3px solid #0969da;
+  background: #f6f8fa;
+  font-size: 11px;
+}
+
+.event-command {
+  border-left-color: #7c3aed !important;
+}
+
+.event-strike_coordinate {
+  border-left-color: #dc2626 !important;
+}
+
+.event-fire_coordinate {
+  border-left-color: #ea580c !important;
+}
+
+.event-time {
+  font-family: monospace;
+  color: #656d76;
+  font-size: 10px;
+}
+
+.event-type {
+  font-weight: 600;
+  color: #0969da;
+  font-size: 10px;
+  margin-bottom: 2px;
+}
+
+.event-description {
+  color: #24292f;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.event-platforms {
+  color: #656d76;
+  font-size: 10px;
+}
+
+.more-events {
+  text-align: center;
+  color: #656d76;
+  font-style: italic;
+  font-size: 11px;
+  padding: 8px;
+}
+
+/* 第三列：专家评价 */
+.group-evaluation {
+  padding-left: 12px;
+}
+
+.evaluation-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scores-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.score-item {
+  display: grid;
+  grid-template-columns: 60px 1fr 30px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.score-label {
+  font-weight: 500;
+  color: #24292f;
+}
+
+.score-value {
+  font-weight: 600;
+  color: #0969da;
+  text-align: center;
+}
+
+.evaluation-comments {
+  flex: 1;
+}
+
+.evaluation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #e8f5e8;
+  border: 1px solid #52c41a;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.saved-icon {
+  color: #52c41a;
+  font-size: 12px;
+}
+
+.saved-text {
+  color: #52c41a;
+  font-weight: 600;
+}
+
+.saved-time {
+  color: #666;
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .group-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    min-height: auto;
+  }
+
+  .group-basic-info,
+  .group-events {
+    border-right: none;
+    border-bottom: 1px solid #e1e8ed;
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
+
+  .group-evaluation {
+    padding-left: 0;
+    padding-top: 12px;
+  }
+
+  .events-list {
+    max-height: 200px;
+  }
 }
 
 .section-title {
@@ -1375,69 +1989,58 @@ onUnmounted(() => {
 .target-status {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 10px;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
   font-weight: 500;
-  border: 1px solid;
 }
 
 .target-status.active {
   background: #e8f5e8;
   color: #52c41a;
-  border-color: rgba(82, 196, 26, 0.3);
 }
 
 .target-status.active .status-icon {
   color: #52c41a;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .target-status.inactive {
   background: #fff7e6;
   color: #faad14;
-  border-color: rgba(250, 173, 20, 0.3);
 }
 
 .target-status.inactive .status-icon {
   color: #faad14;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .target-status.destroyed {
   background: #fef0f0;
   color: #f56c6c;
-  border-color: rgba(245, 108, 108, 0.3);
   animation: targetDestroyedPulse 2s infinite;
 }
 
 .target-status.destroyed .status-icon {
   color: #f56c6c;
-  font-size: 10px;
-}
-
-@keyframes targetDestroyedPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.target-coordinates {
-  font-size: 12px;
-  color: #656d76;
-  font-family: monospace;
+  font-size: 9px;
 }
 
 .no-target {
   color: #656d76;
   font-style: italic;
   text-align: center;
+  padding: 12px;
+  font-size: 12px;
+}
+
+.no-events {
+  color: #656d76;
+  font-style: italic;
+  text-align: center;
   padding: 20px;
+  font-size: 12px;
 }
 
 /* 关键事件展示区 */
@@ -1446,149 +2049,7 @@ onUnmounted(() => {
   border-radius: 6px;
   overflow: hidden;
   min-height: 200px;
-}
-
-.events-timeline {
-  padding: 12px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.event-item {
-  margin-bottom: 12px;
-  padding: 10px;
-  border-radius: 6px;
-  border-left: 4px solid #0969da;
-  background: #f6f8fa;
-}
-
-.event-command {
-  border-left-color: #7c3aed;
-}
-
-.event-strike_coordinate {
-  border-left-color: #dc2626;
-}
-
-.event-fire_coordinate {
-  border-left-color: #ea580c;
-}
-
-.event-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.event-time {
-  font-size: 11px;
-  color: #656d76;
-  font-family: monospace;
-}
-
-.event-type {
-  font-size: 11px;
-  font-weight: 600;
-  color: #0969da;
-  background: #dbeafe;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.event-content {
-  margin-bottom: 6px;
-}
-
-.event-description {
-  font-size: 13px;
-  color: #24292f;
-  margin-bottom: 4px;
-}
-
-.event-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 11px;
-  color: #656d76;
-}
-
-.event-details span {
-  background: #f1f3f4;
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.event-platforms {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #0969da;
-}
-
-.arrow-icon {
-  font-size: 12px;
-  color: #656d76;
-}
-
-.source-platform,
-.target-platform {
-  font-weight: 500;
-}
-
-.no-events {
-  color: #656d76;
-  font-style: italic;
-  text-align: center;
-  padding: 40px 20px;
-}
-
-/* 专家评分区域 */
-.expert-scoring-section {
-  border: 1px solid #d0d7de;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.scoring-panel {
-  padding: 16px;
-}
-
-.scoring-criteria {
-  margin-bottom: 16px;
-}
-
-.criteria-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  gap: 12px;
-}
-
-.criteria-item label {
-  min-width: 80px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #24292f;
-}
-
-.scoring-comments {
-  margin-bottom: 16px;
-}
-
-.scoring-comments label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #24292f;
-}
-
-.scoring-actions {
-  display: flex;
-  gap: 8px;
+  flex-shrink: 0; /* 防止被过度压缩 */
 }
 
 /* 全局评价汇总 */
@@ -1597,6 +2058,8 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  flex-shrink: 0; /* 防止被压缩，确保始终可见 */
+  margin-top: auto; /* 推到页面底部 */
 }
 
 .summary-content {
@@ -1608,6 +2071,90 @@ onUnmounted(() => {
   gap: 24px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+/* 评价维度平均分统计区域 */
+.average-scores-section {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e1e8ed;
+}
+
+.scores-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.scores-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.score-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #d0d7de;
+  transition: all 0.2s ease;
+}
+
+.score-stat-item:hover {
+  border-color: #0969da;
+  box-shadow: 0 1px 3px rgba(9, 105, 218, 0.1);
+}
+
+.score-stat-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #656d76;
+}
+
+.score-stat-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.score-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0969da;
+}
+
+/* 评分颜色等级 */
+.score-number.score-excellent {
+  color: #137333; /* 优秀 4.5-5.0 绿色 */
+}
+
+.score-number.score-good {
+  color: #0969da; /* 良好 4.0-4.4 蓝色 */
+}
+
+.score-number.score-average {
+  color: #bf8700; /* 中等 3.0-3.9 黄色 */
+}
+
+.score-number.score-poor {
+  color: #d1242f; /* 待改进 0.1-2.9 红色 */
+}
+
+.score-number.score-none {
+  color: #656d76; /* 无评分 0.0 灰色 */
+}
+
+.score-unit {
+  font-size: 12px;
+  color: #656d76;
+  font-weight: 500;
 }
 
 .stat-item {
@@ -1627,6 +2174,25 @@ onUnmounted(() => {
   color: #0969da;
 }
 
+.stat-value.all-saved {
+  color: #52c41a;
+  font-weight: 700;
+}
+
+.export-ready {
+  animation: exportReady 2s ease-in-out;
+}
+
+@keyframes exportReady {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 .summary-actions {
   display: flex;
   gap: 8px;
@@ -1639,6 +2205,25 @@ onUnmounted(() => {
     gap: 12px;
     align-items: flex-start;
     padding: 16px;
+  }
+
+  .header-controls {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .scores-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .score-stat-item {
+    padding: 6px 8px;
+  }
+
+  .score-number {
+    font-size: 14px;
   }
 
   .header-left,
