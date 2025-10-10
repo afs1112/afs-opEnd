@@ -53,13 +53,17 @@ declare global {
           platformName: string;
           intervalMs?: number;
         }) => Promise<{ success: boolean; error?: string }>;
-        stopPlatformHeartbeat: () => Promise<{
+        stopPlatformHeartbeat: (data?: { platformName?: string }) => Promise<{
           success: boolean;
           error?: string;
         }>;
         getHeartbeatStatus: () => Promise<{
           success: boolean;
-          data?: { isRunning: boolean; platformName: string | null };
+          data?: {
+            isRunning: boolean;
+            platformCount: number;
+            platforms: string[];
+          };
           error?: string;
         }>;
 

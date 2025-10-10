@@ -1013,7 +1013,7 @@ const sameGroupPlatforms = ref<any[]>([]);
 const platformHeartbeats = ref<
   Map<string, { lastHeartbeat: number; isOnline: boolean }>
 >(new Map());
-const heartbeatTimeout = 10000; // 10秒超时判定为离线
+const heartbeatTimeout = 5000; // 5秒超时判定为离线（与无人机页面保持一致）
 
 // 平台图片数据管理
 const platformImages = ref<Map<string, string>>(new Map());
@@ -1653,14 +1653,16 @@ const initializeArtilleryStatus = () => {
 const handleConnectPlatform = async () => {
   if (isConnected.value) {
     // 断开连接
+    const disconnectedPlatformName = connectedPlatformName.value; // 保存平台名称用于停止心跳
+
     isConnected.value = false;
     connectionStatus.isConnected = false;
     connectedPlatform.value = null;
     connectedPlatformName.value = "";
 
-    // 停止平台心跳
-    await platformHeartbeatService.stopHeartbeat();
-    console.log("[ArtilleryPage] 平台心跳已停止");
+    // 停止平台心跳（传入保存的平台名称）
+    await platformHeartbeatService.stopHeartbeat(disconnectedPlatformName);
+    console.log(`[ArtilleryPage] 平台心跳已停止: ${disconnectedPlatformName}`);
 
     // 重置弹药选择和装填状态
     selectedAmmunitionType.value = "";
@@ -2304,6 +2306,17 @@ const updateArtilleryStatusDisplay = (platform: any) => {
 // 处理平台状态数据包
 const handlePlatformStatus = async (packet: any) => {
   try {
+    // 处理平台心跳数据包 (0x2C) - 修复在线状态判断逻辑
+    if (packet.parsedPacket?.packageType === 0x2c) {
+      const parsedData = packet.parsedPacket.parsedData;
+      if (parsedData?.name) {
+        updatePlatformHeartbeat(parsedData.name);
+        console.log(`[ArtilleryPage] 收到平台心跳: ${parsedData.name}`);
+      }
+      return; // 心跳包处理完成，直接返回
+    }
+
+    // 处理平台状态数据包 (0x29)
     if (packet.parsedPacket?.packageType === 0x29) {
       // 平台状态数据包
       const parsedData = packet.parsedPacket.parsedData;
@@ -2456,12 +2469,8 @@ const handlePlatformStatus = async (packet: any) => {
           });
         }
 
-        // 逐个更新平台心跳状态（与无人机页面保持一致）
-        parsedData.platform.forEach((platform: any) => {
-          if (platform.base?.name) {
-            updatePlatformHeartbeat(platform.base.name);
-          }
-        });
+        // 注意：不再从0x29状态包更新心跳状态，只从0x2C心跳包更新
+        // 这样确保在线状态判断完全基于心跳机制
 
         // 如果已连接，更新已连接平台的状态
         if (isConnected.value && connectedPlatformName.value) {

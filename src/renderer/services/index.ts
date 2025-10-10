@@ -77,13 +77,18 @@ class PlatformHeartbeatService {
 
   /**
    * 停止平台心跳发送
+   * @param platformName 要停止心跳的平台名称（可选，如果不提供则停止当前所有心跳）
    */
-  async stopHeartbeat(): Promise<boolean> {
+  async stopHeartbeat(platformName?: string): Promise<boolean> {
     try {
-      const result = await window.electronAPI.multicast.stopPlatformHeartbeat();
+      const result = await window.electronAPI.multicast.stopPlatformHeartbeat(
+        platformName ? { platformName } : undefined
+      );
 
       if (result.success) {
-        console.log(`[HeartbeatService] ✅ 停止平台心跳成功`);
+        console.log(
+          `[HeartbeatService] ✅ 停止平台心跳成功: ${platformName || "全部"}`
+        );
         return true;
       } else {
         console.error(
@@ -98,11 +103,12 @@ class PlatformHeartbeatService {
   }
 
   /**
-   * 获取心跳状态
+   * 获取心跳状态（支持多平台）
    */
   async getHeartbeatStatus(): Promise<{
     isRunning: boolean;
-    platformName: string | null;
+    platformCount: number;
+    platforms: string[];
   } | null> {
     try {
       const result = await window.electronAPI.multicast.getHeartbeatStatus();

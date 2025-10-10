@@ -41,8 +41,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       platformName: string;
       intervalMs?: number;
     }) => ipcRenderer.invoke("multicast:startPlatformHeartbeat", data),
-    stopPlatformHeartbeat: () =>
-      ipcRenderer.invoke("multicast:stopPlatformHeartbeat"),
+    stopPlatformHeartbeat: (data?: { platformName?: string }) =>
+      ipcRenderer.invoke("multicast:stopPlatformHeartbeat", data),
     getHeartbeatStatus: () =>
       ipcRenderer.invoke("multicast:getHeartbeatStatus"),
 

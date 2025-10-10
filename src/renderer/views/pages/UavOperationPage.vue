@@ -484,7 +484,7 @@
           <div class="status-content">
             <div class="status-header">
               <div class="status-title">
-                目标状态
+                发现目标
                 <span
                   v-if="isConnected && detectedTargets.length > 0"
                   class="target-count"
@@ -922,7 +922,7 @@ const missionTarget = ref<any>(null);
 const platformHeartbeats = ref<
   Map<string, { lastHeartbeat: number; isOnline: boolean }>
 >(new Map());
-const heartbeatTimeout = 10000; // 10秒超时判定为离线
+const heartbeatTimeout = 5000; // 10秒超时判定为离线
 
 // 平台图片数据管理
 const platformImages = ref<Map<string, string>>(new Map());
@@ -2460,8 +2460,10 @@ const handleConnectPlatform = async () => {
   if (isConnected.value) {
     // 断开连接
     try {
-      // 停止平台心跳
-      const heartbeatStopped = await platformHeartbeatService.stopHeartbeat();
+      // 停止平台心跳（传入平台名称）
+      const heartbeatStopped = await platformHeartbeatService.stopHeartbeat(
+        connectedPlatformName.value
+      );
       if (heartbeatStopped) {
         console.log(`[UavPage] 平台心跳已停止: ${connectedPlatformName.value}`);
         addLog("info", `平台心跳已停止: ${connectedPlatformName.value}`);
@@ -2476,12 +2478,11 @@ const handleConnectPlatform = async () => {
     connectedPlatformName.value = "";
     sameGroupPlatforms.value = [];
 
-    // 清理心跳数据
-    platformHeartbeats.value.clear();
+    // 不再清理心跳数据 - 让自然超时机制来处理在线状态
+    // 这样其他平台的心跳状态不会被影响，断开的平台会通过超时自动变为离线
+    // platformHeartbeats.value.clear(); // 移除这行代码
 
-    // 停止平台心跳
-    await platformHeartbeatService.stopHeartbeat();
-    console.log("[UavPage] 平台心跳已停止");
+    // 心跳已在上面停止，无需重复调用
 
     // 清空同组平台信息
     sameGroupPlatforms.value = [];

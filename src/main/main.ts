@@ -453,16 +453,20 @@ ipcMain.handle(
 );
 
 // 停止平台心跳
-ipcMain.handle("multicast:stopPlatformHeartbeat", async () => {
-  try {
-    multicastSenderService.stopPlatformHeartbeat();
-    console.log("[Main] ✅ 停止平台心跳");
-    return { success: true };
-  } catch (error: any) {
-    console.error("[Main] 停止平台心跳失败:", error);
-    return { success: false, error: error.message };
+ipcMain.handle(
+  "multicast:stopPlatformHeartbeat",
+  async (event, data?: { platformName?: string }) => {
+    try {
+      const platformName = data?.platformName;
+      multicastSenderService.stopPlatformHeartbeat(platformName);
+      console.log(`[Main] ✅ 停止平台心跳: ${platformName || "全部"}`);
+      return { success: true };
+    } catch (error: any) {
+      console.error("[Main] 停止平台心跳失败:", error);
+      return { success: false, error: error.message };
+    }
   }
-});
+);
 
 // 获取心跳状态
 ipcMain.handle("multicast:getHeartbeatStatus", async () => {

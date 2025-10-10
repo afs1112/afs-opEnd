@@ -66,8 +66,8 @@ export class MulticastSenderService {
   private root: protobuf.Root | null = null;
   private multicastAddress: string;
   private multicastPort: number;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
-  private connectedPlatformName: string | null = null;
+  private heartbeatIntervals: Map<string, NodeJS.Timeout> = new Map(); // 多平台心跳定时器
+  private connectedPlatforms: Set<string> = new Set(); // 已连接的平台集合
 
   constructor() {
     this.multicastAddress = process.env.MULTICAST_ADDRESS || "239.255.43.21";
@@ -988,7 +988,7 @@ export class MulticastSenderService {
   }
 
   /**
-   * 启动平台心跳定时器
+   * 启动平台心跳定时器（支持多平台并发）
    * @param platformName 平台名称
    * @param intervalMs 心跳间隔（毫秒），默认3000ms（3秒）
    */
@@ -996,10 +996,14 @@ export class MulticastSenderService {
     platformName: string,
     intervalMs: number = 3000
   ): void {
-    // 停止之前的心跳定时器
-    this.stopPlatformHeartbeat();
+    // 如果该平台已经在发送心跳，先停止
+    if (this.heartbeatIntervals.has(platformName)) {
+      this.stopPlatformHeartbeat(platformName);
+    }
 
-    this.connectedPlatformName = platformName;
+    // 记录已连接的平台
+    this.connectedPlatforms.add(platformName);
+
     console.log(
       `[MulticastSender] 启动平台心跳定时器: ${platformName}, 间隔: ${intervalMs}ms`
     );
@@ -1010,7 +1014,7 @@ export class MulticastSenderService {
     });
 
     // 设置定时器
-    this.heartbeatInterval = setInterval(async () => {
+    const interval = setInterval(async () => {
       try {
         await this.sendPlatformHeartbeat(platformName);
       } catch (error) {
@@ -1018,35 +1022,63 @@ export class MulticastSenderService {
       }
     }, intervalMs);
 
+    // 保存该平台的定时器
+    this.heartbeatIntervals.set(platformName, interval);
+
     console.log(`[MulticastSender] ✅ 平台心跳定时器已启动: ${platformName}`);
+    console.log(
+      `[MulticastSender] 当前活跃心跳平台数量: ${this.heartbeatIntervals.size}`
+    );
   }
 
   /**
-   * 停止平台心跳定时器
+   * 停止平台心跳定时器（支持多平台并发）
+   * @param platformName 要停止的平台名称（可选，如果不提供则停止所有心跳）
    */
-  public stopPlatformHeartbeat(): void {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
+  public stopPlatformHeartbeat(platformName?: string): void {
+    if (platformName) {
+      // 停止指定平台的心跳
+      const interval = this.heartbeatIntervals.get(platformName);
+      if (interval) {
+        clearInterval(interval);
+        this.heartbeatIntervals.delete(platformName);
+        this.connectedPlatforms.delete(platformName);
+        console.log(`[MulticastSender] 平台心跳定时器已停止: ${platformName}`);
+      } else {
+        console.log(`[MulticastSender] 未找到平台心跳定时器: ${platformName}`);
+      }
+    } else {
+      // 停止所有平台的心跳
       console.log(
-        `[MulticastSender] 平台心跳定时器已停止: ${
-          this.connectedPlatformName || "未知平台"
-        }`
+        `[MulticastSender] 停止所有平台心跳，当前数量: ${this.heartbeatIntervals.size}`
       );
+
+      this.heartbeatIntervals.forEach((interval, name) => {
+        clearInterval(interval);
+        console.log(`[MulticastSender] 停止平台心跳: ${name}`);
+      });
+
+      this.heartbeatIntervals.clear();
+      this.connectedPlatforms.clear();
     }
-    this.connectedPlatformName = null;
+
+    console.log(
+      `[MulticastSender] 当前活跃心跳平台数量: ${this.heartbeatIntervals.size}`
+    );
   }
 
   /**
-   * 获取当前心跳状态
+   * 获取当前心跳状态（支持多平台）
    */
   public getHeartbeatStatus(): {
     isRunning: boolean;
-    platformName: string | null;
+    platformCount: number;
+    platforms: string[];
   } {
     return {
-      isRunning: this.heartbeatInterval !== null,
-      platformName: this.connectedPlatformName,
+      isRunning: this.heartbeatIntervals.size > 0,
+      platformCount: this.heartbeatIntervals.size,
+      platforms: Array.from(this.connectedPlatforms),
     };
   }
 
