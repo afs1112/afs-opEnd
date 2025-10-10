@@ -235,3 +235,4 @@ class PlatformImageService {
 export const commonService = new CommonService();
 export const platformHeartbeatService = new PlatformHeartbeatService();
 export const platformImageService = new PlatformImageService();
+export { DocumentService } from "./document.service";

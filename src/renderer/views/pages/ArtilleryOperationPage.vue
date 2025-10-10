@@ -406,7 +406,7 @@
               {{ formatCoordinate(connectedPlatform.base?.location?.latitude)
               }}<br />
               高度：{{ connectedPlatform.base?.location?.altitude || 0 }}m<br />
-              姿态：俨仰{{ formatAngle(connectedPlatform.base?.pitch) }} 横滚{{
+              姿态：俯仰{{ formatAngle(connectedPlatform.base?.pitch) }} 横滚{{
                 formatAngle(connectedPlatform.base?.roll)
               }}
               偏航{{ formatAngle(connectedPlatform.base?.yaw) }}
@@ -418,7 +418,7 @@
         <div class="status-card coordination-status">
           <div class="status-content">
             <div class="status-header">
-              <div class="status-title">目标状态</div>
+              <div class="status-title">装订目标</div>
               <div
                 class="data-source-indicator"
                 :class="getTargetDataSourceClass()"
@@ -687,10 +687,41 @@
     <!-- 文档查看对话框 -->
     <el-dialog
       v-model="documentDialogVisible"
-      title="文档查看"
+      :title="
+        currentDocumentInfo
+          ? `${DocumentService.getDocumentIcon(currentDocumentInfo.type)} ${
+              currentDocumentInfo.fileName
+            } - ${DocumentService.getDocumentTypeDisplayName(
+              currentDocumentInfo.type
+            )}`
+          : '文档查看'
+      "
       width="80%"
       :before-close="handleCloseDocument"
     >
+      <!-- 文档信息栏 -->
+      <div v-if="currentDocumentInfo" class="document-info-bar">
+        <div class="info-left">
+          <el-tag
+            :type="currentDocumentInfo.isFromCache ? 'warning' : 'success'"
+            size="small"
+          >
+            {{ currentDocumentInfo.isFromCache ? "缓存文档" : "新加载" }}
+          </el-tag>
+          <span class="file-path">{{ currentDocumentInfo.filePath }}</span>
+        </div>
+        <div class="info-right">
+          <el-button
+            @click="selectOtherDocument"
+            type="primary"
+            size="small"
+            icon="Folder"
+          >
+            选择其他文档
+          </el-button>
+        </div>
+      </div>
+
       <div class="document-content">
         <div v-if="documentLoading" class="loading-container">
           <el-icon class="is-loading"><Loading /></el-icon>
@@ -699,18 +730,42 @@
         <div v-else-if="documentError" class="error-container">
           <el-icon><WarningFilled /></el-icon>
           <span>{{ documentError }}</span>
+          <el-button @click="selectDocument" type="primary" size="small">
+            重新选择文档
+          </el-button>
         </div>
         <div v-else-if="documentContent" class="document-text">
-          <pre>{{ documentContent }}</pre>
+          <!-- 根据内容类型选择不同的显示方式 -->
+          <div
+            v-if="isDocumentHtml"
+            v-html="documentContent"
+            class="html-content"
+          ></div>
+          <pre v-else class="text-content">{{ documentContent }}</pre>
         </div>
         <div v-else class="empty-container">
-          <span>请选择要打开的文档</span>
+          <div class="empty-content">
+            <el-icon class="empty-icon"><Document /></el-icon>
+            <span class="empty-text">请选择要打开的文档</span>
+            <el-button @click="selectDocument" type="primary">
+              选择文档
+            </el-button>
+          </div>
         </div>
       </div>
+
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocument" type="primary">选择文档</el-button>
-          <el-button @click="handleCloseDocument">关闭</el-button>
+          <el-button
+            @click="selectDocument"
+            type="primary"
+            v-if="!currentDocumentInfo"
+          >
+            选择文档
+          </el-button>
+          <el-button @click="handleCloseDocument">
+            {{ currentDocumentInfo ? "隐藏" : "关闭" }}
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -728,8 +783,14 @@ import {
   SuccessFilled,
   ArrowRight,
   ArrowLeft,
+  Document,
+  Folder,
 } from "@element-plus/icons-vue";
-import { platformHeartbeatService, platformImageService } from "../../services";
+import {
+  platformHeartbeatService,
+  platformImageService,
+  DocumentService,
+} from "../../services";
 
 // 当前目标信息接口
 interface CurrentTarget {
@@ -971,6 +1032,9 @@ const documentDialogVisible = ref(false);
 const documentContent = ref("");
 const documentLoading = ref(false);
 const documentError = ref("");
+const currentDocumentInfo = ref<any>(null); // 存储当前文档信息
+const hasOpenedDocuments = ref(false); // 是否有已打开的文档
+const isDocumentHtml = ref(false); // 文档内容是否为HTML格式
 
 // 新增缺失的变量
 const isConnected = ref(false);
@@ -1705,6 +1769,25 @@ const handleConnectPlatform = async () => {
   );
 
   if (targetPlatform) {
+    // 连接到真实平台前，先清空所有目标相关状态
+    // 清除任务目标
+    missionTarget.value = null;
+
+    // 清空目标装订状态
+    currentTarget.name = "";
+    currentTarget.coordinates = "";
+
+    // 清空协同目标状态
+    receivedCoordinationTarget.name = "";
+    receivedCoordinationTarget.coordinates = "";
+    receivedCoordinationTarget.sourcePlatform = "";
+    receivedCoordinationTarget.longitude = undefined;
+    receivedCoordinationTarget.latitude = undefined;
+    receivedCoordinationTarget.altitude = undefined;
+
+    // 清空协同报文状态
+    cooperationMessages.value = [];
+
     // 连接到真实平台
     isConnected.value = true;
     connectionStatus.isConnected = true;
@@ -1746,6 +1829,25 @@ const handleConnectPlatform = async () => {
     ElMessage.success(`平台连接成功: ${selectedInstance.value}`);
   } else {
     // 未找到真实平台，但仍然允许连接（使用默认数据）
+    // 连接前先清空所有目标相关状态
+    // 清除任务目标
+    missionTarget.value = null;
+
+    // 清空目标装订状态
+    currentTarget.name = "";
+    currentTarget.coordinates = "";
+
+    // 清空协同目标状态
+    receivedCoordinationTarget.name = "";
+    receivedCoordinationTarget.coordinates = "";
+    receivedCoordinationTarget.sourcePlatform = "";
+    receivedCoordinationTarget.longitude = undefined;
+    receivedCoordinationTarget.latitude = undefined;
+    receivedCoordinationTarget.altitude = undefined;
+
+    // 清空协同报文状态
+    cooperationMessages.value = [];
+
     isConnected.value = true;
     connectionStatus.isConnected = true;
     connectedPlatform.value = null; // 没有真实平台数据
@@ -2620,72 +2722,172 @@ const handlePlatformStatus = async (packet: any) => {
   }
 };
 
+// 文档相关函数
 // 打开文档
-const openDocument = () => {
-  documentDialogVisible.value = true;
-  documentContent.value = "";
-  documentError.value = "";
-};
-
-// 选择文档
-const selectDocument = async () => {
+const openDocument = async () => {
   try {
-    // 使用 Electron 的文件选择对话框
-    const result = await (window as any).electronAPI.dialog.showOpenDialog({
-      title: "选择文档",
-      filters: [
-        { name: "Word 文档", extensions: ["doc", "docx"] },
-        { name: "所有文件", extensions: ["*"] },
-      ],
-      properties: ["openFile"],
-    });
+    documentLoading.value = true;
+    documentError.value = "";
 
-    if (!result.canceled && result.filePaths.length > 0) {
-      const filePath = result.filePaths[0];
-      await loadDocument(filePath);
+    // 检查是否有已打开的文档
+    const hasOpened = await DocumentService.hasOpenedDocuments();
+
+    if (hasOpened) {
+      // 如果有最近文档，直接显示
+      const recentDoc = await DocumentService.showRecentDocument();
+      if (recentDoc) {
+        currentDocumentInfo.value = recentDoc;
+        const formattedContent = DocumentService.formatDocumentContent(
+          recentDoc.content,
+          recentDoc.type
+        );
+        documentContent.value = formattedContent.content;
+        isDocumentHtml.value = formattedContent.isHtml;
+        documentDialogVisible.value = true;
+
+        const typeName = DocumentService.getDocumentTypeDisplayName(
+          recentDoc.type
+        );
+        const icon = DocumentService.getDocumentIcon(recentDoc.type);
+
+        ElMessage.success({
+          message: `${icon} 文档已打开：${recentDoc.fileName} (${typeName}${
+            recentDoc.isFromCache ? " - 来自缓存" : ""
+          })`,
+          duration: 3000,
+        });
+
+        documentLoading.value = false;
+        return;
+      }
     }
+
+    // 没有最近文档，打开选择器
+    documentDialogVisible.value = true;
+    await selectDocument();
   } catch (error) {
-    console.error("选择文档失败:", error);
-    ElMessage.error("选择文档失败");
-  }
-};
-
-// 加载文档内容
-const loadDocument = async (filePath: string) => {
-  documentLoading.value = true;
-  documentError.value = "";
-  documentContent.value = "";
-
-  try {
-    // 调用主进程的文档解析方法
-    const content = await (window as any).electronAPI.document.readDocument(
-      filePath
-    );
-
-    if (content.success) {
-      documentContent.value = content.data;
-      ElMessage.success("文档加载成功");
-    } else {
-      documentError.value = content.error || "文档加载失败";
-      ElMessage.error(documentError.value);
-    }
-  } catch (error) {
-    documentError.value = "文档加载失败：" + (error as Error).message;
+    console.error("打开文档失败:", error);
+    documentError.value = "打开文档失败：" + (error as Error).message;
     ElMessage.error(documentError.value);
   } finally {
     documentLoading.value = false;
   }
 };
 
-// 关闭文档对话框
-const handleCloseDocument = () => {
-  documentDialogVisible.value = false;
-  documentContent.value = "";
-  documentError.value = "";
+// 选择文档
+const selectDocument = async () => {
+  try {
+    documentLoading.value = true;
+
+    const documentInfo = await DocumentService.selectAndOpenDocument();
+
+    if (documentInfo) {
+      currentDocumentInfo.value = documentInfo;
+      const formattedContent = DocumentService.formatDocumentContent(
+        documentInfo.content,
+        documentInfo.type
+      );
+      documentContent.value = formattedContent.content;
+      isDocumentHtml.value = formattedContent.isHtml;
+
+      const typeName = DocumentService.getDocumentTypeDisplayName(
+        documentInfo.type
+      );
+      const icon = DocumentService.getDocumentIcon(documentInfo.type);
+
+      ElMessage.success({
+        message: `${icon} 文档加载成功：${documentInfo.fileName} (${typeName})`,
+        duration: 3000,
+      });
+
+      // 更新文档状态
+      hasOpenedDocuments.value = true;
+    }
+  } catch (error) {
+    console.error("选择文档失败:", error);
+    documentError.value = "选择文档失败：" + (error as Error).message;
+    ElMessage.error(documentError.value);
+  } finally {
+    documentLoading.value = false;
+  }
+};
+
+// 强制选择其他文档（忽略缓存）
+const selectOtherDocument = async () => {
+  try {
+    documentLoading.value = true;
+
+    const documentInfo = await DocumentService.forceSelectNewDocument();
+
+    if (documentInfo) {
+      currentDocumentInfo.value = documentInfo;
+      const formattedContent = DocumentService.formatDocumentContent(
+        documentInfo.content,
+        documentInfo.type
+      );
+      documentContent.value = formattedContent.content;
+      isDocumentHtml.value = formattedContent.isHtml;
+
+      const typeName = DocumentService.getDocumentTypeDisplayName(
+        documentInfo.type
+      );
+      const icon = DocumentService.getDocumentIcon(documentInfo.type);
+
+      ElMessage.success({
+        message: `${icon} 新文档加载成功：${documentInfo.fileName} (${typeName})`,
+        duration: 3000,
+      });
+
+      // 更新文档状态
+      hasOpenedDocuments.value = true;
+    }
+  } catch (error) {
+    console.error("选择其他文档失败:", error);
+    documentError.value = "选择其他文档失败：" + (error as Error).message;
+    ElMessage.error(documentError.value);
+  } finally {
+    documentLoading.value = false;
+  }
+};
+
+// 关闭文档对话框（实际上是隐藏）
+const handleCloseDocument = async () => {
+  try {
+    // 隐藏文档而不是真正关闭
+    await DocumentService.hideCurrentDocument();
+
+    documentDialogVisible.value = false;
+
+    if (currentDocumentInfo.value) {
+      const icon = DocumentService.getDocumentIcon(
+        currentDocumentInfo.value.type
+      );
+      ElMessage.info({
+        message: `${icon} 文档已隐藏，下次打开将直接显示`,
+        duration: 2000,
+      });
+    }
+  } catch (error) {
+    console.error("隐藏文档失败:", error);
+    // 如果隐藏失败，仍然关闭对话框
+    documentDialogVisible.value = false;
+  }
 };
 
 // 生命周期钩子
-onMounted(() => {
+onMounted(async () => {
+  // 检查是否有已打开的文档
+  try {
+    hasOpenedDocuments.value = await DocumentService.hasOpenedDocuments();
+    console.log(
+      `[ArtilleryPage] 文档状态：${
+        hasOpenedDocuments.value ? "有已打开的文档" : "无已打开的文档"
+      }`
+    );
+  } catch (error) {
+    console.error("[ArtilleryPage] 检查文档状态失败:", error);
+  }
+
   // 监听平台状态数据
   if (window.electronAPI?.multicast?.onPacket) {
     window.electronAPI.multicast.onPacket(handlePlatformStatus);
@@ -3659,20 +3861,80 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+/* 文档信息栏 */
+.document-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.info-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-path {
+  color: #666;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.info-right {
+  flex-shrink: 0;
+}
+
 .loading-container,
 .error-container,
 .empty-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 40px;
+  padding: 60px 40px;
   color: #666;
   font-size: 14px;
 }
 
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #d0d0d0;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #999;
+}
+
 .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
   color: #e74c3c;
+  font-size: 14px;
+  text-align: center;
 }
 
 .document-text {
@@ -3682,7 +3944,14 @@ onUnmounted(() => {
   border: 1px solid #e0e0e0;
 }
 
-.document-text pre {
+.document-text .html-content {
+  /* HTML内容的样式已经在后端定义 */
+  font-family: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+.document-text .text-content {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

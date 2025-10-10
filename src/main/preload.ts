@@ -95,6 +95,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   document: {
     readDocument: (filePath: string) =>
       ipcRenderer.invoke("document:readDocument", filePath),
+    getRecentDocument: () => ipcRenderer.invoke("document:getRecentDocument"),
+    hideDocument: () => ipcRenderer.invoke("document:hideDocument"),
+    getStats: () => ipcRenderer.invoke("document:getStats"),
+    hasOpenedDocuments: () => ipcRenderer.invoke("document:hasOpenedDocuments"),
   },
 
   // 对话框相关

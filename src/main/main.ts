@@ -13,6 +13,7 @@ import {
   PlatformCmdData,
 } from "./services/multicast-sender.service";
 import { DocumentService } from "./services/document.service";
+import { DocumentStateService } from "./services/document-state.service";
 
 import { navConfigService } from "./services/nav-config.service";
 import { uavIdService } from "./services/uav-id.service";
@@ -306,7 +307,73 @@ ipcMain.handle(
 // 文档服务IPC处理
 ipcMain.handle("document:readDocument", async (_, filePath: string) => {
   try {
-    return await DocumentService.readDocument(filePath);
+    const result = await DocumentService.readDocument(filePath);
+
+    // 如果成功读取，保存文档状态
+    if (result.success && result.data) {
+      const fileName = filePath.split(/[\\\/]/).pop() || "未知文档";
+      DocumentStateService.saveDocumentState(
+        filePath,
+        fileName,
+        result.data,
+        result.type || "unknown"
+      );
+    }
+
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取最近文档
+ipcMain.handle("document:getRecentDocument", async () => {
+  try {
+    const recentDoc = DocumentStateService.showRecentDocument();
+    if (recentDoc) {
+      return {
+        success: true,
+        data: recentDoc.content,
+        type: recentDoc.type,
+        fileName: recentDoc.fileName,
+        filePath: recentDoc.filePath,
+      };
+    } else {
+      return {
+        success: false,
+        error: "没有最近打开的文档",
+      };
+    }
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 隐藏当前文档
+ipcMain.handle("document:hideDocument", async () => {
+  try {
+    DocumentStateService.hideCurrentDocument();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 获取文档统计信息
+ipcMain.handle("document:getStats", async () => {
+  try {
+    const stats = DocumentStateService.getDocumentStats();
+    return { success: true, data: stats };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 检查是否有已打开的文档
+ipcMain.handle("document:hasOpenedDocuments", async () => {
+  try {
+    const hasDocuments = DocumentStateService.hasOpenedDocuments();
+    return { success: true, data: hasDocuments };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

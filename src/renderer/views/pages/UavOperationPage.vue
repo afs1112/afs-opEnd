@@ -263,13 +263,19 @@
                 class="action-btn"
                 @click="handleIrradiate"
                 :type="isIrradiating ? 'danger' : 'primary'"
+                :disabled="!laserPodEnabled"
               >
                 <span v-if="isIrradiating"
                   >照射 ({{ irradiationCountdown }})</span
                 >
                 <span v-else>照射</span>
               </el-button>
-              <el-button class="action-btn" @click="handleStop">停止</el-button>
+              <el-button
+                class="action-btn"
+                @click="handleStop"
+                :disabled="!laserPodEnabled"
+                >停止</el-button
+              >
             </div>
 
             <!-- 传感器转向参数 -->
@@ -519,7 +525,16 @@
               >
                 <div class="target-content">
                   <div class="target-main-info">
-                    <span class="target-name">{{ target.name }}</span>
+                    <div class="target-name-section">
+                      <!-- 锁定目标标记（作为前缀） -->
+                      <div
+                        v-if="lockedTarget === target.name"
+                        class="locked-prefix"
+                      >
+                        <el-icon class="locked-prefix-icon"><Lock /></el-icon>
+                      </div>
+                      <span class="target-name">{{ target.name }}</span>
+                    </div>
                     <div class="target-status-indicator">
                       <div
                         class="destroyed-status"
@@ -812,10 +827,41 @@
     <!-- 文档查看对话框 -->
     <el-dialog
       v-model="documentDialogVisible"
-      title="文档查看"
+      :title="
+        currentDocumentInfo
+          ? `${DocumentService.getDocumentIcon(currentDocumentInfo.type)} ${
+              currentDocumentInfo.fileName
+            } - ${DocumentService.getDocumentTypeDisplayName(
+              currentDocumentInfo.type
+            )}`
+          : '文档查看'
+      "
       width="80%"
       :before-close="handleCloseDocument"
     >
+      <!-- 文档信息栏 -->
+      <div v-if="currentDocumentInfo" class="document-info-bar">
+        <div class="info-left">
+          <el-tag
+            :type="currentDocumentInfo.isFromCache ? 'warning' : 'success'"
+            size="small"
+          >
+            {{ currentDocumentInfo.isFromCache ? "缓存文档" : "新加载" }}
+          </el-tag>
+          <span class="file-path">{{ currentDocumentInfo.filePath }}</span>
+        </div>
+        <div class="info-right">
+          <el-button
+            @click="selectOtherDocument"
+            type="primary"
+            size="small"
+            icon="Folder"
+          >
+            选择其他文档
+          </el-button>
+        </div>
+      </div>
+
       <div class="document-content">
         <div v-if="documentLoading" class="loading-container">
           <el-icon class="is-loading"><Loading /></el-icon>
@@ -824,18 +870,81 @@
         <div v-else-if="documentError" class="error-container">
           <el-icon><WarningFilled /></el-icon>
           <span>{{ documentError }}</span>
+          <el-button @click="selectDocument" type="primary" size="small">
+            重新选择文档
+          </el-button>
         </div>
         <div v-else-if="documentContent" class="document-text">
-          <pre>{{ documentContent }}</pre>
+          <!-- 根据内容类型选择不同的显示方式 -->
+          <div
+            v-if="isDocumentHtml"
+            v-html="documentContent"
+            class="html-content"
+          ></div>
+          <pre v-else class="text-content">{{ documentContent }}</pre>
         </div>
         <div v-else class="empty-container">
-          <span>请选择要打开的文档</span>
+          <div class="empty-content">
+            <el-icon class="empty-icon"><Document /></el-icon>
+            <span class="empty-text">请选择要打开的文档</span>
+            <el-button @click="selectDocument" type="primary">
+              选择文档
+            </el-button>
+          </div>
         </div>
       </div>
+
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="selectDocument" type="primary">选择文档</el-button>
-          <el-button @click="handleCloseDocument">关闭</el-button>
+          <el-button
+            @click="selectDocument"
+            type="primary"
+            v-if="!currentDocumentInfo"
+          >
+            选择文档
+          </el-button>
+          <el-button @click="handleCloseDocument">
+            {{ currentDocumentInfo ? "隐藏" : "关闭" }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 仿真平台断线提示对话框 -->
+    <el-dialog
+      v-model="simulationDisconnectedDialogVisible"
+      title="仿真平台连接异常"
+      width="600px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div class="simulation-disconnect-content">
+        <div class="warning-icon">
+          <el-icon size="48" color="#E6A23C"><WarningFilled /></el-icon>
+        </div>
+        <div class="warning-message">
+          <h3>仿真平台可能已断线</h3>
+          <p>系统已超过30秒未收到演习时间数据更新，请检查：</p>
+          <ul>
+            <li>仿真系统是否正常运行</li>
+            <li>网络连接是否正常</li>
+            <li>组播设置是否正确</li>
+          </ul>
+          <p class="continue-hint">
+            您可以选择手动断开连接，或继续等待数据恢复。
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="handleContinueWaitingSimulation" type="info">
+            继续等待
+          </el-button>
+          <el-button @click="handleForceDisconnectSimulation" type="warning">
+            手动断开
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -853,8 +962,15 @@ import {
   SuccessFilled,
   ArrowRight,
   ArrowLeft,
+  Document,
+  Folder,
+  Lock,
 } from "@element-plus/icons-vue";
-import { platformHeartbeatService, platformImageService } from "../../services";
+import {
+  platformHeartbeatService,
+  platformImageService,
+  DocumentService,
+} from "../../services";
 
 // 基础数据
 const optoElectronicPodEnabled = ref(false); // 光电吊舱控制开关
@@ -886,6 +1002,7 @@ const hasRealPlatformData = ref<boolean>(false);
 // 目标选择相关
 const selectedTarget = ref(""); // 用于下拉框的目标选择
 const selectedTargetFromList = ref(""); // 用于目标列表的目标选择
+const lockedTarget = ref(""); // 当前被锁定的目标名称
 
 // 动态目标选项（从当前连接平台的tracks中获取）
 const targetOptions = computed(() => {
@@ -926,6 +1043,12 @@ const heartbeatTimeout = 5000; // 10秒超时判定为离线
 
 // 平台图片数据管理
 const platformImages = ref<Map<string, string>>(new Map());
+
+// 仿真平台断线检测相关变量
+const lastExerciseTimeUpdate = ref<number>(0); // 最后一次演习时间更新的时间戳
+const simulationTimeout = 10000; // 30秒超时判定为仿真平台断线
+const simulationDisconnectedDialogVisible = ref(false); // 仿真平台断线对话框是否可见
+const simulationCheckTimer = ref<NodeJS.Timeout | null>(null); // 仿真平台检测定时器
 
 // 动态分组选项（从平台数据中获取）
 // 动态分组选项（从平台数据中获取）
@@ -1115,6 +1238,9 @@ const documentDialogVisible = ref(false);
 const documentContent = ref("");
 const documentLoading = ref(false);
 const documentError = ref("");
+const currentDocumentInfo = ref<any>(null); // 存储当前文档信息
+const hasOpenedDocuments = ref(false); // 是否有已打开的文档
+const isDocumentHtml = ref(false); // 文档内容是否为HTML格式
 
 // 传感器转向相关
 const sensorParamForm = reactive({
@@ -1589,7 +1715,7 @@ const updatePlatformStatusDisplay = (platform: any) => {
   if (platform.base.location) {
     const newLongitude = `${platform.base.location.longitude.toFixed(6)}°`;
     const newLatitude = `${platform.base.location.latitude.toFixed(6)}°`;
-    const newAltitude = `${platform.base.location.altitude}m`;
+    const newAltitude = `${platform.base.location.altitude.toFixed(1)}m`;
 
     // 只在数据变化时才更新，避免不必要的重渲染
     if (
@@ -1877,6 +2003,17 @@ const handlePlatformStatus = async (packet: any) => {
             0
           )}秒`;
 
+          // 记录演习时间更新的时间戳，用于仿真平台断线检测
+          lastExerciseTimeUpdate.value = Date.now();
+
+          // 如果之前显示了断线对话框，现在数据恢复了，自动关闭对话框
+          if (simulationDisconnectedDialogVisible.value) {
+            simulationDisconnectedDialogVisible.value = false;
+            addLog("success", "仿真平台数据恢复，连接恢复正常");
+            ElMessage.success("仿真平台数据恢复，连接恢复正常");
+            console.log("[UavPage] 仿真平台数据恢复，自动关闭断线提示对话框");
+          }
+
           // 更新天文时间（保持当前的实时时间显示）
           environmentParams.astronomicalTime = new Date().toLocaleTimeString();
         }
@@ -1979,6 +2116,58 @@ const checkHeartbeatTimeouts = () => {
 const isPlatformOnlineByHeartbeat = (platformName: string): boolean => {
   const heartbeat = platformHeartbeats.value.get(platformName);
   return heartbeat ? heartbeat.isOnline : false;
+};
+
+// 检测仿真平台连接状态
+const checkSimulationConnection = () => {
+  // 只在已连接状态下才进行检测
+  if (!isConnected.value || lastExerciseTimeUpdate.value === 0) {
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLastUpdate = now - lastExerciseTimeUpdate.value;
+
+  // 如果超过超时时间且对话框未显示，则显示断线提示
+  if (
+    timeSinceLastUpdate > simulationTimeout &&
+    !simulationDisconnectedDialogVisible.value
+  ) {
+    console.warn(
+      `[UavPage] 仿真平台可能已断线，距离上次数据更新已过 ${Math.round(
+        timeSinceLastUpdate / 1000
+      )} 秒`
+    );
+    simulationDisconnectedDialogVisible.value = true;
+    addLog("warning", "仿真平台可能已断线，请检查网络连接或重新启动仿真系统");
+  }
+};
+
+// 手动断开仿真平台连接
+const handleForceDisconnectSimulation = async () => {
+  try {
+    console.log("[UavPage] 用户手动断开仿真平台连接");
+
+    // 关闭对话框
+    simulationDisconnectedDialogVisible.value = false;
+
+    // 执行断开操作
+    await handleConnectPlatform();
+
+    addLog("info", "用户手动断开了仿真平台连接");
+    ElMessage.info("已断开仿真平台连接");
+  } catch (error: any) {
+    console.error("[UavPage] 手动断开仿真平台连接失败:", error);
+    addLog("error", `断开仿真平台连接失败: ${error.message}`);
+    ElMessage.error(`断开失败: ${error.message}`);
+  }
+};
+
+// 继续等待仿真平台数据
+const handleContinueWaitingSimulation = () => {
+  console.log("[UavPage] 用户选择继续等待仿真平台数据");
+  simulationDisconnectedDialogVisible.value = false;
+  addLog("info", "继续等待仿真平台数据更新...");
 };
 
 // 获取平台图片
@@ -2514,6 +2703,10 @@ const handleConnectPlatform = async () => {
     cooperationMessages.value = [];
     cooperationTarget.value = "";
 
+    // 重置仿真平台检测状态
+    lastExerciseTimeUpdate.value = 0;
+    simulationDisconnectedDialogVisible.value = false;
+
     addLog(
       "warning",
       `已断开连接: ${selectedGroup.value} - ${selectedUav.value}`
@@ -2536,6 +2729,25 @@ const handleConnectPlatform = async () => {
   );
 
   if (targetPlatform) {
+    // 连接到真实平台前，先清空所有目标相关状态
+    // 清空发现目标列表
+    detectedTargets.value = [];
+    activeTargetNames.value.clear();
+
+    // 清空目标选择和状态
+    selectedTarget.value = "";
+    selectedTargetFromList.value = "";
+    lockedTarget.value = "";
+    targetStatus.name = "目标-001";
+    targetStatus.destroyed = false;
+
+    // 清除任务目标
+    missionTarget.value = null;
+
+    // 清空协同报文状态
+    cooperationMessages.value = [];
+    cooperationTarget.value = "";
+
     // 连接到真实平台
     isConnected.value = true;
     connectedPlatform.value = targetPlatform;
@@ -2578,6 +2790,10 @@ const handleConnectPlatform = async () => {
       addLog("warning", `平台心跳启动失败: ${selectedUav.value}`);
     }
 
+    // 初始化仿真平台检测状态
+    lastExerciseTimeUpdate.value = Date.now(); // 设置初始时间
+    simulationDisconnectedDialogVisible.value = false; // 确保对话框关闭
+
     addLog(
       "success",
       `已连接到真实平台: ${selectedGroup.value} - ${selectedUav.value}`
@@ -2585,6 +2801,25 @@ const handleConnectPlatform = async () => {
     ElMessage.success(`平台连接成功: ${selectedUav.value}`);
   } else {
     // 未找到真实平台，但仍然允许连接（使用默认数据）
+    // 连接前先清空所有目标相关状态
+    // 清空发现目标列表
+    detectedTargets.value = [];
+    activeTargetNames.value.clear();
+
+    // 清空目标选择和状态
+    selectedTarget.value = "";
+    selectedTargetFromList.value = "";
+    lockedTarget.value = "";
+    targetStatus.name = "目标-001";
+    targetStatus.destroyed = false;
+
+    // 清除任务目标
+    missionTarget.value = null;
+
+    // 清空协同报文状态
+    cooperationMessages.value = [];
+    cooperationTarget.value = "";
+
     isConnected.value = true;
     connectedPlatform.value = null; // 没有真实平台数据
     connectedPlatformName.value = selectedUav.value;
@@ -2611,6 +2846,10 @@ const handleConnectPlatform = async () => {
       console.log(`[UavPage] 模拟平台心跳已启动: ${selectedUav.value}`);
       addLog("info", `模拟平台心跳已启动: ${selectedUav.value}`);
     }
+
+    // 初始化仿真平台检测状态（模拟模式下也需要检测）
+    lastExerciseTimeUpdate.value = Date.now(); // 设置初始时间
+    simulationDisconnectedDialogVisible.value = false; // 确保对话框关闭
 
     addLog(
       "warning",
@@ -2679,6 +2918,12 @@ const handleSetLaserCountdown = () => {
 };
 
 const handleIrradiate = () => {
+  // 检查激光载荷开关状态
+  if (!laserPodEnabled.value) {
+    ElMessage.warning("请先打开激光载荷开关");
+    return;
+  }
+
   if (isIrradiating.value) {
     // 当前正在照射，取消照射
     if (irradiationTimer.value) {
@@ -2729,6 +2974,12 @@ const handleIrradiate = () => {
 };
 
 const handleStop = () => {
+  // 检查激光载荷开关状态
+  if (!laserPodEnabled.value) {
+    ElMessage.warning("请先打开激光载荷开关");
+    return;
+  }
+
   // 发送真实的激光停止照射命令
   sendLaserCommand("Uav_LazerPod_Cease");
 };
@@ -2741,6 +2992,13 @@ const handleTurn = async () => {
 
   // 直接使用当前输入的参数发送转向命令
   await sendSensorParamCommand();
+
+  // 使用转向功能后，取消被锁定的目标标记
+  if (lockedTarget.value) {
+    const previousLockedTarget = lockedTarget.value;
+    lockedTarget.value = "";
+    addLog("info", `转向操作已取消目标锁定：${previousLockedTarget}`);
+  }
 };
 
 // 发送传感器转向命令（同时发送光电和激光载荷转向）
@@ -2921,6 +3179,9 @@ const handleLockTarget = async () => {
 
   // 发送光电和激光传感器的锁定命令
   await sendLockTargetCommand(targetLabel);
+
+  // 设置锁定目标状态
+  lockedTarget.value = selectedTarget.value;
 
   // 同步目标列表选择
   selectedTargetFromList.value = selectedTarget.value;
@@ -3232,69 +3493,168 @@ const handleCountdownInput = (value: string) => {
 
 // 文档相关函数
 // 打开文档
-const openDocument = () => {
-  documentDialogVisible.value = true;
-  documentContent.value = "";
-  documentError.value = "";
-};
-
-// 选择文档
-const selectDocument = async () => {
+const openDocument = async () => {
   try {
-    // 使用 Electron 的文件选择对话框
-    const result = await (window as any).electronAPI.dialog.showOpenDialog({
-      title: "选择文档",
-      filters: [
-        { name: "Word 文档", extensions: ["doc", "docx"] },
-        { name: "所有文件", extensions: ["*"] },
-      ],
-      properties: ["openFile"],
-    });
+    documentLoading.value = true;
+    documentError.value = "";
 
-    if (!result.canceled && result.filePaths.length > 0) {
-      const filePath = result.filePaths[0];
-      await loadDocument(filePath);
+    // 检查是否有已打开的文档
+    const hasOpened = await DocumentService.hasOpenedDocuments();
+
+    if (hasOpened) {
+      // 如果有最近文档，直接显示
+      const recentDoc = await DocumentService.showRecentDocument();
+      if (recentDoc) {
+        currentDocumentInfo.value = recentDoc;
+        const formattedContent = DocumentService.formatDocumentContent(
+          recentDoc.content,
+          recentDoc.type
+        );
+        documentContent.value = formattedContent.content;
+        isDocumentHtml.value = formattedContent.isHtml;
+        documentDialogVisible.value = true;
+
+        const typeName = DocumentService.getDocumentTypeDisplayName(
+          recentDoc.type
+        );
+        const icon = DocumentService.getDocumentIcon(recentDoc.type);
+
+        ElMessage.success({
+          message: `${icon} 文档已打开：${recentDoc.fileName} (${typeName}${
+            recentDoc.isFromCache ? " - 来自缓存" : ""
+          })`,
+          duration: 3000,
+        });
+
+        documentLoading.value = false;
+        return;
+      }
     }
+
+    // 没有最近文档，打开选择器
+    documentDialogVisible.value = true;
+    await selectDocument();
   } catch (error) {
-    console.error("选择文档失败:", error);
-    ElMessage.error("选择文档失败");
-  }
-};
-
-// 加载文档内容
-const loadDocument = async (filePath: string) => {
-  documentLoading.value = true;
-  documentError.value = "";
-  documentContent.value = "";
-
-  try {
-    // 调用主进程的文档解析方法
-    const content = await (window as any).electronAPI.document.readDocument(
-      filePath
-    );
-
-    if (content.success) {
-      documentContent.value = content.data;
-      ElMessage.success("文档加载成功");
-    } else {
-      documentError.value = content.error || "文档加载失败";
-      ElMessage.error(documentError.value);
-    }
-  } catch (error) {
-    documentError.value = "文档加载失败：" + (error as Error).message;
+    console.error("打开文档失败:", error);
+    documentError.value = "打开文档失败：" + (error as Error).message;
     ElMessage.error(documentError.value);
   } finally {
     documentLoading.value = false;
   }
 };
 
-// 关闭文档对话框
-const handleCloseDocument = () => {
-  documentDialogVisible.value = false;
-  documentContent.value = "";
-  documentError.value = "";
+// 选择文档
+const selectDocument = async () => {
+  try {
+    documentLoading.value = true;
+
+    const documentInfo = await DocumentService.selectAndOpenDocument();
+
+    if (documentInfo) {
+      currentDocumentInfo.value = documentInfo;
+      const formattedContent = DocumentService.formatDocumentContent(
+        documentInfo.content,
+        documentInfo.type
+      );
+      documentContent.value = formattedContent.content;
+      isDocumentHtml.value = formattedContent.isHtml;
+
+      const typeName = DocumentService.getDocumentTypeDisplayName(
+        documentInfo.type
+      );
+      const icon = DocumentService.getDocumentIcon(documentInfo.type);
+
+      ElMessage.success({
+        message: `${icon} 文档加载成功：${documentInfo.fileName} (${typeName})`,
+        duration: 3000,
+      });
+
+      // 更新文档状态
+      hasOpenedDocuments.value = true;
+    }
+  } catch (error) {
+    console.error("选择文档失败:", error);
+    documentError.value = "选择文档失败：" + (error as Error).message;
+    ElMessage.error(documentError.value);
+  } finally {
+    documentLoading.value = false;
+  }
 };
-onMounted(() => {
+
+// 强制选择其他文档（忽略缓存）
+const selectOtherDocument = async () => {
+  try {
+    documentLoading.value = true;
+
+    const documentInfo = await DocumentService.forceSelectNewDocument();
+
+    if (documentInfo) {
+      currentDocumentInfo.value = documentInfo;
+      const formattedContent = DocumentService.formatDocumentContent(
+        documentInfo.content,
+        documentInfo.type
+      );
+      documentContent.value = formattedContent.content;
+      isDocumentHtml.value = formattedContent.isHtml;
+
+      const typeName = DocumentService.getDocumentTypeDisplayName(
+        documentInfo.type
+      );
+      const icon = DocumentService.getDocumentIcon(documentInfo.type);
+
+      ElMessage.success({
+        message: `${icon} 新文档加载成功：${documentInfo.fileName} (${typeName})`,
+        duration: 3000,
+      });
+
+      // 更新文档状态
+      hasOpenedDocuments.value = true;
+    }
+  } catch (error) {
+    console.error("选择其他文档失败:", error);
+    documentError.value = "选择其他文档失败：" + (error as Error).message;
+    ElMessage.error(documentError.value);
+  } finally {
+    documentLoading.value = false;
+  }
+};
+
+// 关闭文档对话框（实际上是隐藏）
+const handleCloseDocument = async () => {
+  try {
+    // 隐藏文档而不是真正关闭
+    await DocumentService.hideCurrentDocument();
+
+    documentDialogVisible.value = false;
+
+    if (currentDocumentInfo.value) {
+      const icon = DocumentService.getDocumentIcon(
+        currentDocumentInfo.value.type
+      );
+      ElMessage.info({
+        message: `${icon} 文档已隐藏，下次打开将直接显示`,
+        duration: 2000,
+      });
+    }
+  } catch (error) {
+    console.error("隐藏文档失败:", error);
+    // 如果隐藏失败，仍然关闭对话框
+    documentDialogVisible.value = false;
+  }
+};
+onMounted(async () => {
+  // 检查是否有已打开的文档
+  try {
+    hasOpenedDocuments.value = await DocumentService.hasOpenedDocuments();
+    console.log(
+      `[UavPage] 文档状态：${
+        hasOpenedDocuments.value ? "有已打开的文档" : "无已打开的文档"
+      }`
+    );
+  } catch (error) {
+    console.error("[UavPage] 检查文档状态失败:", error);
+  }
+
   addLog("success", "无人机操作页面加载完成");
 
   // 监听平台状态数据
@@ -3315,10 +3675,94 @@ onMounted(() => {
     }
   );
 
+  // 监听航线数据转换相关事件
+  // 1. 监听平台数据请求（当收到航线数据时，系统需要知道当前选择的平台）
+  (window as any).electronAPI.ipcRenderer.on(
+    "route:requestSelectedPlatformData",
+    () => {
+      console.log(
+        "[UavPage] 收到平台数据请求，当前连接平台:",
+        connectedPlatformName.value
+      );
+
+      // 获取当前连接平台的完整数据
+      const platformData = {
+        name: connectedPlatformName.value || "",
+        speed: connectedPlatform.value?.base?.speed || 10, // 默认速度10m/s
+      };
+
+      console.log("[UavPage] 响应平台数据:", platformData);
+
+      // 响应当前选择的平台数据
+      (window as any).electronAPI.ipcRenderer.send(
+        "route:selectedPlatformDataResponse",
+        platformData
+      );
+    }
+  );
+
+  // 2. 监听航线转换成功事件
+  (window as any).electronAPI.ipcRenderer.on(
+    "route:converted",
+    (_, data: any) => {
+      addLog(
+        "success",
+        `航线已转换成功: UAV-${data.uavId}, ${data.waypointCount}个航点`
+      );
+      ElMessage.success(
+        `航线转换成功！UAV-${data.uavId} 包含${data.waypointCount}个航点`
+      );
+      console.log("[UavPage] 航线转换成功:", data);
+    }
+  );
+
+  // 3. 监听航线转换失败事件
+  (window as any).electronAPI.ipcRenderer.on(
+    "route:convertError",
+    (_, data: any) => {
+      addLog("error", `航线转换失败: ${data.error}`);
+      ElMessage.error(`航线转换失败: ${data.error}`);
+      console.error("[UavPage] 航线转换失败:", data);
+    }
+  );
+
+  // 4. 监听UavId不匹配事件
+  (window as any).electronAPI.ipcRenderer.on(
+    "route:uavIdMismatch",
+    (_, data: any) => {
+      addLog(
+        "warning",
+        `航线UavId不匹配: 系统${data.systemUavId}, 航线${data.routeUavId}`
+      );
+      ElMessage.warning(
+        `航线UavId不匹配！系统UavId: ${data.systemUavId}, 航线UavId: ${data.routeUavId}`
+      );
+      console.warn("[UavPage] 航线UavId不匹配:", data);
+    }
+  );
+
+  // 5. 监听未选择平台事件
+  (window as any).electronAPI.ipcRenderer.on(
+    "route:noPlatformSelected",
+    (_, data: any) => {
+      addLog(
+        "warning",
+        `收到航线数据但未连接平台，请先连接平台 (UavId: ${data.uavId})`
+      );
+      ElMessage.warning(
+        "收到航线数据，但当前未连接无人机平台，请先选择并连接平台后再发送航线数据"
+      );
+      console.warn("[UavPage] 收到航线数据但未选择平台:", data);
+    }
+  );
+
   // 模拟数据更新
   setInterval(() => {
     // 每秒检查心跳超时
     checkHeartbeatTimeouts();
+
+    // 每秒检查仿真平台连接状态
+    checkSimulationConnection();
 
     // 演习时间现在从平台数据获取，不再在这里更新
     // 只在没有真实平台数据时使用默认时间
@@ -3358,6 +3802,12 @@ onUnmounted(() => {
   if (syncTimer.value) {
     clearInterval(syncTimer.value);
     syncTimer.value = null;
+  }
+
+  // 清理仿真平台检测定时器
+  if (simulationCheckTimer.value) {
+    clearInterval(simulationCheckTimer.value);
+    simulationCheckTimer.value = null;
   }
 });
 </script>
@@ -4472,20 +4922,80 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+/* 文档信息栏 */
+.document-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.info-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-path {
+  color: #666;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
+.info-right {
+  flex-shrink: 0;
+}
+
 .loading-container,
 .error-container,
 .empty-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 40px;
+  padding: 60px 40px;
   color: #666;
   font-size: 14px;
 }
 
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #d0d0d0;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: #999;
+}
+
 .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
   color: #e74c3c;
+  font-size: 14px;
+  text-align: center;
 }
 
 .document-text {
@@ -4495,7 +5005,14 @@ onUnmounted(() => {
   border: 1px solid #e0e0e0;
 }
 
-.document-text pre {
+.document-text .html-content {
+  /* HTML内容的样式已经在后端定义 */
+  font-family: inherit;
+  line-height: inherit;
+  margin: 0;
+}
+
+.document-text .text-content {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -4589,6 +5106,14 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   position: relative;
+  gap: 8px;
+}
+
+.target-name-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
 }
 
 .target-name {
@@ -4597,15 +5122,29 @@ onUnmounted(() => {
   color: #333;
   line-height: 1.2;
   flex: 1;
-  margin-right: 8px;
+}
+
+/* 锁定目标前缀样式 */
+.locked-prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background-color: #409eff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.locked-prefix-icon {
+  font-size: 10px;
+  color: #ffffff;
 }
 
 .target-status-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .target-secondary-info {
@@ -5022,5 +5561,54 @@ onUnmounted(() => {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* 仿真平台断线提示对话框样式 */
+.simulation-disconnect-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  flex-shrink: 0;
+}
+
+.warning-message {
+  flex: 1;
+}
+
+.warning-message h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #e6a23c;
+}
+
+.warning-message p {
+  margin: 12px 0;
+  line-height: 1.6;
+  color: #666;
+}
+
+.warning-message ul {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: #666;
+}
+
+.warning-message li {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.continue-hint {
+  font-weight: 500;
+  color: #409eff;
+  background: #f0f9ff;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 4px solid #409eff;
 }
 </style>

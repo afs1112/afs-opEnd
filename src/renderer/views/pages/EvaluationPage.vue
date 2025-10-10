@@ -140,6 +140,145 @@
             <h4 class="section-subtitle">
               关键事件 ({{ group.events.length }})
             </h4>
+
+            <!-- 关键数据统计区域 -->
+            <div class="key-metrics-section">
+              <!-- <div class="metrics-title">核心数据</div> -->
+              <div class="metrics-grid">
+                <!-- 照射时间统计 -->
+                <div class="metric-group">
+                  <div class="metric-group-title">照射时间统计</div>
+                  <div class="metric-items">
+                    <div class="metric-item">
+                      <span class="metric-label">开始照射：</span>
+                      <span class="metric-value">
+                        {{ group.keyMetrics.laserIrradiationStart || "未记录" }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">停止照射：</span>
+                      <span class="metric-value">
+                        {{ group.keyMetrics.laserIrradiationEnd || "未记录" }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">照射时长：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            (group.keyMetrics.totalIrradiationDuration || 0) >
+                            30,
+                          'metric-good':
+                            (group.keyMetrics.totalIrradiationDuration || 0) >
+                              15 &&
+                            (group.keyMetrics.totalIrradiationDuration || 0) <=
+                              30,
+                          'metric-poor':
+                            (group.keyMetrics.totalIrradiationDuration || 0) <=
+                              15 &&
+                            (group.keyMetrics.totalIrradiationDuration || 0) >
+                              0,
+                        }"
+                      >
+                        {{
+                          formatDuration(
+                            group.keyMetrics.totalIrradiationDuration
+                          )
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 摧毁效果统计 -->
+                <div class="metric-group">
+                  <div class="metric-group-title">摧毁效果统计</div>
+                  <div class="metric-items">
+                    <div class="metric-item">
+                      <span class="metric-label">目标摧毁：</span>
+                      <span class="metric-value">
+                        {{ group.keyMetrics.targetDestroyedTime || "未摧毁" }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">照射期间摧毁：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            group.keyMetrics.isDestroyedDuringIrradiation,
+                          'metric-poor':
+                            !group.keyMetrics.isDestroyedDuringIrradiation,
+                        }"
+                      >
+                        {{
+                          group.keyMetrics.isDestroyedDuringIrradiation
+                            ? "是"
+                            : "否"
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 距离统计 -->
+                <div class="metric-group">
+                  <div class="metric-group-title">距离统计</div>
+                  <div class="metric-items">
+                    <div class="metric-item">
+                      <span class="metric-label">开始照射距离：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            (group.keyMetrics.distanceAtIrradiationStart || 0) <
+                            1000,
+                          'metric-good':
+                            (group.keyMetrics.distanceAtIrradiationStart ||
+                              0) >= 1000 &&
+                            (group.keyMetrics.distanceAtIrradiationStart || 0) <
+                              2000,
+                          'metric-poor':
+                            (group.keyMetrics.distanceAtIrradiationStart ||
+                              0) >= 2000,
+                        }"
+                      >
+                        {{
+                          formatDistance(
+                            group.keyMetrics.distanceAtIrradiationStart
+                          )
+                        }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">摧毁时距离：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            (group.keyMetrics.distanceAtDestruction || 0) <
+                            1000,
+                          'metric-good':
+                            (group.keyMetrics.distanceAtDestruction || 0) >=
+                              1000 &&
+                            (group.keyMetrics.distanceAtDestruction || 0) <
+                              2000,
+                          'metric-poor':
+                            (group.keyMetrics.distanceAtDestruction || 0) >=
+                            2000,
+                        }"
+                      >
+                        {{
+                          formatDistance(group.keyMetrics.distanceAtDestruction)
+                        }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="events-list">
               <div
                 v-for="event in group.events.slice(0, 8)"
@@ -166,6 +305,7 @@
           <!-- 第三列：专家评价 -->
           <div class="group-evaluation">
             <h4 class="section-subtitle">专家评价</h4>
+
             <div class="evaluation-panel">
               <div class="scores-grid">
                 <div class="score-item">
@@ -398,6 +538,19 @@ interface GroupMember {
   };
 }
 
+// 关键数据统计接口
+interface KeyMetrics {
+  laserIrradiationStart?: string; // 照射开始时间
+  laserIrradiationEnd?: string; // 照射停止时间
+  targetDestroyedTime?: string; // 目标摧毁时间
+  isDestroyedDuringIrradiation: boolean; // 目标是否在照射期间摧毁
+  distanceAtIrradiationStart?: number; // 开始照射时距离目标距离(米)
+  distanceAtDestruction?: number; // 摧毁时距离目标距离(米)
+  totalIrradiationDuration?: number; // 总照射时长(秒)
+  laserHitRate?: number; // 激光命中率(%)
+  targetStatus?: string; // 目标状态追踪
+}
+
 interface GroupEvent {
   id: string;
   timestamp: number;
@@ -433,6 +586,7 @@ interface GroupData {
   comments: string;
   isSaved: boolean; // 新增：标记是否已保存
   savedAt?: string; // 新增：保存时间戳
+  keyMetrics: KeyMetrics; // 新增：关键数据统计
 }
 
 // 响应式数据
@@ -470,6 +624,54 @@ const savedGroupsCount = computed(() => {
     (group) => group.isSaved && hasValidScores(group.scores)
   ).length;
 });
+
+// 格式化持续时间
+function formatDuration(duration?: number): string {
+  if (!duration || duration <= 0) return "无数据";
+
+  if (duration < 60) {
+    return `${duration.toFixed(1)}秒`;
+  } else {
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return `${minutes}分${seconds.toFixed(1)}秒`;
+  }
+}
+
+// 格式化距离
+function formatDistance(distance?: number): string {
+  if (!distance || distance <= 0) return "无数据";
+
+  if (distance >= 1000) {
+    return `${(distance / 1000).toFixed(1)}km`;
+  } else {
+    return `${distance.toFixed(0)}m`;
+  }
+}
+
+// Haversine距离计算公式（计算两个经纬度坐标之间的距离）
+const calculateDistance = (
+  coord1: { longitude: number; latitude: number },
+  coord2: { longitude: number; latitude: number }
+): number => {
+  const R = 6371000; // 地球半径，单位：米
+
+  const lat1Rad = (coord1.latitude * Math.PI) / 180;
+  const lat2Rad = (coord2.latitude * Math.PI) / 180;
+  const deltaLatRad = ((coord2.latitude - coord1.latitude) * Math.PI) / 180;
+  const deltaLonRad = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaLatRad / 2) * Math.sin(deltaLatRad / 2) +
+    Math.cos(lat1Rad) *
+      Math.cos(lat2Rad) *
+      Math.sin(deltaLonRad / 2) *
+      Math.sin(deltaLonRad / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // 距离，单位：米
+};
 
 // 获取平台类型显示名称
 const getDisplayType = (type: string): string => {
@@ -584,6 +786,10 @@ const updateAllGroupsData = () => {
           },
           comments: "",
           isSaved: false, // 新增：初始状态为未保存
+          keyMetrics: {
+            // 新增：初始化关键数据
+            isDestroyedDuringIrradiation: false,
+          },
         };
       }
 
@@ -669,6 +875,13 @@ const updateAllGroupsData = () => {
     }
   );
 
+  // 在所有分组更新完成后，检测目标摧毁事件
+  allGroups.value.forEach((group) => {
+    if (group.currentTarget) {
+      updateTargetDestructionMetrics(group, group.currentTarget);
+    }
+  });
+
   console.log(
     "[EvaluationPage] 所有分组数据更新完成，总分组数:",
     allGroups.value.length
@@ -693,6 +906,222 @@ const getTargetStatusClass = (status: string): string => {
     destroyed: "status-destroyed",
   };
   return classMap[status] || "status-inactive";
+};
+
+// 更新关键数据指标
+const updateKeyMetrics = (
+  groupName: string,
+  command: number | string,
+  parsedData: any,
+  exerciseTime: string
+) => {
+  const group = allGroups.value.find((g) => g.name === groupName);
+  if (!group) return;
+
+  const platformName = parsedData.platformName;
+  const commandType =
+    typeof command === "number" ? command : getCommandNumberFromString(command);
+
+  console.log(
+    `[EvaluationPage] 更新关键数据指标: ${groupName}, 命令: ${commandType}, 平台: ${platformName}`
+  );
+
+  try {
+    // 处理激光照射开始命令 (Uav_LazerPod_Lasing = 4)
+    if (commandType === 4) {
+      group.keyMetrics.laserIrradiationStart = exerciseTime;
+
+      // 计算开始照射时与目标的距离
+      const sourcePlatform = platforms.value.find(
+        (p) => p.base?.name === platformName
+      );
+
+      let targetCoordinates = null;
+      let targetName = "未知目标";
+
+      // 优先使用当前目标坐标
+      if (group.currentTarget?.coordinates) {
+        targetCoordinates = group.currentTarget.coordinates;
+        targetName = group.currentTarget.name;
+      } else {
+        // 如果没有当前目标，尝试从同组的蓝方目标中找到第一个目标
+        const blueTarget = platforms.value.find(
+          (p) => p.base?.group === group.name && p.base?.side === "blue"
+        );
+        if (blueTarget?.base?.location) {
+          targetCoordinates = blueTarget.base.location;
+          targetName = blueTarget.base.name || "蓝方目标";
+        }
+      }
+
+      if (sourcePlatform?.base?.location && targetCoordinates) {
+        const distance = calculateDistance(
+          sourcePlatform.base.location,
+          targetCoordinates
+        );
+        group.keyMetrics.distanceAtIrradiationStart = distance;
+        console.log(
+          `[EvaluationPage] 计算开始照射距离: ${distance.toFixed(
+            0
+          )}m，发射平台: ${platformName}，目标: ${targetName}`
+        );
+      } else {
+        if (!sourcePlatform?.base?.location) {
+          console.warn(
+            `[EvaluationPage] 无法找到发射平台 ${platformName} 的位置信息`
+          );
+        }
+        if (!targetCoordinates) {
+          console.warn(
+            `[EvaluationPage] 无法获取目标坐标信息，组: ${groupName}`
+          );
+        }
+      }
+
+      console.log(`[EvaluationPage] 记录激光照射开始时间: ${exerciseTime}`);
+    }
+
+    // 处理激光照射停止命令 (Uav_LazerPod_Cease = 5)
+    else if (commandType === 5) {
+      group.keyMetrics.laserIrradiationEnd = exerciseTime;
+
+      // 计算总照射时长
+      if (group.keyMetrics.laserIrradiationStart) {
+        const startTime = parseExerciseTime(
+          group.keyMetrics.laserIrradiationStart
+        );
+        const endTime = parseExerciseTime(exerciseTime);
+        group.keyMetrics.totalIrradiationDuration = endTime - startTime;
+        console.log(
+          `[EvaluationPage] 计算总照射时长: ${group.keyMetrics.totalIrradiationDuration}秒`
+        );
+      }
+
+      console.log(`[EvaluationPage] 记录激光照射停止时间: ${exerciseTime}`);
+    }
+
+    // 处理锁定目标命令 (Uav_Lock_Target = 10)
+    else if (commandType === 10 && parsedData.lockParam) {
+      const targetName = parsedData.lockParam.targetName;
+      if (targetName && group.currentTarget?.name === targetName) {
+        // 更新目标锁定状态，这有助于确认照射效果
+        console.log(`[EvaluationPage] 目标 ${targetName} 被锁定`);
+      }
+    }
+  } catch (error) {
+    console.error("[EvaluationPage] 更新关键数据指标失败:", error);
+  }
+};
+
+// 解析演习时间为秒数
+const parseExerciseTime = (timeStr: string): number => {
+  // 格式: "T + 123秒" 或 "T + 2分30秒"
+  const match =
+    timeStr.match(/T \+ (\d+)秒/) || timeStr.match(/T \+ (\d+)分(\d+)秒/);
+  if (match) {
+    if (match[2]) {
+      // 有分钟格式
+      return parseInt(match[1]) * 60 + parseInt(match[2]);
+    } else {
+      // 只有秒数格式
+      return parseInt(match[1]);
+    }
+  }
+  return 0;
+};
+
+// 更新目标摧毁指标
+const updateTargetDestructionMetrics = (
+  group: GroupData,
+  currentTarget: GroupMember
+) => {
+  if (!currentTarget) return;
+
+  const previousStatus = group.keyMetrics.targetStatus || currentTarget.status;
+  const currentStatus = currentTarget.status;
+
+  // 检测目标状态从非摧毁变为摧毁
+  if (previousStatus !== "destroyed" && currentStatus === "destroyed") {
+    const currentTime = exerciseTime.value;
+    group.keyMetrics.targetDestroyedTime = currentTime;
+
+    console.log(
+      `[EvaluationPage] 检测到目标 ${currentTarget.name} 被摧毁时间: ${currentTime}`
+    );
+
+    // 检查是否在照射期间摧毁
+    if (
+      group.keyMetrics.laserIrradiationStart &&
+      !group.keyMetrics.laserIrradiationEnd
+    ) {
+      // 照射开始了但还没有停止，说明在照射期间摧毁
+      group.keyMetrics.isDestroyedDuringIrradiation = true;
+      console.log(`[EvaluationPage] 目标在照射期间被摧毁`);
+    } else if (
+      group.keyMetrics.laserIrradiationStart &&
+      group.keyMetrics.laserIrradiationEnd
+    ) {
+      // 检查摧毁时间是否在照射时间范围内
+      const irradiationStartTime = parseExerciseTime(
+        group.keyMetrics.laserIrradiationStart
+      );
+      const irradiationEndTime = parseExerciseTime(
+        group.keyMetrics.laserIrradiationEnd
+      );
+      const destructionTime = parseExerciseTime(currentTime);
+
+      if (
+        destructionTime >= irradiationStartTime &&
+        destructionTime <= irradiationEndTime
+      ) {
+        group.keyMetrics.isDestroyedDuringIrradiation = true;
+        console.log(`[EvaluationPage] 目标在照射时间范围内被摧毁`);
+      }
+    }
+
+    // 计算摧毁时距离目标的距离
+    if (currentTarget.coordinates) {
+      // 找到同组中的无人机平台
+      const uavPlatform = platforms.value.find(
+        (p) =>
+          p.base?.group === group.name &&
+          p.base?.type === "UAV01" &&
+          p.base?.side === "red"
+      );
+
+      if (uavPlatform?.base?.location) {
+        const distance = calculateDistance(
+          uavPlatform.base.location,
+          currentTarget.coordinates
+        );
+        group.keyMetrics.distanceAtDestruction = distance;
+        console.log(`[EvaluationPage] 计算摧毁时距离: ${distance.toFixed(0)}m`);
+      }
+    }
+  }
+
+  // 更新目标状态记录
+  group.keyMetrics.targetStatus = currentStatus;
+};
+
+// 从字符串命令获取对应的数字命令
+const getCommandNumberFromString = (command: string): number => {
+  const stringToNumberMap: { [key: string]: number } = {
+    Command_inValid: 0,
+    Uav_Sensor_On: 1,
+    Uav_Sensor_Off: 2,
+    Uav_Sensor_Turn: 3,
+    Uav_LazerPod_Lasing: 4,
+    Uav_LazerPod_Cease: 5,
+    Uav_Nav: 6,
+    Arty_Target_Set: 7,
+    Arty_Fire: 8,
+    Uav_Set_Speed: 9,
+    Uav_Lock_Target: 10,
+    Uav_Strike_Coordinate: 11,
+    Arty_Fire_Coordinate: 12,
+  };
+  return stringToNumberMap[command] || 0;
 };
 
 // 处理平台命令事件
@@ -723,6 +1152,9 @@ const handlePlatformCommand = (parsedData: any) => {
       command,
       parsedData
     );
+
+    // 处理关键数据收集（激光照射和目标锁定相关）
+    updateKeyMetrics(sourceGroup, command, parsedData, currentExerciseTime);
 
     // 创建事件对象
     const event: GroupEvent = {
@@ -1559,7 +1991,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
-  padding: 16px;
+  padding: 8px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1586,7 +2018,7 @@ onUnmounted(() => {
 }
 
 .section-subtitle {
-  margin: 8px 0 6px 0;
+  margin: 8px 0 2px 0;
   font-size: 13px;
   font-weight: 600;
   color: #656d76;
@@ -1660,10 +2092,14 @@ onUnmounted(() => {
 .group-events {
   border-right: 1px solid #e1e8ed;
   padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .events-list {
-  max-height: 360px;
+  flex: 1;
+  max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
   scrollbar-width: thin;
@@ -1739,6 +2175,103 @@ onUnmounted(() => {
   font-style: italic;
   font-size: 11px;
   padding: 8px;
+}
+
+/* 关键数据展示区域 */
+.key-metrics-section {
+  margin-bottom: 12px;
+  /* padding: 8px; */
+  /* background: #f8f9fa; */
+  /* border: 1px solid #e1e8ed; */
+  /* border-radius: 4px; */
+  /* flex-shrink: 0; */
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.metric-group {
+  background: white;
+  border-radius: 3px;
+  border: 1px solid #d0d7de;
+  overflow: hidden;
+}
+
+.metric-group-title {
+  background: #34495e;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.metric-items {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.metric-label {
+  color: #656d76;
+  font-weight: 500;
+  flex: 0 0 auto;
+}
+
+.metric-value {
+  color: #24292f;
+  font-weight: 600;
+  font-family: monospace;
+  text-align: right;
+  flex: 1;
+  margin-left: 8px;
+  font-size: 9px;
+}
+
+/* 指标颜色等级 */
+.metric-value.metric-excellent {
+  color: #137333;
+  background: #e8f5e8;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.metric-value.metric-good {
+  color: #0969da;
+  background: #eff6ff;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.metric-value.metric-average {
+  color: #bf8700;
+  background: #fff8c5;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.metric-value.metric-poor {
+  color: #d1242f;
+  background: #fef0f0;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+.metric-value.metric-none {
+  color: #656d76;
+  font-style: italic;
 }
 
 /* 第三列：专家评价 */
@@ -1843,6 +2376,27 @@ onUnmounted(() => {
 
   .events-list {
     max-height: 200px;
+  }
+
+  .key-metrics-section {
+    margin-bottom: 8px;
+    padding: 6px;
+  }
+
+  .metrics-grid {
+    gap: 4px;
+  }
+
+  .metric-item {
+    font-size: 8px;
+  }
+
+  .metric-label {
+    font-size: 8px;
+  }
+
+  .metric-value {
+    font-size: 7px;
   }
 }
 

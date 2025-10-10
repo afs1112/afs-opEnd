@@ -2,7 +2,7 @@
   <div class="start-page">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1 class="system-title">军事仿真操作系统</h1>
+      <h1 class="system-title">无人机引导仿真系统</h1>
       <p class="system-subtitle">请选择您的操作席位</p>
     </div>
 

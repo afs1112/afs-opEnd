@@ -1416,6 +1416,7 @@ const sendTrajectoryData = async () => {
     }
 
     // 检查平台是否有真实的基础数据（包含位置信息）
+    // @ts-ignore
     if (!platform.base || !platform.base.location) {
       console.log("[轨迹同步] 平台缺少位置数据，跳过本次发送");
       return;
@@ -1548,112 +1549,9 @@ onMounted(() => {
   console.log("[CommandTestPage] 设置组播数据监听");
   (window as any).electronAPI.multicast.onPacket(handlePlatformStatus);
 
-  // 监听航线转换消息
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:converted",
-    (_, data: any) => {
-      addLog(
-        "success",
-        `航线已转换: UAV-${data.uavId}, ${data.waypointCount}个航点`
-      );
-      ElMessage.success(
-        `航线转换成功！UAV-${data.uavId} 包含${data.waypointCount}个航点`
-      );
-      console.log("[CommandTestPage] 航线转换成功:", data);
-    }
-  );
-
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:convertError",
-    (_, data: any) => {
-      addLog("error", `航线转换失败: ${data.error}`);
-      ElMessage.error(`航线转换失败: ${data.error}`);
-      console.error("[CommandTestPage] 航线转换失败:", data);
-    }
-  );
-
-  // 监听UavId不匹配消息
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:uavIdMismatch",
-    (_, data: any) => {
-      addLog(
-        "warning",
-        `航线UavId不匹配: 系统${data.systemUavId} vs 航线${data.routeUavId}`
-      );
-      ElMessage.warning(
-        `航线UavId不匹配！系统UavId: ${data.systemUavId}, 航线UavId: ${data.routeUavId}`
-      );
-      console.log("[CommandTestPage] UavId不匹配:", data);
-    }
-  );
-
-  // 监听未选择平台消息
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:noPlatformSelected",
-    (_, data: any) => {
-      addLog("warning", `接收到航线数据但未选择平台，UavId: ${data.uavId}`);
-      ElMessage.warning(`请先选择平台后再接收航线数据！UavId: ${data.uavId}`);
-      console.log("[CommandTestPage] 未选择平台:", data);
-    }
-  );
-
-  // 监听平台名称请求（保持向后兼容）
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:requestSelectedPlatform",
-    () => {
-      console.log(
-        "[CommandTestPage] 收到平台名称请求，当前选择:",
-        selectedPlatform.value
-      );
-
-      // 响应当前选择的平台名称
-      (window as any).electronAPI.ipcRenderer.send(
-        "route:selectedPlatformResponse",
-        selectedPlatform.value
-      );
-    }
-  );
-
-  // 监听导航软件启动事件，自动更新UavId显示
-  (window as any).electronAPI.ipcRenderer.on(
-    "nav:uavIdUpdated",
-    (_, data: any) => {
-      console.log("[CommandTestPage] 导航软件启动，UavId已更新:", data.uavId);
-      currentUavId.value = data.uavId;
-      systemUavId.value = data.uavId;
-      updateSyncStatus();
-      addLog("info", `导航软件启动，UavId已更新: ${data.uavId}`);
-      ElMessage.info(`导航软件已启动，UavId已更新为: ${data.uavId}`);
-    }
-  );
-
-  // 监听平台数据请求
-  (window as any).electronAPI.ipcRenderer.on(
-    "route:requestSelectedPlatformData",
-    () => {
-      console.log(
-        "[CommandTestPage] 收到平台数据请求，当前选择:",
-        selectedPlatform.value
-      );
-
-      // 获取当前选择平台的完整数据
-      const currentPlatform = platforms.value.find(
-        (p) => p.name === selectedPlatform.value
-      );
-      const platformData = {
-        name: selectedPlatform.value || "",
-        speed: currentPlatform?.base?.speed || undefined,
-      };
-
-      console.log("[CommandTestPage] 响应平台数据:", platformData);
-
-      // 响应当前选择的平台数据
-      (window as any).electronAPI.ipcRenderer.send(
-        "route:selectedPlatformDataResponse",
-        platformData
-      );
-    }
-  );
+  // 取消监听导航软件启动事件的代码，避免与无人机操作页面冲突
+  // (window as any).electronAPI.ipcRenderer.on("nav:uavIdUpdated", ...)
+  // 导航相关功能已迁移到无人机操作页面统一处理
 
   addLog("info", "命令测试页面已加载，开始监听组播数据");
   console.log(
