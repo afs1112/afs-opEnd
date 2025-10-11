@@ -9,7 +9,17 @@
           <div v-if="!isConnected" class="control-row">
             <!-- 左侧标题区域 -->
             <div class="title-section">
-              <div class="seat-title">无人机席位</div>
+              <div class="title-with-back">
+                <el-button
+                  class="back-button"
+                  size="default"
+                  @click="handleBackToStart"
+                >
+                  <el-icon><ArrowLeft /></el-icon>
+                  返回
+                </el-button>
+                <div class="seat-title">无人机席位</div>
+              </div>
             </div>
 
             <!-- 中间控制区域 -->
@@ -166,8 +176,8 @@
           <div class="task-header">任务控制</div>
 
           <!-- 航线规划 -->
-          <div class="control-group">
-            <div class="button-row">
+          <div class="button-row">
+            <div class="control-group">
               <el-button
                 class="route-planning-btn"
                 @click="handleRoutePlanning"
@@ -175,13 +185,14 @@
                 航线规划
               </el-button>
               <el-button
-                class="trajectory-sync-btn"
-                :type="isSyncingTrajectory ? 'danger' : 'warning'"
-                @click="toggleTrajectorySync"
+                class="set-speed-btn"
+                type="success"
+                @click="showSetSpeedDialog"
                 :disabled="!isConnected"
               >
-                {{ isSyncingTrajectory ? "停止同步" : "同步轨迹" }}
+                速度设置
               </el-button>
+              <!-- 同步轨迹按钮已移除，现在连接时自动开启同步轨迹 -->
             </div>
           </div>
           <div class="control-separator"></div>
@@ -237,12 +248,33 @@
               </div>
             </div>
 
+            <!-- 照射持续时间输入 -->
+            <div class="input-group mb-2">
+              <div class="input-wrapper">
+                <el-input
+                  v-model="irradiationDuration"
+                  placeholder="请输入照射持续时间(秒)"
+                  :disabled="!isDurationEditing"
+                  class="laser-input"
+                  @keyup.enter="handleSetIrradiationDuration"
+                  @input="handleDurationInput"
+                />
+                <el-button
+                  class="confirm-btn"
+                  @click="handleSetIrradiationDuration"
+                  :type="isDurationEditing ? 'primary' : 'default'"
+                >
+                  {{ isDurationEditing ? "确定" : "编辑" }}
+                </el-button>
+              </div>
+            </div>
+
             <!-- 激光倒计时输入 -->
             <div class="input-group mb-2">
               <div class="input-wrapper">
                 <el-input
                   v-model="laserCountdown"
-                  placeholder="请输入倒计时(秒)"
+                  placeholder="请输入照射倒计时(秒)"
                   :disabled="!isCountdownEditing"
                   class="laser-input"
                   @keyup.enter="handleSetLaserCountdown"
@@ -273,9 +305,14 @@
               <el-button
                 class="action-btn"
                 @click="handleStop"
+                :type="isLasingActive ? 'danger' : 'default'"
                 :disabled="!laserPodEnabled"
-                >停止</el-button
               >
+                <span v-if="isLasingActive && lasingDurationCountdown > 0"
+                  >停止 ({{ lasingDurationCountdown }})</span
+                >
+                <span v-else>停止</span>
+              </el-button>
             </div>
 
             <!-- 传感器转向参数 -->
@@ -437,7 +474,10 @@
             <div class="status-info">
               位置：{{ platformStatus.position.longitude }}
               {{ platformStatus.position.latitude }}
-              {{ platformStatus.position.altitude }}<br />
+              {{ platformStatus.position.altitude }}
+              <br />
+              速度：{{ platformStatus.speed }}
+              <br />
               姿态：俯仰{{ platformStatus.attitude.pitch }} 横滚{{
                 platformStatus.attitude.roll
               }}
@@ -592,7 +632,7 @@
       <!-- 右侧协同报文区域 -->
       <div class="right-panel">
         <!-- 任务目标提醒栏 -->
-        <div v-if="isConnected" class="mission-target-banner mb-4">
+        <div v-if="isConnected" class="mission-target-banner">
           <div class="banner-content">
             <div class="banner-icon">
               <el-icon size="16"><LocationFilled /></el-icon>
@@ -720,102 +760,112 @@
           </div>
 
           <div class="report-content">
-            <div class="report-section">
-              <div class="report-messages">
+            <!-- 发报文区域 -->
+            <div class="sent-messages-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><ArrowRight /></el-icon>
+                <span class="section-title"
+                  >发报文 ({{ sentMessages.length }})</span
+                >
+              </div>
+              <div class="messages-container">
                 <div
-                  v-for="msg in cooperationMessages"
+                  v-for="msg in sentMessages"
                   :key="msg.id"
-                  class="message-item"
+                  class="message-item message-sent"
                   :class="{
-                    'message-sent': msg.type === 'sent',
-                    'message-received': msg.type === 'received',
                     'message-success': msg.status === 'success',
                     'message-failed': msg.status === 'failed',
                     'message-pending': msg.status === 'pending',
                   }"
                 >
-                  <div class="message-header">
-                    <div class="message-direction">
-                      <el-icon
-                        v-if="msg.type === 'sent'"
-                        class="direction-icon sent-icon"
+                  <div class="message-content">
+                    <div class="message-header-compact">
+                      <span class="target-platform"
+                        >→ {{ msg.targetPlatform }}</span
                       >
-                        <ArrowRight />
-                      </el-icon>
-                      <el-icon v-else class="direction-icon received-icon">
-                        <ArrowLeft />
-                      </el-icon>
-                      <span class="direction-text">
-                        {{ msg.type === "sent" ? "发出" : "收到" }}
-                      </span>
-                    </div>
-                    <div class="message-time">
                       <span class="exercise-time">{{ msg.exerciseTime }}</span>
-                      <span class="clock-time">{{
-                        formatMessageTime(msg.timestamp)
-                      }}</span>
                     </div>
-                  </div>
-
-                  <div class="message-body">
-                    <div class="message-platform-info">
-                      <span v-if="msg.type === 'sent'" class="platform-info">
-                        发给：<strong>{{ msg.targetPlatform }}</strong>
-                      </span>
-                      <span v-else class="platform-info">
-                        来自：<strong>{{ msg.sourcePlatform }}</strong>
-                      </span>
-                    </div>
-
-                    <div class="message-content">{{ msg.content }}</div>
-
+                    <div class="message-text">{{ msg.content }}</div>
                     <div
-                      v-if="
-                        msg.details.targetName ||
-                        msg.details.artilleryName ||
-                        msg.details.weaponName
-                      "
-                      class="message-details"
+                      v-if="msg.details.targetName || msg.details.coordinates"
+                      class="message-tags"
                     >
                       <el-tag
                         v-if="msg.details.targetName"
                         size="small"
                         type="info"
                       >
-                        目标：{{ msg.details.targetName }}
-                      </el-tag>
-                      <el-tag
-                        v-if="msg.details.artilleryName"
-                        size="small"
-                        type="warning"
-                      >
-                        火炮：{{ msg.details.artilleryName }}
-                      </el-tag>
-                      <el-tag
-                        v-if="msg.details.weaponName"
-                        size="small"
-                        type="warning"
-                      >
-                        武器：{{ msg.details.weaponName }}
+                        {{ msg.details.targetName }}
                       </el-tag>
                       <el-tag
                         v-if="msg.details.coordinates"
                         size="small"
                         type="success"
                       >
-                        坐标：{{
-                          msg.details.coordinates.longitude.toFixed(4)
-                        }}°, {{ msg.details.coordinates.latitude.toFixed(4) }}°
+                        {{ msg.details.coordinates.longitude.toFixed(2) }}°,
+                        {{ msg.details.coordinates.latitude.toFixed(2) }}°
                       </el-tag>
                     </div>
                   </div>
                 </div>
+                <div v-if="sentMessages.length === 0" class="empty-message">
+                  暂无发送报文
+                </div>
+              </div>
+            </div>
 
-                <div
-                  v-if="cooperationMessages.length === 0"
-                  class="message-item message-empty"
+            <!-- 收报文区域 -->
+            <div class="received-messages-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><ArrowLeft /></el-icon>
+                <span class="section-title"
+                  >收报文 ({{ receivedMessages.length }})</span
                 >
-                  暂无协同报文
+              </div>
+              <div class="messages-container">
+                <div
+                  v-for="msg in receivedMessages"
+                  :key="msg.id"
+                  class="message-item message-received"
+                  :class="{
+                    'message-success': msg.status === 'success',
+                    'message-failed': msg.status === 'failed',
+                    'message-pending': msg.status === 'pending',
+                  }"
+                >
+                  <div class="message-content">
+                    <div class="message-header-compact">
+                      <span class="source-platform"
+                        >← {{ msg.sourcePlatform }}</span
+                      >
+                      <span class="exercise-time">{{ msg.exerciseTime }}</span>
+                    </div>
+                    <div class="message-text">{{ msg.content }}</div>
+                    <div
+                      v-if="msg.details.targetName || msg.details.coordinates"
+                      class="message-tags"
+                    >
+                      <el-tag
+                        v-if="msg.details.targetName"
+                        size="small"
+                        type="info"
+                      >
+                        {{ msg.details.targetName }}
+                      </el-tag>
+                      <el-tag
+                        v-if="msg.details.coordinates"
+                        size="small"
+                        type="success"
+                      >
+                        {{ msg.details.coordinates.longitude.toFixed(2) }}°,
+                        {{ msg.details.coordinates.latitude.toFixed(2) }}°
+                      </el-tag>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="receivedMessages.length === 0" class="empty-message">
+                  暂无接收报文
                 </div>
               </div>
             </div>
@@ -910,10 +960,10 @@
       </template>
     </el-dialog>
 
-    <!-- 仿真平台断线提示对话框 -->
+    <!-- 份真平台断线提示对话框 -->
     <el-dialog
       v-model="simulationDisconnectedDialogVisible"
-      title="仿真平台连接异常"
+      title="仟真平台连接异常"
       width="600px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -924,10 +974,10 @@
           <el-icon size="48" color="#E6A23C"><WarningFilled /></el-icon>
         </div>
         <div class="warning-message">
-          <h3>仿真平台可能已断线</h3>
+          <h3>仟真平台可能已断线</h3>
           <p>系统已超过30秒未收到演习时间数据更新，请检查：</p>
           <ul>
-            <li>仿真系统是否正常运行</li>
+            <li>仟真系统是否正常运行</li>
             <li>网络连接是否正常</li>
             <li>组播设置是否正确</li>
           </ul>
@@ -939,13 +989,40 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="handleContinueWaitingSimulation" type="info">
+          <!-- <el-button @click="handleContinueWaitingSimulation" type="info">
             继续等待
-          </el-button>
+          </el-button> -->
           <el-button @click="handleForceDisconnectSimulation" type="warning">
             手动断开
           </el-button>
         </div>
+      </template>
+    </el-dialog>
+
+    <!-- 设置速度对话框 -->
+    <el-dialog
+      v-model="setSpeedDialogVisible"
+      title="无人机速度设置"
+      width="400px"
+    >
+      <el-form :model="setSpeedForm" label-width="100px">
+        <el-form-item label="平台名称">
+          <el-input :value="connectedPlatformName" disabled />
+        </el-form-item>
+        <el-form-item label="目标速度">
+          <el-input-number
+            v-model="setSpeedForm.speed"
+            :min="1"
+            :max="100"
+            :step="1"
+            class="w-full"
+          />
+          <div class="text-xs text-gray-500 mt-1">单位: m/s，范围: 1-100</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="setSpeedDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="sendSetSpeedCommand">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -972,6 +1049,17 @@ import {
   DocumentService,
 } from "../../services";
 
+// 定义emit事件
+const emit = defineEmits<{
+  backToStart: [];
+}>();
+
+// 返回席位选择
+const handleBackToStart = () => {
+  console.log("[UavPage] 返回席位选择");
+  emit("backToStart");
+};
+
 // 基础数据
 const optoElectronicPodEnabled = ref(false); // 光电吊舱控制开关
 const laserPodEnabled = ref(false); // 激光吊舱控制开关
@@ -980,6 +1068,10 @@ const laserPodEnabled = ref(false); // 激光吊舱控制开关
 const laserCode = ref("");
 const isLaserCodeEditing = ref(true);
 
+// 照射持续时间相关
+const irradiationDuration = ref("");
+const isDurationEditing = ref(true);
+
 // 激光倒计时相关
 const laserCountdown = ref("");
 const isCountdownEditing = ref(true);
@@ -987,7 +1079,18 @@ const isCountdownEditing = ref(true);
 // 照射倒计时相关
 const isIrradiating = ref(false);
 const irradiationCountdown = ref(0);
-const irradiationTimer = ref<NodeJS.Timeout | null>(null);
+
+// 基于演习时间的照射倒计时
+const irradiationStartExerciseTime = ref<number | null>(null); // 倒计时开始时的演习时间（秒）
+const irradiationTargetDuration = ref<number>(0); // 目标倒计时时长（秒）
+
+// 照射时长倒计时相关（用于停止按钮）
+const isLasingActive = ref(false); // 是否正在激光照射中
+const lasingDurationCountdown = ref(0); // 照射时长倒计时
+
+// 基于演习时间的照射时长倒计时
+const lasingStartExerciseTime = ref<number | null>(null); // 照射开始时的演习时间（秒）
+const lasingTargetDuration = ref<number>(0); // 目标照射时长（秒）
 
 // 选择分组和无人机相关
 const selectedGroup = ref("");
@@ -1003,6 +1106,10 @@ const hasRealPlatformData = ref<boolean>(false);
 const selectedTarget = ref(""); // 用于下拉框的目标选择
 const selectedTargetFromList = ref(""); // 用于目标列表的目标选择
 const lockedTarget = ref(""); // 当前被锁定的目标名称
+
+// 激光传感器周期性锁定相关
+const laserLockTimer = ref<NodeJS.Timeout | null>(null);
+const isLaserLockActive = ref(false);
 
 // 动态目标选项（从当前连接平台的tracks中获取）
 const targetOptions = computed(() => {
@@ -1046,7 +1153,7 @@ const platformImages = ref<Map<string, string>>(new Map());
 
 // 仿真平台断线检测相关变量
 const lastExerciseTimeUpdate = ref<number>(0); // 最后一次演习时间更新的时间戳
-const simulationTimeout = 10000; // 30秒超时判定为仿真平台断线
+const simulationTimeout = 10000; // 10秒超时判定为仿真平台断线
 const simulationDisconnectedDialogVisible = ref(false); // 仿真平台断线对话框是否可见
 const simulationCheckTimer = ref<NodeJS.Timeout | null>(null); // 仿真平台检测定时器
 
@@ -1116,6 +1223,7 @@ const platformStatus = reactive({
     roll: "2°",
     yaw: "180°",
   },
+  speed: "100m/s",
 });
 
 // 载荷状态数据
@@ -1183,6 +1291,15 @@ interface CooperationMessage {
 const cooperationMessages = ref<CooperationMessage[]>([]);
 const cooperationTarget = ref(""); // 协同打击目标选择
 
+// 分离发送和接收的报文 - 按项目规范实现UI优化
+const sentMessages = computed(() =>
+  cooperationMessages.value.filter((msg) => msg.type === "sent")
+);
+
+const receivedMessages = computed(() =>
+  cooperationMessages.value.filter((msg) => msg.type === "received")
+);
+
 // 格式化时间显示
 const formatMessageTime = (timestamp: number): string => {
   const date = new Date(timestamp);
@@ -1241,6 +1358,12 @@ const documentError = ref("");
 const currentDocumentInfo = ref<any>(null); // 存储当前文档信息
 const hasOpenedDocuments = ref(false); // 是否有已打开的文档
 const isDocumentHtml = ref(false); // 文档内容是否为HTML格式
+
+// 设置速度相关
+const setSpeedDialogVisible = ref(false);
+const setSpeedForm = reactive({
+  speed: 15, // 默认速度 15 m/s
+});
 
 // 传感器转向相关
 const sensorParamForm = reactive({
@@ -1716,6 +1839,7 @@ const updatePlatformStatusDisplay = (platform: any) => {
     const newLongitude = `${platform.base.location.longitude.toFixed(6)}°`;
     const newLatitude = `${platform.base.location.latitude.toFixed(6)}°`;
     const newAltitude = `${platform.base.location.altitude.toFixed(1)}m`;
+    const newSpeed = `${platform.base.speed.toFixed(1)} m/s`;
 
     // 只在数据变化时才更新，避免不必要的重渲染
     if (
@@ -1726,6 +1850,7 @@ const updatePlatformStatusDisplay = (platform: any) => {
       platformStatus.position.longitude = newLongitude;
       platformStatus.position.latitude = newLatitude;
       platformStatus.position.altitude = newAltitude;
+      platformStatus.speed = newSpeed;
       console.log(`[UavPage] 位置更新:`, platformStatus.position);
     }
   }
@@ -1819,6 +1944,18 @@ const updatePlatformStatusDisplay = (platform: any) => {
             // 根据项目规范，自动填入后设置为不可编辑状态
             isLaserCodeEditing.value = false;
             console.log(`[UavPage] 激光编码已更新: ${laserCodeValue}`);
+          }
+        }
+
+        // 更新照射持续时间（从desigDuring获取）
+        if (sensor.desigDuring !== undefined) {
+          const durationValue = sensor.desigDuring.toString();
+          // 只有在当前没有持续时间或持续时间不同时才更新
+          if (irradiationDuration.value !== durationValue) {
+            irradiationDuration.value = durationValue;
+            // 根据项目规范，自动填入后设置为不可编辑状态
+            isDurationEditing.value = false;
+            console.log(`[UavPage] 照射持续时间已更新: ${durationValue}秒`);
           }
         }
       }
@@ -2005,6 +2142,9 @@ const handlePlatformStatus = async (packet: any) => {
 
           // 记录演习时间更新的时间戳，用于仿真平台断线检测
           lastExerciseTimeUpdate.value = Date.now();
+
+          // 检查基于演习时间的倒计时
+          checkExerciseTimeBasedCountdowns();
 
           // 如果之前显示了断线对话框，现在数据恢复了，自动关闭对话框
           if (simulationDisconnectedDialogVisible.value) {
@@ -2478,6 +2618,71 @@ const checkTargetDestroyed = (platforms: any[]) => {
 };
 
 // 按钮点击事件处理函数
+// 解析演习时间为秒数
+const parseExerciseTime = (timeStr: string): number => {
+  // 格式: "T + 123秒" 或 "T + 2分30秒"
+  const secondsMatch = timeStr.match(/T \+ (\d+)秒/);
+  if (secondsMatch) {
+    return parseInt(secondsMatch[1]);
+  }
+
+  const minutesMatch = timeStr.match(/T \+ (\d+)分(\d+)秒/);
+  if (minutesMatch) {
+    return parseInt(minutesMatch[1]) * 60 + parseInt(minutesMatch[2]);
+  }
+
+  return 0;
+};
+
+// 获取当前演习时间（秒）
+const getCurrentExerciseTimeInSeconds = (): number => {
+  return parseExerciseTime(environmentParams.exerciseTime);
+};
+
+// 检查基于演习时间的倒计时
+const checkExerciseTimeBasedCountdowns = () => {
+  const currentExerciseTime = getCurrentExerciseTimeInSeconds();
+
+  // 检查照射倒计时
+  if (isIrradiating.value && irradiationStartExerciseTime.value !== null) {
+    const elapsed = currentExerciseTime - irradiationStartExerciseTime.value;
+    const remaining = Math.max(0, irradiationTargetDuration.value - elapsed);
+
+    irradiationCountdown.value = remaining;
+
+    if (remaining <= 0) {
+      // 照射倒计时结束
+      isIrradiating.value = false;
+      irradiationStartExerciseTime.value = null;
+      irradiationTargetDuration.value = 0;
+
+      // 发送激光照射命令并启动照射时长倒计时
+      sendLaserCommandAndStartDuration();
+    }
+  }
+
+  // 检查照射时长倒计时
+  if (isLasingActive.value && lasingStartExerciseTime.value !== null) {
+    const elapsed = currentExerciseTime - lasingStartExerciseTime.value;
+    const remaining = Math.max(0, lasingTargetDuration.value - elapsed);
+
+    lasingDurationCountdown.value = remaining;
+
+    if (remaining <= 0) {
+      // 照射时长倒计时结束
+      isLasingActive.value = false;
+      lasingStartExerciseTime.value = null;
+      lasingTargetDuration.value = 0;
+
+      addLog("info", `照射时长倒计时结束（演习时间），自动发送停止照射命令`);
+      ElMessage.info(`照射时长已结束，自动停止照射`);
+
+      // 发送停止照射命令
+      sendLaserCommand("Uav_LazerPod_Cease");
+    }
+  }
+};
+
 const handleSelectGroup = (value: string) => {
   selectedGroup.value = value;
   selectedUav.value = ""; // 重置无人机选择
@@ -2522,14 +2727,7 @@ const handleSelectUav = (value: string) => {
 };
 
 // 轨迹同步相关函数
-// 切换轨迹同步状态
-const toggleTrajectorySync = () => {
-  if (isSyncingTrajectory.value) {
-    stopTrajectorySync();
-  } else {
-    startTrajectorySync();
-  }
-};
+// toggleTrajectorySync 函数已移除，现在通过连接/断开自动控制同步轨迹
 
 // 开始轨迹同步
 const startTrajectorySync = async () => {
@@ -2662,6 +2860,9 @@ const handleConnectPlatform = async () => {
       addLog("warning", `停止心跳失败: ${error.message}`);
     }
 
+    // 停止轨迹同步
+    stopTrajectorySync();
+
     isConnected.value = false;
     connectedPlatform.value = null;
     connectedPlatformName.value = "";
@@ -2790,6 +2991,9 @@ const handleConnectPlatform = async () => {
       addLog("warning", `平台心跳启动失败: ${selectedUav.value}`);
     }
 
+    // 连接成功后自动开启轨迹同步
+    await startTrajectorySync();
+
     // 初始化仿真平台检测状态
     lastExerciseTimeUpdate.value = Date.now(); // 设置初始时间
     simulationDisconnectedDialogVisible.value = false; // 确保对话框关闭
@@ -2847,6 +3051,9 @@ const handleConnectPlatform = async () => {
       addLog("info", `模拟平台心跳已启动: ${selectedUav.value}`);
     }
 
+    // 模拟模式下也自动开启轨迹同步
+    await startTrajectorySync();
+
     // 初始化仿真平台检测状态（模拟模式下也需要检测）
     lastExerciseTimeUpdate.value = Date.now(); // 设置初始时间
     simulationDisconnectedDialogVisible.value = false; // 确保对话框关闭
@@ -2883,6 +3090,62 @@ const handleRoutePlanning = async () => {
   }
 };
 
+// 设置速度相关方法
+const showSetSpeedDialog = () => {
+  if (!isConnected.value) {
+    ElMessage.warning("请先连接平台");
+    return;
+  }
+
+  setSpeedForm.speed = 15; // 默认速度
+  setSpeedDialogVisible.value = true;
+};
+
+const sendSetSpeedCommand = async () => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Set_Speed"];
+    if (commandEnum === undefined) {
+      throw new Error("未定义的速度设置命令");
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      setSpeedParam: {
+        speed: Number(setSpeedForm.speed),
+      },
+    };
+
+    addLog(
+      "info",
+      `发送速度设置命令: 平台 ${connectedPlatformName.value} 设置速度为 ${setSpeedForm.speed} m/s`
+    );
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog("success", `速度设置命令发送成功`);
+      ElMessage.success("速度设置命令发送成功");
+      setSpeedDialogVisible.value = false;
+    } else {
+      addLog("error", `速度设置命令发送失败: ${result.error}`);
+      ElMessage.error(`命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送速度设置命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
 const handleInputLaserCode = () => {
   if (isLaserCodeEditing.value) {
     // 确定模式
@@ -2900,11 +3163,28 @@ const handleInputLaserCode = () => {
   }
 };
 
+const handleSetIrradiationDuration = () => {
+  if (isDurationEditing.value) {
+    // 确定模式
+    if (!irradiationDuration.value.trim()) {
+      ElMessage.warning("请输入照射持续时间");
+      return;
+    }
+    isDurationEditing.value = false;
+    addLog("success", `照射持续时间已设置: ${irradiationDuration.value}秒`);
+    ElMessage.success(`照射持续时间已设置: ${irradiationDuration.value}秒`);
+  } else {
+    // 编辑模式
+    isDurationEditing.value = true;
+    addLog("info", "开始编辑照射持续时间");
+  }
+};
+
 const handleSetLaserCountdown = () => {
   if (isCountdownEditing.value) {
     // 确定模式
     if (!laserCountdown.value.trim()) {
-      ElMessage.warning("请输入倒计时时间");
+      ElMessage.warning("请输入照射倒计时时间");
       return;
     }
     isCountdownEditing.value = false;
@@ -2925,52 +3205,67 @@ const handleIrradiate = () => {
   }
 
   if (isIrradiating.value) {
-    // 当前正在照射，取消照射
-    if (irradiationTimer.value) {
-      clearInterval(irradiationTimer.value);
-      irradiationTimer.value = null;
-    }
+    // 当前正在照射倒计时，取消照射
     isIrradiating.value = false;
+    irradiationStartExerciseTime.value = null;
+    irradiationTargetDuration.value = 0;
     irradiationCountdown.value = 0;
     addLog("warning", "照射已取消");
     ElMessage.warning("照射已取消");
     return;
   }
 
-  // 检查是否设置了倒计时
+  // 检查是否设置了照射倒计时
   const countdownTime = laserCountdown.value
     ? parseInt(laserCountdown.value)
     : 0;
 
   if (countdownTime <= 0) {
     // 没有设置倒计时或倒计时为0，直接发送照射命令
-    sendLaserCommand("Uav_LazerPod_Lasing");
+    sendLaserCommandAndStartDuration();
     return;
   }
 
-  // 有倒计时，启动倒计时流程
+  // 有倒计时，启动基于演习时间的倒计时流程
+  const currentExerciseTime = getCurrentExerciseTimeInSeconds();
   isIrradiating.value = true;
+  irradiationStartExerciseTime.value = currentExerciseTime;
+  irradiationTargetDuration.value = countdownTime;
   irradiationCountdown.value = countdownTime;
 
-  addLog("info", `开始照射倒计时: ${countdownTime}秒`);
+  addLog("info", `开始照射倒计时: ${countdownTime}秒（基于演习时间）`);
   ElMessage.info(`照射倒计时开始: ${countdownTime}秒`);
 
-  // 开始倒计时
-  irradiationTimer.value = setInterval(() => {
-    irradiationCountdown.value--;
+  console.log(
+    `[UavPage] 照射倒计时开始 - 当前演习时间: ${currentExerciseTime}秒, 目标时长: ${countdownTime}秒`
+  );
+};
 
-    if (irradiationCountdown.value <= 0) {
-      // 倒计时结束，发送照射命令
-      if (irradiationTimer.value) {
-        clearInterval(irradiationTimer.value);
-        irradiationTimer.value = null;
-      }
-      isIrradiating.value = false;
+// 发送激光照射命令并启动照射时长倒计时
+const sendLaserCommandAndStartDuration = () => {
+  // 发送激光照射命令
+  sendLaserCommand("Uav_LazerPod_Lasing");
 
-      // 发送真实的激光照射命令
-      sendLaserCommand("Uav_LazerPod_Lasing");
-    }
-  }, 1000);
+  // 设置激光照射活跃状态
+  isLasingActive.value = true;
+
+  // 检查是否设置了照射持续时间
+  const durationTime = irradiationDuration.value
+    ? parseInt(irradiationDuration.value)
+    : 0;
+
+  if (durationTime > 0) {
+    // 启动基于演习时间的照射时长倒计时
+    const currentExerciseTime = getCurrentExerciseTimeInSeconds();
+    lasingStartExerciseTime.value = currentExerciseTime;
+    lasingTargetDuration.value = durationTime;
+    lasingDurationCountdown.value = durationTime;
+
+    addLog("info", `照射时长倒计时开始: ${durationTime}秒（基于演习时间）`);
+    console.log(
+      `[UavPage] 照射时长倒计时开始 - 当前演习时间: ${currentExerciseTime}秒, 目标时长: ${durationTime}秒`
+    );
+  }
 };
 
 const handleStop = () => {
@@ -2980,6 +3275,17 @@ const handleStop = () => {
     return;
   }
 
+  // 清除照射时长倒计时（如果存在）
+  if (lasingStartExerciseTime.value !== null) {
+    lasingStartExerciseTime.value = null;
+    lasingTargetDuration.value = 0;
+    lasingDurationCountdown.value = 0;
+    addLog("info", "照射时长倒计时已取消（演习时间）");
+  }
+
+  // 重置激光照射活跃状态
+  isLasingActive.value = false;
+
   // 发送真实的激光停止照射命令
   sendLaserCommand("Uav_LazerPod_Cease");
 };
@@ -2988,6 +3294,11 @@ const handleTurn = async () => {
   if (!isConnected.value) {
     ElMessage.warning("请先连接平台");
     return;
+  }
+
+  // 使用转向功能前，先停止激光传感器的周期性锁定
+  if (isLaserLockActive.value) {
+    stopLaserLockCommand();
   }
 
   // 直接使用当前输入的参数发送转向命令
@@ -3177,8 +3488,11 @@ const handleLockTarget = async () => {
   );
   const targetLabel = targetInfo?.label || selectedTarget.value;
 
-  // 发送光电和激光传感器的锁定命令
-  await sendLockTargetCommand(targetLabel);
+  // 发送光电传感器的锁定命令（只发送一次）
+  await sendOptoElectronicLockCommand(targetLabel);
+
+  // 启动激光传感器的周期性锁定命令（每1秒发送一次）
+  startLaserLockCommand(targetLabel);
 
   // 设置锁定目标状态
   lockedTarget.value = selectedTarget.value;
@@ -3188,7 +3502,135 @@ const handleLockTarget = async () => {
   targetStatus.destroyed = false;
 };
 
-// 发送锁定目标命令（同时发送光电和激光传感器锁定）
+// 发送光电传感器锁定命令（只发送一次）
+const sendOptoElectronicLockCommand = async (targetName: string) => {
+  try {
+    const optoElectronicSensorName = getOptoElectronicSensorName();
+
+    if (!optoElectronicSensorName) {
+      addLog("warning", "未找到光电传感器，跳过光电锁定命令");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Lock_Target"];
+    if (commandEnum === undefined) {
+      throw new Error(`未知锁定命令: Uav_Lock_Target`);
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      lockParam: {
+        targetName: targetName,
+        sensorName: optoElectronicSensorName,
+      },
+    };
+
+    addLog(
+      "info",
+      `发送光电传感器锁定命令: 传感器 ${optoElectronicSensorName} 锁定目标 ${targetName}`
+    );
+    console.log("发送光电传感器锁定命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog("success", `光电传感器锁定命令发送成功`);
+    } else {
+      addLog("error", `光电传感器锁定命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送光电传感器锁定命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 启动激光传感器周期性锁定命令（每1秒发送一次）
+const startLaserLockCommand = async (targetName: string) => {
+  try {
+    const laserSensorName = getLaserSensorName();
+
+    if (!laserSensorName) {
+      addLog("warning", "未找到激光传感器，跳过激光锁定命令");
+      return;
+    }
+
+    // 停止之前的定时器（如果有）
+    stopLaserLockCommand();
+
+    // 设置激光锁定状态
+    isLaserLockActive.value = true;
+
+    // 立即发送一次激光锁定命令
+    await sendSingleLaserLockCommand(targetName, laserSensorName);
+
+    // 启动定时器，每1秒发送一次
+    laserLockTimer.value = setInterval(async () => {
+      if (isLaserLockActive.value) {
+        await sendSingleLaserLockCommand(targetName, laserSensorName);
+      }
+    }, 1000);
+
+    addLog("info", `激光传感器周期性锁定命令已启动，每1秒发送一次`);
+  } catch (error: any) {
+    const errorMsg = `启动激光传感器周期性锁定失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 发送单次激光传感器锁定命令
+const sendSingleLaserLockCommand = async (
+  targetName: string,
+  laserSensorName: string
+) => {
+  try {
+    const commandEnum = PlatformCommandEnum["Uav_Lock_Target"];
+    if (commandEnum === undefined) {
+      throw new Error(`未知锁定命令: Uav_Lock_Target`);
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      lockParam: {
+        targetName: targetName,
+        sensorName: laserSensorName,
+      },
+    };
+
+    console.log("发送激光传感器锁定命令数据:", commandData);
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      console.log(`[激光锁定] 激光传感器锁定命令发送成功`);
+    } else {
+      addLog("error", `激光传感器锁定命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    addLog("error", `发送激光传感器锁定命令失败: ${error.message}`);
+  }
+};
+
+// 停止激光传感器周期性锁定命令
+const stopLaserLockCommand = () => {
+  if (laserLockTimer.value) {
+    clearInterval(laserLockTimer.value);
+    laserLockTimer.value = null;
+  }
+  isLaserLockActive.value = false;
+  addLog("info", "激光传感器周期性锁定命令已停止");
+};
+
+// 发送锁定目标命令（原有函数，保留用于兼容性）
 const sendLockTargetCommand = async (targetName: string) => {
   try {
     const optoElectronicSensorName = getOptoElectronicSensorName();
@@ -3485,6 +3927,10 @@ const onlyNumbers = (value: string) => {
 
 const handleLaserCodeInput = (value: string) => {
   laserCode.value = onlyNumbers(value);
+};
+
+const handleDurationInput = (value: string) => {
+  irradiationDuration.value = onlyNumbers(value);
 };
 
 const handleCountdownInput = (value: string) => {
@@ -3792,11 +4238,7 @@ onUnmounted(() => {
     console.log("[UavPage] 已停止监听平台状态数据");
   }
 
-  // 清理照射倒计时定时器
-  if (irradiationTimer.value) {
-    clearInterval(irradiationTimer.value);
-    irradiationTimer.value = null;
-  }
+  // 已改为基于演习时间的倒计时，无需清理系统定时器
 
   // 清理轨迹同步定时器
   if (syncTimer.value) {
@@ -3809,15 +4251,86 @@ onUnmounted(() => {
     clearInterval(simulationCheckTimer.value);
     simulationCheckTimer.value = null;
   }
+
+  // 清理激光锁定定时器
+  if (laserLockTimer.value) {
+    clearInterval(laserLockTimer.value);
+    laserLockTimer.value = null;
+  }
+
+  // 重置基于演习时间的倒计时状态
+  isIrradiating.value = false;
+  irradiationStartExerciseTime.value = null;
+  irradiationTargetDuration.value = 0;
+  irradiationCountdown.value = 0;
+
+  isLasingActive.value = false;
+  lasingStartExerciseTime.value = null;
+  lasingTargetDuration.value = 0;
+  lasingDurationCountdown.value = 0;
 });
 </script>
 
 <style scoped>
+/* ==================== 设计令牌 (Design Tokens) ==================== */
 .uav-operation-page {
-  background-color: #f5f5f5;
+  /* 主色调 */
+  --color-primary: #409eff;
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #909399;
+
+  /* 文本颜色 */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+
+  /* 边框颜色 */
+  --border-base: #dcdfe6;
+  --border-light: #e4e7ed;
+  --border-lighter: #ebeef5;
+
+  /* 背景颜色 */
+  --bg-white: #ffffff;
+  --bg-base: #f5f7fa;
+  --bg-light: #fafafa;
+
+  /* 间距系统 (8px基础) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-base: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* 字体大小 */
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 14px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+
+  /* 过渡 */
+  --transition-base: all 0.2s ease;
+
+  /* 应用基础样式 */
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* ==================== 卡片统一样式 ==================== */
 /* 顶部控制区域 */
 .top-section {
   background: transparent;
@@ -3832,15 +4345,20 @@ onUnmounted(() => {
   width: 100%;
 }
 
-/* 连接控制卡片（全宽） */
+/* 连接控制卡片（全宽）*/
 .connection-card {
   flex: 1;
   width: 100%;
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
+  transition: var(--transition-base);
+}
+
+.connection-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 /* 演练方案区域（在连接栏内） */
@@ -3852,25 +4370,20 @@ onUnmounted(() => {
 /* 演练方案按钮 */
 .exercise-btn {
   height: 40px;
-  padding: 0 20px;
-  font-size: 14px;
+  padding: 0 var(--spacing-xl);
+  font-size: var(--font-base);
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: var(--radius-base);
   white-space: nowrap;
+  transition: var(--transition-base);
 }
 
 /* 功能区域分隔符 */
 .function-separator {
-  width: 2px;
-  height: 40px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    #dee2e6 20%,
-    #dee2e6 80%,
-    transparent
-  );
-  margin: 0 12px;
+  width: 1px;
+  height: 32px;
+  background: var(--border-light);
+  margin: 0 var(--spacing-md);
 }
 
 .control-row {
@@ -3878,12 +4391,51 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  gap: 16px;
+  gap: var(--spacing-lg);
 }
 
 /* 左侧标题区域 */
 .title-section {
   flex: 0 0 auto;
+  padding-right: var(--spacing-lg);
+  border-right: 2px solid var(--border-light);
+}
+
+/* 标题与返回按钮容器 */
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* 返回按钮样式 */
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-sm);
+  padding: 6px var(--spacing-md);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  transition: var(--transition-base);
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateX(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 席位标题 */
+.seat-title {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
 /* 中间时间区域 */
@@ -3891,54 +4443,48 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .exercise-time,
 .astronomical-time {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .astronomical-time {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--font-base);
+  color: var(--text-regular);
 }
 
 /* 右侧控制区域 */
 .controls-section {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-md);
   align-items: center;
-}
-
-/* 席位标题 */
-.seat-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  white-space: nowrap;
 }
 
 /* 控制按钮样式 */
 .control-btn {
   height: 40px;
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 6px;
-  padding: 0 20px;
-  font-size: 14px;
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  border-radius: var(--radius-base);
+  padding: 0 var(--spacing-xl);
+  font-size: var(--font-base);
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-base);
 }
 
 .control-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 下拉框样式 */
@@ -3958,6 +4504,7 @@ onUnmounted(() => {
   min-width: 200px;
 }
 
+/* ==================== 布局结构 ==================== */
 /* 主要内容区域 */
 .main-content {
   min-height: 500px;
@@ -3981,27 +4528,32 @@ onUnmounted(() => {
   width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
-/* 任务目标提醒栏（在右侧列） */
+/* ==================== 任务目标提醒栏 ==================== */
 .mission-target-banner {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-left: 4px solid #007bff;
-  border-radius: 4px;
-  padding: 12px 16px;
-  position: relative; /* 为绝对定位提供参考点 */
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  position: relative;
+  transition: var(--transition-base);
+}
+
+.mission-target-banner:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .banner-content {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .banner-icon {
-  color: #007bff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   margin-top: 2px;
@@ -4011,8 +4563,8 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  position: relative; /* 为状态标签提供参考点 */
+  gap: var(--spacing-sm);
+  position: relative;
 }
 
 .target-header {
@@ -4021,9 +4573,9 @@ onUnmounted(() => {
 }
 
 .banner-title {
-  font-size: 14px;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #495057;
+  color: var(--text-regular);
 }
 
 .target-status-indicator {
@@ -4197,32 +4749,37 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-/* 报文面板样式 */
+/* ==================== 报文面板样式 ==================== */
 .report-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 400px;
-  max-height: 600px; /* 设置最大高度防止页面过高 */
+  max-height: 600px;
+  transition: var(--transition-base);
+}
+
+.report-panel:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .report-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e0e0e0;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .cooperation-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 
@@ -4231,30 +4788,61 @@ onUnmounted(() => {
   min-width: 150px;
 }
 
+.report-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-send-btn {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: var(--transition-base);
+  white-space: nowrap;
+}
+
+.report-send-btn:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.report-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  gap: var(--spacing-md);
+}
+
+/* 协同目标选项 */
 .cooperation-target-option {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .cooperation-target-name {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .cooperation-target-type {
-  font-size: 12px;
-  color: #909399;
-  background: #f0f2f5;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  background: var(--bg-base);
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .cooperation-target-status {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 4px;
   border-radius: 2px;
   font-weight: 500;
@@ -4273,131 +4861,198 @@ onUnmounted(() => {
 .inactive-status {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: #faad14;
-  font-size: 11px;
+  gap: var(--spacing-xs);
+  color: var(--color-warning);
+  font-size: var(--font-xs);
   font-weight: 500;
 }
 
 .inactive-icon {
-  font-size: 12px;
-  color: #faad14;
+  font-size: var(--font-sm);
+  color: var(--color-warning);
 }
 
 .inactive-text {
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
 }
 
-.report-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.report-send-btn {
-  padding: 4px 12px;
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.report-send-btn:hover {
-  border-color: #007bff;
-}
-
-.report-content {
+/* 发报文区域和收报文区域样式 */
+.sent-messages-section,
+.received-messages-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* 确保能够正常收缩 */
-  overflow: hidden; /* 防止内容溢出 */
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+  min-height: 150px;
+  max-height: 290px; /* 限制最大高度，两个区域共600px遵循项目规范 */
+  overflow: hidden; /* 确保内容不会溢出 */
 }
 
-.report-section {
+/* 区域标题样式 */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 6px 6px 0 0;
+}
+
+.section-icon {
+  font-size: 14px;
+  color: #409eff;
+}
+
+.sent-messages-section .section-icon {
+  color: #409eff;
+}
+
+.received-messages-section .section-icon {
+  color: #67c23a;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+
+/* 消息容器样式 */
+.messages-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
+  padding: 8px;
   padding-right: 4px; /* 为滚动条留出空间 */
+  padding-bottom: 8px; /* 底部留出8px空间 */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0; /* 允许flex子项正常收缩 */
 }
 
-/* 自定义滚动条样式 */
-.report-section::-webkit-scrollbar {
+/* 自定义滚动条样式 - 遵循项目规范 */
+.messages-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.report-section::-webkit-scrollbar-track {
+.messages-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.report-section::-webkit-scrollbar-thumb {
+.messages-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
   transition: background 0.2s;
 }
 
-.report-section::-webkit-scrollbar-thumb:hover {
+.messages-container::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
 
-.report-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 8px; /* 在底部留出一些空间 */
-}
-
-/* 优化后的报文消息样式 */
+/* 精简后的报文消息样式 */
 .message-item {
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid #e0e0e0;
   background: #ffffff;
   overflow: hidden;
   transition: all 0.2s ease;
+  min-height: 60px; /* 确保消息条目有最小高度，防止被挤压 */
+  flex-shrink: 0; /* 防止flex布局下被压缩 */
 }
 
 .message-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-/* 发送消息hover状态 */
-.message-sent:hover {
-  background: linear-gradient(135deg, #d1e7fd, #ebf5ff);
-  border-color: #90caf9;
-}
-
-/* 接收消息hover状态 */
-.message-received:hover {
-  background: linear-gradient(135deg, #dcedc8, #e8f4e8);
-  border-color: #a5d6a7;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* 发送消息样式 */
 .message-sent {
-  border-left: 4px solid #409eff;
-  background: linear-gradient(135deg, #e3f2fd, #f3f9ff);
-  border: 1px solid #bbdefb;
+  border-left: 3px solid #409eff;
+  background: linear-gradient(135deg, #f0f7ff, #ffffff);
+  border-color: #d1e7fd;
 }
 
-.message-sent .message-header {
-  background: linear-gradient(135deg, #409eff30, #409eff20);
+.message-sent:hover {
+  background: linear-gradient(135deg, #e3f2fd, #f0f7ff);
+  border-color: #90caf9;
 }
 
 /* 接收消息样式 */
 .message-received {
-  border-left: 4px solid #67c23a;
-  background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
-  border: 1px solid #c8e6c9;
+  border-left: 3px solid #67c23a;
+  background: linear-gradient(135deg, #f6ffed, #ffffff);
+  border-color: #d9f7be;
 }
 
-.message-received .message-header {
-  background: linear-gradient(135deg, #67c23a30, #67c23a20);
+.message-received:hover {
+  background: linear-gradient(135deg, #f0f9e8, #f6ffed);
+  border-color: #b7eb8f;
+}
+
+/* 精简的消息内容 */
+.message-content {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 56px; /* 确保内容区域有最小高度 */
+}
+
+.message-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.target-platform,
+.source-platform {
+  font-weight: 600;
+  color: #303133;
+}
+
+.exercise-time {
+  font-weight: 600;
+  color: #e6a23c;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+}
+
+.message-text {
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.message-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.message-tags .el-tag {
+  font-size: 10px;
+  padding: 1px 4px;
+  height: 18px;
+  line-height: 16px;
+}
+
+/* 空消息样式 */
+.empty-message {
+  text-align: center;
+  color: #c0c4cc;
+  font-style: italic;
+  padding: 16px;
+  font-size: 12px;
+  border: 1px dashed #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
 }
 
 /* 状态样式 */
@@ -4412,103 +5067,6 @@ onUnmounted(() => {
 
 .message-pending {
   border-color: #e6a23c;
-}
-
-/* 消息头部 */
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 12px;
-}
-
-.message-direction {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-}
-
-.direction-icon {
-  font-size: 14px;
-}
-
-.sent-icon {
-  color: #409eff;
-}
-
-.received-icon {
-  color: #67c23a;
-}
-
-.direction-text {
-  color: #606266;
-}
-
-.message-time {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.exercise-time {
-  font-weight: 600;
-  color: #e6a23c;
-  font-family: "Courier New", monospace;
-}
-
-.clock-time {
-  color: #909399;
-  font-size: 11px;
-}
-
-/* 消息主体 */
-.message-body {
-  padding: 12px;
-}
-
-.message-platform-info {
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #606266;
-}
-
-.platform-info strong {
-  color: #303133;
-  font-weight: 600;
-}
-
-.message-content {
-  font-size: 14px;
-  color: #303133;
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.message-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.message-details .el-tag {
-  font-size: 11px;
-  padding: 2px 6px;
-}
-
-/* 空消息样式 */
-.message-empty {
-  text-align: center;
-  color: #c0c4cc;
-  font-style: italic;
-  padding: 20px;
-  border: 1px dashed #e0e0e0;
-  background: #fafafa;
 }
 
 /* 航线规划按钮（在任务控制内） */
@@ -4531,11 +5089,11 @@ onUnmounted(() => {
   border-color: #007bff;
 }
 
-/* 同步轨迹按钮 */
-.trajectory-sync-btn {
+/* 设置速度按钮 */
+.set-speed-btn {
   flex: 1;
   height: 45px;
-  border: 2px solid #d0d0d0;
+  border: 2px solid #28a745;
   border-radius: 6px;
   font-size: 15px;
   font-weight: 600;
@@ -4543,69 +5101,87 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.trajectory-sync-btn:hover {
-  opacity: 0.8;
+.set-speed-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
 }
 
-/* 任务控制区域 */
+.set-speed-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 同步轨迹按钮样式已移除，现在通过连接/断开自动控制 */
+
+/* ==================== 任务控制区域 ==================== */
 .task-control {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   flex: 1;
+  transition: var(--transition-base);
+}
+
+.task-control:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .task-header {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #333;
-  margin-bottom: 16px;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--border-lighter);
 }
 
 /* 控制组 */
 .control-group {
-  padding-bottom: 8px;
+  padding-bottom: var(--spacing-sm);
 }
 
 .control-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
 .control-label {
-  font-size: 14px;
-  color: #555;
+  font-size: var(--font-base);
+  color: var(--text-regular);
   font-weight: 500;
 }
 
 .control-switch {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .switch-label {
-  font-size: 12px;
-  color: #666;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .button-row {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .input-group {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .input-wrapper {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 
@@ -4616,46 +5192,49 @@ onUnmounted(() => {
 .confirm-btn {
   width: 60px;
   height: 32px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   padding: 0;
+  transition: var(--transition-base);
 }
 
 .control-separator {
   height: 1px;
-  background-color: #ddd;
-  margin: 12px 0;
+  background-color: var(--border-light);
+  margin: var(--spacing-md) 0;
   border-radius: 1px;
 }
 
 .button-separator {
   height: 1px;
-  background-color: #e0e0e0;
-  margin: 12px 0;
+  background-color: var(--border-light);
+  margin: var(--spacing-md) 0;
   border-radius: 1px;
 }
 
 .action-btn {
   flex: 1;
   height: 36px;
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #333;
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  border-radius: var(--radius-base);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-base);
 }
 
 .action-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 全宽大按钮 */
 .full-width-btn {
   width: 100%;
   height: 40px;
-  font-size: 15px;
+  font-size: var(--font-base);
   font-weight: 600;
 }
 
@@ -4717,14 +5296,19 @@ onUnmounted(() => {
   min-width: 150px;
 }
 
-/* 状态卡片 */
+/* ==================== 状态卡片 ==================== */
 .status-card {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   min-height: 120px;
+  transition: var(--transition-base);
+}
+
+.status-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .status-card.target-status {
@@ -4742,7 +5326,13 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.status-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .status-title {
@@ -4861,92 +5451,93 @@ onUnmounted(() => {
   }
 }
 
-/* Element Plus 组件样式覆盖 */
+/* ==================== Element Plus 组件样式覆盖 ==================== */
 :deep(.el-switch) {
-  --el-switch-on-color: #007bff;
-  --el-switch-off-color: #dcdfe6;
+  --el-switch-on-color: var(--color-primary);
+  --el-switch-off-color: var(--border-base);
 }
 
 :deep(.el-button) {
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  color: #333;
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  transition: var(--transition-base);
 }
 
 :deep(.el-button:hover) {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 :deep(.el-select) {
-  --el-select-border-color-hover: #007bff;
-  --el-select-input-color: #333;
-  --el-select-input-font-size: 14px;
+  --el-select-border-color-hover: var(--color-primary);
+  --el-select-input-color: var(--text-primary);
+  --el-select-input-font-size: var(--font-base);
 }
 
 :deep(.el-select .el-input__wrapper) {
-  border: 2px solid #d0d0d0;
-  border-radius: 6px;
-  background: #f8f9fa;
-  transition: all 0.2s;
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-base);
+  background: var(--bg-white);
+  transition: var(--transition-base);
 }
 
 :deep(.el-select .el-input__wrapper:hover) {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
 }
 
 :deep(.el-select .el-input__wrapper.is-focus) {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
 }
 
 :deep(.el-select.is-disabled .el-input__wrapper) {
-  background-color: #f5f5f5;
-  border-color: #e4e7ed;
-  color: #c0c4cc;
+  background-color: var(--bg-base);
+  border-color: var(--border-light);
+  color: var(--text-placeholder);
   cursor: not-allowed;
 }
 
 :deep(.el-button.is-disabled) {
-  background-color: #f5f5f5;
-  border-color: #e4e7ed;
-  color: #c0c4cc;
+  background-color: var(--bg-base);
+  border-color: var(--border-light);
+  color: var(--text-placeholder);
   cursor: not-allowed;
 }
 
-/* 文档对话框样式 */
+/* ==================== 文档对话框样式 ==================== */
 .document-content {
   min-height: 400px;
   max-height: 600px;
   overflow-y: auto;
 }
 
-/* 文档信息栏 */
 .document-info-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  margin-bottom: 16px;
-  font-size: 13px;
+  padding: var(--spacing-md);
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-sm);
 }
 
 .info-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
   flex: 1;
   min-width: 0;
 }
 
 .file-path {
-  color: #666;
+  color: var(--text-secondary);
   font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  font-size: 11px;
+  font-size: var(--font-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4964,26 +5555,26 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 40px;
-  color: #666;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: var(--font-base);
 }
 
 .empty-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-lg);
   text-align: center;
 }
 
 .empty-icon {
   font-size: 48px;
-  color: #d0d0d0;
+  color: var(--border-base);
 }
 
 .empty-text {
-  font-size: 16px;
-  color: #999;
+  font-size: var(--font-lg);
+  color: var(--text-secondary);
 }
 
 .error-container {
@@ -4991,22 +5582,21 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--spacing-lg);
   padding: 40px;
-  color: #e74c3c;
-  font-size: 14px;
+  color: var(--color-danger);
+  font-size: var(--font-base);
   text-align: center;
 }
 
 .document-text {
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  padding: var(--spacing-lg);
+  background: var(--bg-base);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
 }
 
 .document-text .html-content {
-  /* HTML内容的样式已经在后端定义 */
   font-family: inherit;
   line-height: inherit;
   margin: 0;
@@ -5016,16 +5606,16 @@ onUnmounted(() => {
   white-space: pre-wrap;
   word-wrap: break-word;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
+  font-size: var(--font-base);
   line-height: 1.6;
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 /* 目标选项样式 */

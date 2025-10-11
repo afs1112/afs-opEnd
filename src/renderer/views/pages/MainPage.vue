@@ -7,59 +7,26 @@
     />
 
     <!-- 无人机席位页面 -->
-    <div v-else-if="currentPage === 'uav'" class="page-wrapper">
-      <div class="page-header">
-        <el-button
-          type="primary"
-          size="small"
-          @click="backToStart"
-          class="back-button"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-          返回席位选择
-        </el-button>
-        <h2 class="page-title">无人机操作席位</h2>
-      </div>
+    <div v-else-if="currentPage === 'uav'" class="page-wrapper no-header">
       <div class="page-content">
-        <UavOperationPage />
+        <UavOperationPage @back-to-start="backToStart" />
       </div>
     </div>
 
     <!-- 火炮席位页面 -->
-    <div v-else-if="currentPage === 'artillery'" class="page-wrapper">
-      <div class="page-header">
-        <el-button
-          type="primary"
-          size="small"
-          @click="backToStart"
-          class="back-button"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-          返回席位选择
-        </el-button>
-        <h2 class="page-title">火炮操作席位</h2>
-      </div>
+    <div v-else-if="currentPage === 'artillery'" class="page-wrapper no-header">
       <div class="page-content">
-        <ArtilleryOperationPage />
+        <ArtilleryOperationPage @back-to-start="backToStart" />
       </div>
     </div>
 
     <!-- 考评席位页面 -->
-    <div v-else-if="currentPage === 'evaluation'" class="page-wrapper">
-      <div class="page-header">
-        <el-button
-          type="primary"
-          size="small"
-          @click="backToStart"
-          class="back-button"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-          返回席位选择
-        </el-button>
-        <h2 class="page-title">作战考评席位</h2>
-      </div>
+    <div
+      v-else-if="currentPage === 'evaluation'"
+      class="page-wrapper no-header"
+    >
       <div class="page-content">
-        <EvaluationPage />
+        <EvaluationPage @back-to-start="backToStart" />
       </div>
     </div>
 

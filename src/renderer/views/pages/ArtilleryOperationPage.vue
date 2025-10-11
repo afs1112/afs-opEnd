@@ -9,7 +9,17 @@
           <div v-if="!isConnected" class="control-row">
             <!-- 左侧标题区域 -->
             <div class="title-section">
-              <div class="seat-title">火炮席位</div>
+              <div class="title-with-back">
+                <el-button
+                  class="back-button"
+                  size="normal"
+                  @click="handleBackToStart"
+                >
+                  <el-icon><ArrowLeft /></el-icon>
+                  返回
+                </el-button>
+                <div class="seat-title">火炮席位</div>
+              </div>
             </div>
 
             <!-- 中间控制区域 -->
@@ -503,7 +513,7 @@
       <!-- 右侧协同报文区域 -->
       <div class="right-panel">
         <!-- 任务目标提醒栏 -->
-        <div v-if="isConnected" class="mission-target-banner mb-4">
+        <div v-if="isConnected" class="mission-target-banner">
           <div class="banner-content">
             <div class="banner-icon">
               <el-icon size="16"><LocationFilled /></el-icon>
@@ -591,91 +601,112 @@
           </div>
 
           <div class="report-content">
-            <div class="report-section">
-              <div class="report-messages">
+            <!-- 发报文区域 -->
+            <div class="sent-messages-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><ArrowRight /></el-icon>
+                <span class="section-title"
+                  >发报文 ({{ sentMessages.length }})</span
+                >
+              </div>
+              <div class="messages-container">
                 <div
-                  v-for="msg in cooperationMessages"
+                  v-for="msg in sentMessages"
                   :key="msg.id"
-                  class="message-item"
+                  class="message-item message-sent"
                   :class="{
-                    'message-sent': msg.type === 'sent',
-                    'message-received': msg.type === 'received',
                     'message-success': msg.status === 'success',
                     'message-failed': msg.status === 'failed',
                     'message-pending': msg.status === 'pending',
                   }"
                 >
-                  <div class="message-header">
-                    <div class="message-direction">
-                      <el-icon
-                        v-if="msg.type === 'sent'"
-                        class="direction-icon sent-icon"
+                  <div class="message-content">
+                    <div class="message-header-compact">
+                      <span class="target-platform"
+                        >→ {{ msg.targetPlatform }}</span
                       >
-                        <ArrowRight />
-                      </el-icon>
-                      <el-icon v-else class="direction-icon received-icon">
-                        <ArrowLeft />
-                      </el-icon>
-                      <span class="direction-text">
-                        {{ msg.type === "sent" ? "发出" : "收到" }}
-                      </span>
-                    </div>
-                    <div class="message-time">
                       <span class="exercise-time">{{ msg.exerciseTime }}</span>
-                      <span class="clock-time">{{
-                        formatMessageTime(msg.timestamp)
-                      }}</span>
                     </div>
-                  </div>
-
-                  <div class="message-body">
-                    <div class="message-platform-info">
-                      <span v-if="msg.type === 'sent'" class="platform-info">
-                        发给：<strong>{{ msg.targetPlatform }}</strong>
-                      </span>
-                      <span v-else class="platform-info">
-                        来自：<strong>{{ msg.sourcePlatform }}</strong>
-                      </span>
-                    </div>
-
-                    <div class="message-content">{{ msg.content }}</div>
-
+                    <div class="message-text">{{ msg.content }}</div>
                     <div
-                      v-if="msg.details.targetName || msg.details.weaponName"
-                      class="message-details"
+                      v-if="msg.details.targetName || msg.details.coordinates"
+                      class="message-tags"
                     >
                       <el-tag
                         v-if="msg.details.targetName"
                         size="small"
                         type="info"
                       >
-                        目标：{{ msg.details.targetName }}
-                      </el-tag>
-                      <el-tag
-                        v-if="msg.details.weaponName"
-                        size="small"
-                        type="warning"
-                      >
-                        武器：{{ msg.details.weaponName }}
+                        {{ msg.details.targetName }}
                       </el-tag>
                       <el-tag
                         v-if="msg.details.coordinates"
                         size="small"
                         type="success"
                       >
-                        坐标：{{
-                          msg.details.coordinates.longitude.toFixed(4)
-                        }}°, {{ msg.details.coordinates.latitude.toFixed(4) }}°
+                        {{ msg.details.coordinates.longitude.toFixed(2) }}°,
+                        {{ msg.details.coordinates.latitude.toFixed(2) }}°
                       </el-tag>
                     </div>
                   </div>
                 </div>
+                <div v-if="sentMessages.length === 0" class="empty-message">
+                  暂无发送报文
+                </div>
+              </div>
+            </div>
 
-                <div
-                  v-if="cooperationMessages.length === 0"
-                  class="message-item message-empty"
+            <!-- 收报文区域 -->
+            <div class="received-messages-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><ArrowLeft /></el-icon>
+                <span class="section-title"
+                  >收报文 ({{ receivedMessages.length }})</span
                 >
-                  暂无协同报文
+              </div>
+              <div class="messages-container">
+                <div
+                  v-for="msg in receivedMessages"
+                  :key="msg.id"
+                  class="message-item message-received"
+                  :class="{
+                    'message-success': msg.status === 'success',
+                    'message-failed': msg.status === 'failed',
+                    'message-pending': msg.status === 'pending',
+                  }"
+                >
+                  <div class="message-content">
+                    <div class="message-header-compact">
+                      <span class="source-platform"
+                        >← {{ msg.sourcePlatform }}</span
+                      >
+                      <span class="exercise-time">{{ msg.exerciseTime }}</span>
+                    </div>
+                    <div class="message-text">{{ msg.content }}</div>
+                    <div
+                      v-if="msg.details.targetName || msg.details.coordinates"
+                      class="message-tags"
+                    >
+                      <el-tag
+                        v-if="msg.details.targetName"
+                        size="small"
+                        type="info"
+                      >
+                        {{ msg.details.targetName }}
+                      </el-tag>
+                      <el-tag
+                        v-if="msg.details.coordinates"
+                        size="small"
+                        type="success"
+                      >
+                        {{ msg.details.coordinates.longitude.toFixed(2) }}°,
+                        {{ msg.details.coordinates.latitude.toFixed(2) }}°
+                      </el-tag>
+                    </div>
+                  </div>
+                </div>
+                <div v-if="receivedMessages.length === 0" class="empty-message">
+                  暂无接收报文
                 </div>
               </div>
             </div>
@@ -683,6 +714,45 @@
         </div>
       </div>
     </div>
+
+    <!-- 仿真平台断线提示对话框 -->
+    <el-dialog
+      v-model="simulationDisconnectedDialogVisible"
+      title="仿真平台连接异常"
+      width="600px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div class="simulation-disconnect-content">
+        <div class="warning-icon">
+          <el-icon size="48" color="#E6A23C"><WarningFilled /></el-icon>
+        </div>
+        <div class="warning-message">
+          <h3>仿真平台可能已断线</h3>
+          <p>系统已超过30秒未收到演习时间数据更新，请检查：</p>
+          <ul>
+            <li>仿真系统是否正常运行</li>
+            <li>网络连接是否正常</li>
+            <li>组播设置是否正确</li>
+          </ul>
+          <p class="continue-hint">
+            您可以选择手动断开连接，或继续等待数据恢复。
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <!-- <el-button @click="handleContinueWaitingSimulation" type="info">
+            继续等待
+          </el-button> -->
+          <el-button @click="handleForceDisconnectSimulation" type="warning">
+            手动断开
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 文档查看对话框 -->
     <el-dialog
@@ -791,6 +861,17 @@ import {
   platformImageService,
   DocumentService,
 } from "../../services";
+
+// 定义emit事件
+const emit = defineEmits<{
+  backToStart: [];
+}>();
+
+// 返回席位选择
+const handleBackToStart = () => {
+  console.log("[ArtilleryPage] 返回席位选择");
+  emit("backToStart");
+};
 
 // 当前目标信息接口
 interface CurrentTarget {
@@ -1082,6 +1163,12 @@ const heartbeatTimeout = 5000; // 5秒超时判定为离线（与无人机页面
 // 平台图片数据管理
 const platformImages = ref<Map<string, string>>(new Map());
 
+// 仿真平台断线检测相关变量
+const lastExerciseTimeUpdate = ref<number>(0); // 最后一次演习时间更新的时间戳
+const simulationTimeout = 10000; // 10秒超时判定为仿真平台断线
+const simulationDisconnectedDialogVisible = ref(false); // 仿真平台断线对话框是否可见
+const simulationCheckTimer = ref<NodeJS.Timeout | null>(null); // 仿真平台检测定时器
+
 // 平台命令枚举映射（根据新的proto定义）
 const PlatformCommandEnum: { [key: string]: number } = {
   Command_inValid: 0,
@@ -1109,16 +1196,6 @@ const environmentParams = reactive<EnvironmentParams>({
   exerciseTime: "T + 0",
   astronomicalTime: "00:00:00",
 });
-
-// 格式化时间显示
-const formatMessageTime = (timestamp: number): string => {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("zh-CN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
 
 // 添加协同报文的通用方法
 const addCooperationMessage = (
@@ -1171,6 +1248,25 @@ interface CooperationMessage {
 
 // 协同报文数据
 const cooperationMessages = ref<CooperationMessage[]>([]);
+
+// 分离发送和接收的报文 - 按项目规范实现UI优化
+const sentMessages = computed(() =>
+  cooperationMessages.value.filter((msg) => msg.type === "sent")
+);
+
+const receivedMessages = computed(() =>
+  cooperationMessages.value.filter((msg) => msg.type === "received")
+);
+
+// 格式化时间显示
+const formatMessageTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
 
 // 计算属性：可用的分组选项（从平台数据中获取）
 const groupOptions = computed<GroupOption[]>(() => {
@@ -1617,6 +1713,54 @@ const isPlatformOnlineByHeartbeat = (platformName: string): boolean => {
   return heartbeat ? heartbeat.isOnline : false;
 };
 
+// 检测仿真平台连接状态
+const checkSimulationConnection = () => {
+  // 只在已连接状态下才进行检测
+  if (!isConnected.value || lastExerciseTimeUpdate.value === 0) {
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLastUpdate = now - lastExerciseTimeUpdate.value;
+
+  // 如果超过超时时间且对话框未显示，则显示断线提示
+  if (
+    timeSinceLastUpdate > simulationTimeout &&
+    !simulationDisconnectedDialogVisible.value
+  ) {
+    console.warn(
+      `[ArtilleryPage] 仿真平台可能已断线，距离上次数据更新已过 ${Math.round(
+        timeSinceLastUpdate / 1000
+      )} 秒`
+    );
+    simulationDisconnectedDialogVisible.value = true;
+  }
+};
+
+// 手动断开仿真平台连接
+const handleForceDisconnectSimulation = async () => {
+  try {
+    console.log("[ArtilleryPage] 用户手动断开仿真平台连接");
+
+    // 关闭对话框
+    simulationDisconnectedDialogVisible.value = false;
+
+    // 执行断开操作
+    await handleConnectPlatform();
+
+    ElMessage.info("已断开仿真平台连接");
+  } catch (error: any) {
+    console.error("[ArtilleryPage] 手动断开仿真平台连接失败:", error);
+    ElMessage.error(`断开失败: ${error.message}`);
+  }
+};
+
+// 继续等待仿真平台数据
+const handleContinueWaitingSimulation = () => {
+  console.log("[ArtilleryPage] 用户选择继续等待仿真平台数据");
+  simulationDisconnectedDialogVisible.value = false;
+};
+
 // 更新同组平台信息
 const updateSameGroupPlatforms = async () => {
   if (!isConnected.value || !selectedGroup.value || !platforms.value) {
@@ -1749,6 +1893,10 @@ const handleConnectPlatform = async () => {
     // 清空协同报文状态
     cooperationMessages.value = [];
 
+    // 重置仿真平台断线检测状态
+    lastExerciseTimeUpdate.value = 0;
+    simulationDisconnectedDialogVisible.value = false;
+
     ElMessage.warning("平台连接已断开");
     return;
   }
@@ -1825,6 +1973,10 @@ const handleConnectPlatform = async () => {
       );
     }
 
+    // 初始化仿真平台断线检测状态
+    lastExerciseTimeUpdate.value = Date.now();
+    simulationDisconnectedDialogVisible.value = false;
+
     console.log(`[ArtilleryPage] 连接到真实平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功: ${selectedInstance.value}`);
   } else {
@@ -1868,6 +2020,10 @@ const handleConnectPlatform = async () => {
       );
     }
 
+    // 初始化仿真平台断线检测状态
+    lastExerciseTimeUpdate.value = Date.now();
+    simulationDisconnectedDialogVisible.value = false;
+
     console.log(`[ArtilleryPage] 连接到模拟平台: ${selectedInstance.value}`);
     ElMessage.success(`平台连接成功（模拟模式）: ${selectedInstance.value}`);
   }
@@ -1907,6 +2063,9 @@ const adoptCoordinationTarget = () => {
   // 将协同目标信息复制到当前目标
   currentTarget.name = receivedCoordinationTarget.name;
   currentTarget.coordinates = receivedCoordinationTarget.coordinates;
+
+  // 同步更新目标名称输入框（保持与 currentTarget.name 同步）
+  targetName.value = receivedCoordinationTarget.name;
 
   ElMessage.success(`已采用协同目标：${receivedCoordinationTarget.name}`);
 
@@ -2559,6 +2718,14 @@ const handlePlatformStatus = async (packet: any) => {
             environmentParams.exerciseTime = `T + ${parsedData.platform[0].updateTime.toFixed(
               0
             )}秒`;
+
+            // 更新仿真平台数据时间戳
+            lastExerciseTimeUpdate.value = Date.now();
+
+            // 如果仿真平台断线对话框正在显示，则关闭它
+            if (simulationDisconnectedDialogVisible.value) {
+              simulationDisconnectedDialogVisible.value = false;
+            }
           }
 
           console.log("[ArtilleryPage] 处理后的环境参数:", {
@@ -2679,18 +2846,11 @@ const handlePlatformStatus = async (packet: any) => {
               receivedCoordinationTarget.altitude = coord.altitude;
             }
 
-            // 立即更新目标装订信息（根据项目规范自动应用协同目标）
-            currentTarget.name = strikeParam.targetName;
-            if (receivedCoordinationTarget.coordinates) {
-              currentTarget.coordinates =
-                receivedCoordinationTarget.coordinates;
-            }
-
-            // 更新目标名称输入框
-            targetName.value = strikeParam.targetName;
+            // 注意：不立即更新 currentTarget 和 targetName，等待用户点击"采用协同目标"按钮
+            // 这样用户可以选择是否采用，如果不采用，保持上一次的目标内容
 
             ElMessage.success(
-              `收到来自 ${sourcePlatform} 的打击协同命令，目标：${strikeParam.targetName}，已自动更新目标装订`
+              `收到来自 ${sourcePlatform} 的打击协同命令，目标：${strikeParam.targetName}，请点击"采用协同目标"按钮应用`
             );
 
             // 添加协同报文到报文区域
@@ -2901,6 +3061,9 @@ onMounted(async () => {
     // 每秒检查心跳超时（与无人机页面保持一致）
     checkHeartbeatTimeouts();
 
+    // 每秒检查仿真平台连接状态
+    checkSimulationConnection();
+
     // 演习时间现在从平台数据获取，不再在这里更新
     // 只在没有真实平台数据时使用默认时间
     if (platforms.value.length === 0) {
@@ -2918,33 +3081,97 @@ onUnmounted(() => {
     window.electronAPI.multicast.removeAllListeners("packet");
     console.log("[ArtilleryPage] 已停止监听平台状态数据");
   }
+
+  // 清理仿真平台检测定时器
+  if (simulationCheckTimer.value) {
+    clearInterval(simulationCheckTimer.value);
+    simulationCheckTimer.value = null;
+  }
 });
 </script>
 
 <style scoped>
+/* ==================== 设计令牌 (Design Tokens) ==================== */
 .artillery-operation-page {
-  background-color: #f5f5f5;
+  /* 主色调 */
+  --color-primary: #409eff;
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #909399;
+
+  /* 文本颜色 */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #c0c4cc;
+
+  /* 边框颜色 */
+  --border-base: #dcdfe6;
+  --border-light: #e4e7ed;
+  --border-lighter: #ebeef5;
+
+  /* 背景颜色 */
+  --bg-white: #ffffff;
+  --bg-base: #f5f7fa;
+  --bg-light: #fafafa;
+
+  /* 间距系统 (8px基础) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-base: 6px;
+  --radius-md: 8px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-base: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* 字体大小 */
+  --font-xs: 11px;
+  --font-sm: 12px;
+  --font-base: 14px;
+  --font-md: 14px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+
+  /* 过渡 */
+  --transition-base: all 0.2s ease;
+
+  /* 应用基础样式 */
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* 任务目标提醒栏（在右侧列） */
+/* ==================== 任务目标提醒栏 ==================== */
 .mission-target-banner {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-left: 4px solid #007bff;
-  border-radius: 4px;
-  padding: 12px 16px;
-  position: relative; /* 为绝对定位提供参考点 */
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  position: relative;
+  transition: var(--transition-base);
+}
+
+.mission-target-banner:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .banner-content {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .banner-icon {
-  color: #007bff;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   margin-top: 2px;
@@ -2954,8 +3181,8 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  position: relative; /* 为状态标签提供参考点 */
+  gap: var(--spacing-sm);
+  position: relative;
 }
 
 .target-header {
@@ -2964,9 +3191,9 @@ onUnmounted(() => {
 }
 
 .banner-title {
-  font-size: 14px;
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #495057;
+  color: var(--text-regular);
 }
 
 .target-status-indicator {
@@ -3135,18 +3362,23 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
-/* 顶部控制区域 */
+/* ==================== 顶部控制区域 ==================== */
 .top-section {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-base);
+  transition: var(--transition-base);
+}
+
+.top-section:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .top-content {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--spacing-xl);
 }
 
 .control-area {
@@ -3164,60 +3396,50 @@ onUnmounted(() => {
 /* 左侧标题区域 */
 .title-section {
   flex: 0 0 auto;
+  padding-right: var(--spacing-lg);
+  border-right: 2px solid var(--border-light);
 }
 
-/* 中间时间区域 */
-.time-section {
+/* 标题与返回按钮容器 */
+.title-with-back {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-md);
 }
 
-.exercise-time,
-.astronomical-time {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  white-space: nowrap;
-}
-
-.astronomical-time {
-  font-size: 14px;
-  color: #666;
-}
-
-/* 右侧控制区域 */
-.controls-section {
+/* 返回按钮样式 */
+.back-button {
   display: flex;
-  gap: 12px;
   align-items: center;
+  gap: 6px;
+  font-size: var(--font-sm);
+  padding: 6px var(--spacing-md);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  transition: var(--transition-base);
+  cursor: pointer;
 }
 
-.control-label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  white-space: nowrap;
+.back-button:hover {
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateX(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* 弹药选择框 */
-.ammunition-select {
-  width: 180px;
-}
-
-/* 席位标题 */
 .seat-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .connected-info {
-  color: #28a745;
+  color: var(--color-success);
   font-weight: 500;
-  margin-left: 4px;
+  margin-left: var(--spacing-xs);
 }
 
 /* 控制按钮样式 */
@@ -3258,9 +3480,9 @@ onUnmounted(() => {
 /* 功能分隔符 */
 .function-separator {
   width: 1px;
-  height: 30px;
-  background-color: #d0d0d0;
-  margin: 0 8px;
+  height: 32px;
+  background: var(--border-light);
+  margin: 0 var(--spacing-sm);
 }
 
 /* 主要内容区域 - 大屏全屏展示 */
@@ -3289,140 +3511,242 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* 报文面板样式 - 大屏优化 */
+/* ==================== 报文面板 ==================== */
 .report-panel {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 500px;
   max-height: 700px;
+  transition: var(--transition-base);
+}
+
+.report-panel:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .report-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .report-title {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .report-send-btn {
-  padding: 4px 12px;
-  border: 1px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #333;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-base);
 }
 
 .report-send-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .report-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* 确保能够正常收缩 */
-  overflow: hidden; /* 防止内容溢出 */
+  min-height: 0;
+  overflow: hidden;
+  gap: var(--spacing-md);
 }
 
-.report-section {
+/* 发报文区域和收报文区域样式 */
+.sent-messages-section,
+.received-messages-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+  min-height: 150px;
+  max-height: 290px; /* 限制最大高度，两个区域共600px遵循项目规范 */
+  overflow: hidden; /* 确保内容不会溢出 */
+}
+
+/* 区域标题样式 */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 6px 6px 0 0;
+}
+
+.section-icon {
+  font-size: 14px;
+  color: #409eff;
+}
+
+.sent-messages-section .section-icon {
+  color: #409eff;
+}
+
+.received-messages-section .section-icon {
+  color: #67c23a;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #303133;
+}
+
+/* 消息容器样式 */
+.messages-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
+  padding: 8px;
   padding-right: 4px; /* 为滚动条留出空间 */
+  padding-bottom: 8px; /* 底部留出8px空间 */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0; /* 允许flex子项正常收缩 */
 }
 
-/* 自定义滚动条样式 */
-.report-section::-webkit-scrollbar {
+/* 自定义滚动条样式 - 遵循项目规范 */
+.messages-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.report-section::-webkit-scrollbar-track {
+.messages-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 3px;
 }
 
-.report-section::-webkit-scrollbar-thumb {
+.messages-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 3px;
   transition: background 0.2s;
 }
 
-.report-section::-webkit-scrollbar-thumb:hover {
+.messages-container::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
 }
 
-.report-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-bottom: 8px; /* 在底部留出一些空间 */
-}
-
-/* 优化后的报文消息样式 */
+/* 精简后的报文消息样式 */
 .message-item {
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid #e0e0e0;
   background: #ffffff;
   overflow: hidden;
   transition: all 0.2s ease;
+  min-height: 60px; /* 确保消息条目有最小高度，防止被挤压 */
+  flex-shrink: 0; /* 防止flex布局下被压缩 */
 }
 
 .message-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 发送消息hover状态 */
+/* 发送消息样式 */
+.message-sent {
+  border-left: 3px solid #409eff;
+  background: linear-gradient(135deg, #f0f7ff, #ffffff);
+  border-color: #d1e7fd;
+}
+
 .message-sent:hover {
-  background: linear-gradient(135deg, #d1e7fd, #ebf5ff);
+  background: linear-gradient(135deg, #e3f2fd, #f0f7ff);
   border-color: #90caf9;
 }
 
-/* 接收消息hover状态 */
-.message-received:hover {
-  background: linear-gradient(135deg, #dcedc8, #e8f4e8);
-  border-color: #a5d6a7;
-}
-
-/* 发送消息样式 - 增强背景颜色区分 */
-.message-sent {
-  border-left: 4px solid #409eff;
-  background: linear-gradient(135deg, #e3f2fd, #f3f9ff);
-  border: 1px solid #bbdefb;
-}
-
-.message-sent .message-header {
-  background: linear-gradient(135deg, #409eff30, #409eff20);
-}
-
-/* 接收消息样式 - 增强背景颜色区分 */
+/* 接收消息样式 */
 .message-received {
-  border-left: 4px solid #67c23a;
-  background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
-  border: 1px solid #c8e6c9;
+  border-left: 3px solid #67c23a;
+  background: linear-gradient(135deg, #f6ffed, #ffffff);
+  border-color: #d9f7be;
 }
 
-.message-received .message-header {
-  background: linear-gradient(135deg, #67c23a30, #67c23a20);
+.message-received:hover {
+  background: linear-gradient(135deg, #f0f9e8, #f6ffed);
+  border-color: #b7eb8f;
+}
+
+/* 精简的消息内容 */
+.message-content {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 56px; /* 确保内容区域有最小高度 */
+}
+
+.message-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.target-platform,
+.source-platform {
+  font-weight: 600;
+  color: #303133;
+}
+
+.exercise-time {
+  font-weight: 600;
+  color: #e6a23c;
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+}
+
+.message-text {
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.message-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.message-tags .el-tag {
+  font-size: 10px;
+  padding: 1px 4px;
+  height: 18px;
+  line-height: 16px;
+}
+
+/* 空消息样式 */
+.empty-message {
+  text-align: center;
+  color: #c0c4cc;
+  font-style: italic;
+  padding: 16px;
+  font-size: 12px;
+  border: 1px dashed #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
 }
 
 /* 状态样式 */
@@ -3437,103 +3761,6 @@ onUnmounted(() => {
 
 .message-pending {
   border-color: #e6a23c;
-}
-
-/* 消息头部 */
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
-  font-size: 12px;
-}
-
-.message-direction {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-}
-
-.direction-icon {
-  font-size: 14px;
-}
-
-.sent-icon {
-  color: #409eff;
-}
-
-.received-icon {
-  color: #67c23a;
-}
-
-.direction-text {
-  color: #606266;
-}
-
-.message-time {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.exercise-time {
-  font-weight: 600;
-  color: #e6a23c;
-  font-family: "Courier New", monospace;
-}
-
-.clock-time {
-  color: #909399;
-  font-size: 11px;
-}
-
-/* 消息主体 */
-.message-body {
-  padding: 12px;
-}
-
-.message-platform-info {
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #606266;
-}
-
-.platform-info strong {
-  color: #303133;
-  font-weight: 600;
-}
-
-.message-content {
-  font-size: 14px;
-  color: #303133;
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.message-details {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.message-details .el-tag {
-  font-size: 11px;
-  padding: 2px 6px;
-}
-
-/* 空消息样式 */
-.message-empty {
-  text-align: center;
-  color: #c0c4cc;
-  font-style: italic;
-  padding: 20px;
-  border: 1px dashed #e0e0e0;
-  background: #fafafa;
 }
 
 /* 目标装订按钮 */
@@ -3616,74 +3843,77 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-/* 任务控制区域 - 大屏优化 */
+/* ==================== 任务控制区域 ==================== */
 .task-control {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   flex: 1;
   min-height: 600px;
+  transition: var(--transition-base);
+}
+
+.task-control:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .task-header {
-  font-size: 16px;
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: #333;
-  margin-bottom: 16px;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--border-lighter);
 }
 
 /* 控制组 */
 .control-group {
-  border-bottom: 1px solid #e0e0e0;
-  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: var(--spacing-lg);
 }
 
 .control-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
 
 .control-label {
-  font-size: 14px;
-  color: #555;
+  font-size: var(--font-base);
+  color: var(--text-regular);
   font-weight: 500;
 }
 
 .control-info {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--font-base);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
-/* 操作按钮 */
+/* ==================== 操作按钮区域 ==================== */
 .action-buttons {
-  margin-top: 16px;
+  margin-top: var(--spacing-lg);
 }
 
 .button-row {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .input-group {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .input-wrapper {
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: center;
 }
 
-.weapon-input {
-  flex: 1;
-}
-
-/* 发射次数输入框 */
+.weapon-input,
 .load-count-input {
   flex: 1;
 }
@@ -3691,54 +3921,56 @@ onUnmounted(() => {
 .confirm-btn {
   width: 60px;
   height: 32px;
-  font-size: 13px;
+  font-size: var(--font-sm);
   padding: 0;
+  transition: var(--transition-base);
 }
 
-.control-separator {
-  height: 1px;
-  background-color: #ddd;
-  margin: 12px 0;
-  border-radius: 1px;
-}
-
+.control-separator,
 .button-separator {
   height: 1px;
-  background-color: #e0e0e0;
-  margin: 12px 0;
+  background: var(--border-light);
+  margin: var(--spacing-md) 0;
   border-radius: 1px;
 }
 
 .action-btn {
   flex: 1;
   height: 36px;
-  border: 2px solid #d0d0d0;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #333;
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  border-radius: var(--radius-base);
+  font-size: var(--font-sm);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: var(--transition-base);
 }
 
 .action-btn:hover {
-  background: #e9ecef;
-  border-color: #007bff;
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-btn.full-width {
   width: 100%;
 }
 
-/* 状态卡片 - 大屏优化 */
+/* ==================== 状态卡片 ==================== */
 .status-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #d0d0d0;
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-base);
+  border: 1px solid var(--border-base);
   height: 140px;
   min-height: 140px;
+  transition: var(--transition-base);
+}
+
+.status-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 .status-content {
@@ -3751,7 +3983,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .status-title {
@@ -4402,5 +4634,112 @@ onUnmounted(() => {
 .target-info.no-target {
   color: #6c757d;
   font-style: italic;
+}
+
+/* 仿真平台断线提示对话框样式 */
+.simulation-disconnect-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.warning-message {
+  flex: 1;
+}
+
+.warning-message h3 {
+  margin: 0 0 12px 0;
+  color: #e6a23c;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.warning-message p {
+  margin: 0 0 12px 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.warning-message ul {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: #666;
+}
+
+.warning-message li {
+  margin-bottom: 4px;
+}
+
+.continue-hint {
+  background: var(--bg-base);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-warning);
+  font-style: italic;
+  margin-top: var(--spacing-lg) !important;
+}
+
+/* ==================== Element Plus 组件样式覆盖 ==================== */
+:deep(.el-switch) {
+  --el-switch-on-color: var(--color-primary);
+  --el-switch-off-color: var(--border-base);
+}
+
+:deep(.el-button) {
+  border: 1px solid var(--border-base);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  transition: var(--transition-base);
+}
+
+:deep(.el-button:hover) {
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+:deep(.el-select) {
+  --el-select-border-color-hover: var(--color-primary);
+  --el-select-input-color: var(--text-primary);
+  --el-select-input-font-size: var(--font-base);
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-base);
+  background: var(--bg-white);
+  transition: var(--transition-base);
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+  background: var(--bg-base);
+  border-color: var(--color-primary);
+}
+
+:deep(.el-select .el-input__wrapper.is-focus) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+
+:deep(.el-select.is-disabled .el-input__wrapper) {
+  background-color: var(--bg-base);
+  border-color: var(--border-light);
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+}
+
+:deep(.el-button.is-disabled) {
+  background-color: var(--bg-base);
+  border-color: var(--border-light);
+  color: var(--text-placeholder);
+  cursor: not-allowed;
 }
 </style>

@@ -3,7 +3,17 @@
     <!-- 融合后的页面标题栏 -->
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">作战测评席位</h2>
+        <div class="title-with-back">
+          <el-button
+            class="back-button"
+            size="small"
+            @click="handleBackToStart"
+          >
+            <el-icon><ArrowLeft /></el-icon>
+            返回席位选择
+          </el-button>
+          <h2 class="page-title">作战测评席位</h2>
+        </div>
       </div>
       <div class="header-center">
         <div class="overview-stats">
@@ -521,7 +531,19 @@ import {
   CircleClose,
   SuccessFilled,
   WarningFilled,
+  ArrowLeft,
 } from "@element-plus/icons-vue";
+
+// 定义emit事件
+const emit = defineEmits<{
+  backToStart: [];
+}>();
+
+// 返回席位选择
+const handleBackToStart = () => {
+  console.log("[EvaluationPage] 返回席位选择");
+  emit("backToStart");
+};
 
 // 类型定义
 interface GroupMember {
@@ -566,6 +588,7 @@ interface GroupEvent {
     weaponName?: string;
     artilleryName?: string;
     commandId?: number;
+    sensorName?: string; // 添加传感器名称字段
   };
 }
 
@@ -1155,6 +1178,47 @@ const handlePlatformCommand = (parsedData: any) => {
 
     // 处理关键数据收集（激光照射和目标锁定相关）
     updateKeyMetrics(sourceGroup, command, parsedData, currentExerciseTime);
+
+    // 过滤激光传感器的重复锁定命令（命令类型 10 = Uav_Lock_Target）
+    const commandValue =
+      typeof command === "number"
+        ? command
+        : getCommandNumberFromString(command);
+    if (commandValue === 10 && parsedData.lockParam) {
+      const sensorName = parsedData.lockParam.sensorName;
+      const targetName = parsedData.lockParam.targetName;
+
+      // 判断是否为激光传感器（通过名称判断）
+      const isLaserSensor =
+        sensorName &&
+        (sensorName.toLowerCase().includes("laser") ||
+          sensorName.toLowerCase().includes("激光"));
+
+      if (isLaserSensor) {
+        // 检查是否已经存在相同的激光锁定事件（相同目标、相同传感器）
+        const targetGroup = allGroups.value.find((g) => g.name === sourceGroup);
+        if (targetGroup) {
+          const existingLaserLockEvent = targetGroup.events.find(
+            (event) =>
+              event.type === "command" &&
+              event.typeDisplay === "锁定目标" &&
+              event.details.sensorName === sensorName &&
+              event.details.targetName === targetName
+          );
+
+          if (existingLaserLockEvent) {
+            console.log(
+              `[EvaluationPage] 过滤激光传感器重复锁定命令: 目标=${targetName}, 传感器=${sensorName}`
+            );
+            return; // 跳过重复的激光锁定命令
+          } else {
+            console.log(
+              `[EvaluationPage] 记录首次激光传感器锁定命令: 目标=${targetName}, 传感器=${sensorName}`
+            );
+          }
+        }
+      }
+    }
 
     // 创建事件对象
     const event: GroupEvent = {
@@ -1827,6 +1891,36 @@ onUnmounted(() => {
 
 .header-left {
   flex: 0 0 auto;
+}
+
+/* 标题与返回按钮容器 */
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 返回按钮样式 */
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background: white;
+  color: #24292f;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.back-button:hover {
+  background: #f6f8fa;
+  border-color: #0969da;
+  transform: translateX(-2px);
+  box-shadow: 0 2px 8px rgba(9, 105, 218, 0.3);
 }
 
 .header-center {

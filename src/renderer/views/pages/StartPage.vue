@@ -13,14 +13,17 @@
         <div class="seat-card uav-seat" @click="selectSeat('uav')">
           <div class="seat-icon">
             <div class="icon-bg uav-bg">
-              <i class="seat-symbol">✈</i>
+              <img
+                src="../../assets/UAV.svg"
+                alt="无人机"
+                class="seat-icon-svg"
+              />
             </div>
           </div>
           <div class="seat-info">
             <h3 class="seat-title">无人机席位</h3>
             <p class="seat-description">
-              无人机操作控制、传感器管理、<br />
-              航线规划、目标跟踪
+              无人机操作控制、传感器管理、航线规划、目标跟踪
             </p>
           </div>
           <div class="seat-arrow">
@@ -32,7 +35,11 @@
         <div class="seat-card artillery-seat" @click="selectSeat('artillery')">
           <div class="seat-icon">
             <div class="icon-bg artillery-bg">
-              <i class="seat-symbol">🔥</i>
+              <img
+                src="../../assets/ROCKET.svg"
+                alt="火炮"
+                class="seat-icon-svg"
+              />
             </div>
           </div>
           <div class="seat-info">
@@ -54,7 +61,11 @@
         >
           <div class="seat-icon">
             <div class="icon-bg evaluation-bg">
-              <i class="seat-symbol">📊</i>
+              <img
+                src="../../assets/RATE.svg"
+                alt="考评"
+                class="seat-icon-svg"
+              />
             </div>
           </div>
           <div class="seat-info">
@@ -69,8 +80,12 @@
           </div>
         </div>
 
-        <!-- 调试席位 -->
-        <div class="seat-card debug-seat" @click="selectSeat('debug')">
+        <!-- 调试席位（隐藏，通过双击版本号开启）-->
+        <div
+          v-if="debugModeEnabled"
+          class="seat-card debug-seat"
+          @click="selectSeat('debug')"
+        >
           <div class="seat-icon">
             <div class="icon-bg debug-bg">
               <i class="seat-symbol">🔧</i>
@@ -95,7 +110,12 @@
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">系统版本：</span>
-          <span class="info-value">v2.0.0</span>
+          <span
+            class="info-value version-clickable"
+            @click="enableDebugMode"
+            :title="debugModeEnabled ? '调试模式已启用' : ''"
+            >v2.0.0</span
+          >
         </div>
         <div class="info-item">
           <span class="info-label">当前时间：</span>
@@ -113,6 +133,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { ArrowRight } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
 // 定义事件发射
 const emit = defineEmits<{
@@ -121,6 +142,11 @@ const emit = defineEmits<{
 
 // 当前时间
 const currentTime = ref("");
+
+// 调试模式状态
+const debugModeEnabled = ref(false);
+let debugClickCount = 0;
+let debugClickTimer: NodeJS.Timeout | null = null;
 
 // 更新时间
 const updateTime = () => {
@@ -136,6 +162,29 @@ const updateTime = () => {
 
 // 定时器
 let timeInterval: NodeJS.Timeout | null = null;
+
+// 启用调试模式
+const enableDebugMode = () => {
+  debugClickCount++;
+
+  if (debugClickTimer) {
+    clearTimeout(debugClickTimer);
+  }
+
+  debugClickTimer = setTimeout(() => {
+    debugClickCount = 0;
+  }, 500);
+
+  if (debugClickCount === 2 && !debugModeEnabled.value) {
+    debugModeEnabled.value = true;
+    ElMessage.success({
+      message: "调试模式已启用",
+      duration: 2000,
+    });
+    console.log("[StartPage] 调试模式已启用");
+    debugClickCount = 0;
+  }
+};
 
 // 选择席位
 const selectSeat = (seatType: string) => {
@@ -155,6 +204,10 @@ onUnmounted(() => {
     clearInterval(timeInterval);
     timeInterval = null;
   }
+  if (debugClickTimer) {
+    clearTimeout(debugClickTimer);
+    debugClickTimer = null;
+  }
   console.log("[StartPage] 开始页已卸载");
 });
 </script>
@@ -162,7 +215,7 @@ onUnmounted(() => {
 <style scoped>
 .start-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,17 +235,17 @@ onUnmounted(() => {
   bottom: 0;
   background-image: radial-gradient(
       circle at 20% 50%,
-      rgba(120, 119, 198, 0.3) 0%,
+      rgba(59, 130, 246, 0.03) 0%,
       transparent 50%
     ),
     radial-gradient(
       circle at 80% 20%,
-      rgba(255, 255, 255, 0.1) 0%,
+      rgba(99, 102, 241, 0.03) 0%,
       transparent 50%
     ),
     radial-gradient(
       circle at 40% 80%,
-      rgba(120, 119, 198, 0.2) 0%,
+      rgba(139, 92, 246, 0.03) 0%,
       transparent 50%
     );
   pointer-events: none;
@@ -208,18 +261,20 @@ onUnmounted(() => {
 .system-title {
   font-size: 48px;
   font-weight: 700;
-  color: white;
+  color: #1e293b;
   margin: 0 0 16px 0;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   letter-spacing: 2px;
+  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .system-subtitle {
   font-size: 20px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #64748b;
   margin: 0;
-  font-weight: 300;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-weight: 400;
 }
 
 /* 席位选择区域 */
@@ -229,28 +284,33 @@ onUnmounted(() => {
 }
 
 .seats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: row;
   gap: 24px;
-  max-width: 800px;
+  max-width: 1200px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 /* 席位卡片 */
 .seat-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   border-radius: 16px;
   padding: 32px 24px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   gap: 20px;
   position: relative;
   overflow: hidden;
   min-height: 120px;
+  flex: 1;
+  min-width: 320px;
+  max-width: 380px;
 }
 
 .seat-card::before {
@@ -258,24 +318,20 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    135deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 100%
-  );
-  pointer-events: none;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  transition: all 0.3s ease;
 }
 
 .seat-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-  background: rgba(255, 255, 255, 0.98);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e1;
 }
 
 .seat-card:active {
-  transform: translateY(-4px) scale(1.01);
+  transform: translateY(-2px);
 }
 
 /* 席位图标 */
@@ -292,6 +348,14 @@ onUnmounted(() => {
   justify-content: center;
   position: relative;
   overflow: hidden;
+}
+
+.seat-icon-svg {
+  width: 48px;
+  height: 48px;
+  filter: brightness(0) invert(1);
+  z-index: 1;
+  position: relative;
 }
 
 .icon-bg::before {
@@ -366,30 +430,29 @@ onUnmounted(() => {
 }
 
 /* 特定席位的悬停效果 */
-.uav-seat:hover {
-  border-left: 4px solid #4facfe;
+.uav-seat:hover::before {
+  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
 }
 
-.artillery-seat:hover {
-  border-left: 4px solid #f5576c;
+.artillery-seat:hover::before {
+  background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
 }
 
-.evaluation-seat:hover {
-  border-left: 4px solid #4ecdc4;
+.evaluation-seat:hover::before {
+  background: linear-gradient(180deg, #4ecdc4 0%, #44a08d 100%);
 }
 
-.debug-seat:hover {
-  border-left: 4px solid #fcb69f;
+.debug-seat:hover::before {
+  background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 100%);
 }
 
 /* 系统信息 */
 .system-info {
   z-index: 1;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: #f8fafc;
   border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 20px 32px;
+  border: 1px solid #e2e8f0;
 }
 
 .info-grid {
@@ -407,20 +470,30 @@ onUnmounted(() => {
 
 .info-label {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
   font-weight: 500;
 }
 
 .info-value {
   font-size: 14px;
-  color: white;
+  color: #1e293b;
   font-weight: 600;
   font-family: "Courier New", monospace;
 }
 
+.version-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.version-clickable:hover {
+  color: #3b82f6;
+}
+
 .status-ready {
-  color: #4ade80 !important;
-  text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+  color: #22c55e !important;
+  font-weight: 700;
 }
 
 /* 响应式设计 */

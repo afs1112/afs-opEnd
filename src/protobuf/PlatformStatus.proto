@@ -61,6 +61,7 @@ message Sensor
 	optional PartParam base = 1;
 	optional string mode = 2;
 	optional int32 laser_code = 3;
+	optional int32 desig_during = 4;	// designate duration
 }
 //武器
 message Weapon
