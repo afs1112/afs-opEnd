@@ -795,9 +795,33 @@ async function handleRouteUpload(parsedPacket: any) {
 }
 
 function createWindow() {
+  // 设置窗口图标路径
+  let iconPath: string;
+  if (app.isPackaged) {
+    // 生产环境：图标在应用根目录的 images 文件夹中
+    iconPath = join(
+      process.resourcesPath,
+      "..",
+      "images",
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    );
+  } else {
+    // 开发环境：图标在项目根目录的 images 文件夹中
+    iconPath = join(
+      __dirname,
+      "..",
+      "..",
+      "images",
+      process.platform === "win32" ? "icon.ico" : "icon.png"
+    );
+  }
+
+  console.log(`[Window] 使用图标: ${iconPath}`);
+
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 1000,
+    icon: iconPath, // 设置窗口图标
     webPreferences: {
       devTools: true,
       preload: join(__dirname, "preload.js"),

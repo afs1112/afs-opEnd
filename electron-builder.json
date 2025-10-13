@@ -1,20 +1,29 @@
 {
   "appId": "com.electron.app",
+  "productName": "无人机引导仿真系统",
   "directories": {
     "output": "dist"
   },
-
+  "icon": "images/icon.png",
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "shortcutName": "Electron App"
+    "shortcutName": "无人机引导仿真系统",
+    "installerIcon": "images/icon.ico",
+    "uninstallerIcon": "images/icon.ico"
   },
   "win": {
-    "target": "nsis"
+    "target": "nsis",
+    "icon": "images/icon.ico"
+  },
+  "mac": {
+    "icon": "images/icon.png",
+    "category": "public.app-category.developer-tools"
   },
   "linux": {
-    "target": ["snap"]
+    "target": ["snap"],
+    "icon": "images/icon.png"
   },
   "files": [
     {
@@ -35,6 +44,11 @@
     {
       "from": "src/protobuf",
       "to": "main/src/protobuf",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "images",
+      "to": "images",
       "filter": ["**/*"]
     },
     {
