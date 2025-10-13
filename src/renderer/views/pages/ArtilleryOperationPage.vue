@@ -340,6 +340,7 @@
                   !artilleryStatus.isLoaded ||
                   !loadedAmmunitionType ||
                   !currentTarget.name ||
+                  !connectedPlatform?.targetLoad ||
                   actualLoadedCount < 1
                 "
               >
@@ -464,9 +465,7 @@
               }}
               武器射角：{{ formatWeaponTiltAngle() }}
             </div>
-            <div class="status-info no-data" v-if="!hasTargetData()">
-              暂无目标数据
-            </div>
+            <div class="status-info no-data" v-else>暂无目标数据</div>
           </div>
         </div>
 
@@ -493,13 +492,14 @@
               {{ formatCoordinate(getLatestShell().base?.location?.latitude) }}
               高度：{{
                 getLatestShell().base?.location?.altitude.toFixed(2) || 0
-              }}m<br />
+              }}m 预计总飞行时间：{{ estimatedFlightTime }}秒
+              <br />
               姿态：俯仰{{ formatAngle(getLatestShell().base?.pitch) }} 横滚{{
                 formatAngle(getLatestShell().base?.roll)
               }}
               偏航{{ formatAngle(getLatestShell().base?.yaw) }} 速度：{{
                 getLatestShell().base?.speed.toFixed(2) || 0.0
-              }}m/s
+              }}m/s<br />
             </div>
             <div
               class="status-info no-data"
@@ -1108,6 +1108,10 @@ const loadCount = ref<number>(1);
 const isLoadCountEditing = ref(false);
 const actualLoadedCount = ref<number>(0); // 实际装填的数量
 
+// 预计飞行时间相关
+const estimatedFlightTime = ref<number>(0); // 预计飞行时间（秒）
+const targetDistance = ref<number>(0); // 目标距离（米）
+
 // 文档查看相关
 const documentDialogVisible = ref(false);
 const documentContent = ref("");
@@ -1242,6 +1246,8 @@ interface CooperationMessage {
       altitude?: number;
     };
     commandId?: number; // 命令ID
+    flightTime?: number; // 飞行时间（秒）
+    rocketFlyTime?: number;
   };
   status: "success" | "failed" | "pending"; // 状态
 }
@@ -2336,9 +2342,38 @@ const fireAtDrone = async () => {
       return;
     }
 
+    // 检查飞行时间是否已计算
+    console.log(
+      "[ArtilleryPage] 🔍 开火前飞行时间检查:",
+      {
+        estimatedFlightTime: estimatedFlightTime.value,
+        targetDistance: targetDistance.value,
+        currentTarget: currentTarget,
+        connectedPlatformTargetLoad: connectedPlatform.value?.targetLoad,
+        是否已装订目标: !!connectedPlatform.value?.targetLoad?.targetName
+      }
+    );
+
+    if (estimatedFlightTime.value === 0) {
+      console.warn(
+        "[ArtilleryPage] ⚠️ 警告：飞行时间为0，可能原因:",
+        {
+          目标装订状态: !!connectedPlatform.value?.targetLoad,
+          目标距离: targetDistance.value,
+          目标名称: currentTarget.name
+        }
+      );
+      ElMessage.warning(
+        "警告：飞行时间为0，请检查目标装订是否正确完成"
+      );
+    }
+
     // 设置发射状态
     isFiring.value = true;
     fireStatus.value = "开火中...";
+
+    // 注意：飞行时间由 TargetLoad 更新时自动计算，不需要在此清空
+    // estimatedFlightTime 会在每次收到 TargetLoad 状态更新时实时更新
 
     ElMessage.success(
       `向目标 ${currentTarget.name} 发射${actualLoadedCount.value}发弹药，使用 ${loadedAmmunitionDisplayName.value}`
@@ -2400,12 +2435,24 @@ const fireAtDrone = async () => {
               targetName: String(currentTarget.name),
               weaponName: String(loadedAmmunitionType.value),
               ...(targetCoordinate && { coordinate: targetCoordinate }), // 只有当targetCoordinate存在时才添加
+              rocketFlyTime: Number(estimatedFlightTime.value), // 新增：预计飞行时间（秒）
             },
           };
 
           console.log(
             "[ArtilleryPage] 发送发射协同命令数据:",
             coordinationCommandData
+          );
+          console.log(
+            "[ArtilleryPage] 🔍 飞行时间调试信息:",
+            {
+              estimatedFlightTime当前值: estimatedFlightTime.value,
+              targetDistance当前值: targetDistance.value,
+              connectedPlatform目标装订: connectedPlatform.value?.targetLoad,
+              currentTarget: currentTarget,
+              数值转换结果: Number(estimatedFlightTime.value),
+              是否为NaN: isNaN(Number(estimatedFlightTime.value))
+            }
           );
 
           const coordinationResult = await (
@@ -2422,12 +2469,13 @@ const fireAtDrone = async () => {
               commandType: "fire_coordinate",
               sourcePlatform: connectedPlatformName.value || "本火炮",
               targetPlatform: coordinatedUavName.value || "协同无人机",
-              content: `火炮发出发射协同报文（目标：${currentTarget.name}）`,
+              content: `火炮发出发射协同报文（目标：${currentTarget.name}，预估飞行时间：${estimatedFlightTime.value}秒）`,
               details: {
                 targetName: currentTarget.name,
                 weaponName: loadedAmmunitionType.value,
                 commandId: coordinationCommandData.commandID,
                 coordinates: targetCoordinate,
+                rocketFlyTime: estimatedFlightTime.value, // 新增：飞行时间
               },
               status: "success",
             });
@@ -2446,6 +2494,9 @@ const fireAtDrone = async () => {
         ElMessage.error("发送发射协同命令时发生错误");
       }
 
+      // 注意：飞行时间由 TargetLoad 更新时自动计算，不需要在开火时重新计算
+      // estimatedFlightTime 会在每次收到 TargetLoad 状态更新时实时更新
+
       // 发射后清空装填状态，需要重新装填
       artilleryStatus.isLoaded = false;
       loadedAmmunitionType.value = ""; // 清空已装填弹药类型
@@ -2463,10 +2514,11 @@ const fireAtDrone = async () => {
         fireStatus.value = "防空报文已发送";
       }, 1000);
 
-      // 重置状态
+      // 重置状态（但保留飞行时间显示）
       setTimeout(() => {
         fireStatus.value = "待发射";
         isFiring.value = false;
+        // 注意：不清空 estimatedFlightTime，让它保持显示直到炮弹击中目标或下次开火
       }, 3000);
     } else {
       ElMessage.error(`火力命令发送失败: ${result.error}`);
@@ -2580,6 +2632,24 @@ const updateArtilleryStatusDisplay = (platform: any) => {
 
   // 更新 TargetLoad 信息（火炮特有的目标装订信息）
   if (platform.targetLoad) {
+    // 更新目标距离用于飞行时间计算
+    if (platform.targetLoad.distance !== undefined) {
+      targetDistance.value = platform.targetLoad.distance;
+
+      // 实时计算并更新预计飞行时间（使用公式: t = 66 + (距离 - 23134) / 480）
+      if (targetDistance.value > 0) {
+        estimatedFlightTime.value = Math.round(
+          66 + (targetDistance.value - 23134) / 480
+        );
+        console.log(
+          `[ArtilleryPage] 更新目标距离: ${targetDistance.value}米, 预计飞行时间: ${estimatedFlightTime.value}秒`
+        );
+      } else {
+        estimatedFlightTime.value = 0;
+        console.log(`[ArtilleryPage] 更新目标距离: ${targetDistance.value}米`);
+      }
+    }
+
     console.log(`[ArtilleryPage] 目标装订信息:`, {
       目标名称: platform.targetLoad.targetName,
       距离: platform.targetLoad.distance,
@@ -2587,6 +2657,7 @@ const updateArtilleryStatusDisplay = (platform: any) => {
       高差: platform.targetLoad.elevationDifference,
       方位角: platform.targetLoad.azimuth,
       高低角: platform.targetLoad.pitch,
+      预计飞行时间: estimatedFlightTime.value + "秒",
     });
   }
 
@@ -2792,8 +2863,28 @@ const handlePlatformStatus = async (packet: any) => {
             // 更新火炮状态显示
             // updateArtilleryStatusDisplay(updatedPlatform);
 
-            // 如果有TargetLoad信息，输出日志
+            // 如果有TargetLoad信息，输出日志并更新目标距离
             if (updatedPlatform.targetLoad) {
+              // 更新目标距离用于飞行时间计算
+              if (updatedPlatform.targetLoad.distance !== undefined) {
+                targetDistance.value = updatedPlatform.targetLoad.distance;
+
+                // 实时计算并更新预计飞行时间（使用公式: t = 66 + (距离 - 23134) / 480）
+                if (targetDistance.value > 0) {
+                  estimatedFlightTime.value = Math.round(
+                    66 + (targetDistance.value - 23134) / 480
+                  );
+                  console.log(
+                    `[ArtilleryPage] 更新目标距离: ${targetDistance.value}米, 预计飞行时间: ${estimatedFlightTime.value}秒`
+                  );
+                } else {
+                  estimatedFlightTime.value = 0;
+                  console.log(
+                    `[ArtilleryPage] 更新目标距离: ${targetDistance.value}米`
+                  );
+                }
+              }
+
               console.log(`[ArtilleryPage] 收到TargetLoad信息:`, {
                 目标名称: updatedPlatform.targetLoad.targetName,
                 距离: updatedPlatform.targetLoad.distance,
@@ -2801,6 +2892,7 @@ const handlePlatformStatus = async (packet: any) => {
                 高差: updatedPlatform.targetLoad.elevationDifference,
                 方位角: updatedPlatform.targetLoad.azimuth,
                 高低角: updatedPlatform.targetLoad.pitch,
+                预计飞行时间: estimatedFlightTime.value + "秒",
               });
             }
 
@@ -4736,6 +4828,25 @@ onUnmounted(() => {
   border-left: 3px solid var(--color-warning);
   font-style: italic;
   margin-top: var(--spacing-lg) !important;
+}
+
+/* 飞行时间显示样式 */
+.flight-time-info {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.flight-time-value {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* ==================== Element Plus 组件样式覆盖 ==================== */

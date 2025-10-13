@@ -54,6 +54,7 @@ export interface PlatformCmdData {
       latitude?: number;
       altitude?: number;
     };
+    rocketFlyTime?: number; // 预计飞行时间（秒）
   };
 }
 
@@ -527,6 +528,7 @@ export class MulticastSenderService {
           uavName: data.fireCoordinateParam.uavName || "",
           targetName: data.fireCoordinateParam.targetName || "",
           weaponName: data.fireCoordinateParam.weaponName || "",
+          rocketFlyTime: data.fireCoordinateParam.rocketFlyTime || 0,
           coordinate: data.fireCoordinateParam.coordinate
             ? {
                 longitude: data.fireCoordinateParam.coordinate.longitude || 0,

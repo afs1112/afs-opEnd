@@ -45,6 +45,7 @@ message FireCoordinateParam
   optional string targetName = 2;
   optional string weaponName = 3;
   optional PublicStruct.GeoCoordinate coordinate = 4;
+  optional int32 rocketFlyTime = 5;
 }
 
 message StrikeCoordinateParam

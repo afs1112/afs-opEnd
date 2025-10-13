@@ -575,6 +575,11 @@
                           ><CircleClose
                         /></el-icon>
                         <span class="destroyed-text">已摧毁</span>
+                        <span
+                          v-if="target.destroyedTime"
+                          class="destroyed-time"
+                          >{{ target.destroyedTime }}</span
+                        >
                       </div>
                       <div
                         class="active-status"
@@ -852,6 +857,13 @@
                         {{ msg.details.coordinates.longitude.toFixed(2) }}°,
                         {{ msg.details.coordinates.latitude.toFixed(2) }}°
                       </el-tag>
+                      <el-tag
+                        v-if="msg.details.rocketFlyTime"
+                        size="small"
+                        type="danger"
+                      >
+                        预计飞行时间: {{ msg.details.rocketFlyTime }}秒
+                      </el-tag>
                     </div>
                   </div>
                 </div>
@@ -954,7 +966,7 @@
     <!-- 份真平台断线提示对话框 -->
     <el-dialog
       v-model="simulationDisconnectedDialogVisible"
-      title="仟真平台连接异常"
+      title="仿真平台连接异常"
       width="600px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
@@ -965,10 +977,10 @@
           <el-icon size="48" color="#E6A23C"><WarningFilled /></el-icon>
         </div>
         <div class="warning-message">
-          <h3>仟真平台可能已断线</h3>
+          <h3>仿真平台可能已断线</h3>
           <p>系统已超过30秒未收到演习时间数据更新，请检查：</p>
           <ul>
-            <li>仟真系统是否正常运行</li>
+            <li>仿真系统是否正常运行</li>
             <li>网络连接是否正常</li>
             <li>组播设置是否正确</li>
           </ul>
@@ -1273,6 +1285,7 @@ interface CooperationMessage {
       latitude: number;
       altitude?: number;
     };
+    rocketFlyTime?: number;
     commandId?: number; // 命令ID
   };
   status: "success" | "failed" | "pending"; // 状态
@@ -2173,11 +2186,20 @@ const handlePlatformStatus = async (packet: any) => {
           )}°, ${coord.latitude.toFixed(4)}°`;
         }
 
+        // 添加飞行时间信息
+        let flyTimeInfo = "";
+        if (
+          fireCoordinateParam.rocketFlyTime !== undefined &&
+          fireCoordinateParam.rocketFlyTime !== null
+        ) {
+          flyTimeInfo = `，预计飞行时间: ${fireCoordinateParam.rocketFlyTime}秒`;
+        }
+
         const message = `收到来自 ${sourcePlatform} 的发射协同命令（目标: ${
           fireCoordinateParam.targetName || "未知"
         }，武器: ${
           fireCoordinateParam.weaponName || "未知"
-        }${coordinateInfo}）`;
+        }${coordinateInfo}${flyTimeInfo}）`;
 
         // 添加到协同报文面板
         addCooperationMessage({
@@ -2190,6 +2212,7 @@ const handlePlatformStatus = async (packet: any) => {
             targetName: fireCoordinateParam.targetName,
             weaponName: fireCoordinateParam.weaponName,
             commandId: parsedData.commandID,
+            rocketFlyTime: fireCoordinateParam.rocketFlyTime,
             coordinates: fireCoordinateParam.coordinate
               ? {
                   longitude: fireCoordinateParam.coordinate.longitude,
@@ -2205,6 +2228,12 @@ const handlePlatformStatus = async (packet: any) => {
         addLog("info", message);
 
         console.log(`[UavPage] ${message}`);
+        console.log(`[UavPage] 收到发射协同报文详细信息:`, {
+          targetName: fireCoordinateParam.targetName,
+          weaponName: fireCoordinateParam.weaponName,
+          rocketFlyTime: fireCoordinateParam.rocketFlyTime,
+          coordinate: fireCoordinateParam.coordinate,
+        });
       }
     }
   } catch (error) {
@@ -2511,6 +2540,7 @@ const updateDetectedTargets = (platforms: any[]) => {
             },
         status: "active", // 活跃状态
         destroyed: false,
+        destroyedTime: undefined, // 摧毁时间，初始为undefined
         lastUpdate: Date.now(),
         firstDetected: Date.now(),
       };
@@ -2558,8 +2588,15 @@ const updateDetectedTargets = (platforms: any[]) => {
       if (!targetPlatform && !target.destroyed) {
         target.destroyed = true;
         target.status = "destroyed";
-        console.log(`[UavPage] 目标被摧毁: ${target.name}`);
-        addLog("warning", `目标 ${target.name} 已被摧毁`);
+        // 记录摧毁时间
+        target.destroyedTime = environmentParams.exerciseTime;
+        console.log(
+          `[UavPage] 目标被摧毁: ${target.name}, 摧毁时间: ${target.destroyedTime}`
+        );
+        addLog(
+          "warning",
+          `目标 ${target.name} 已被摧毁 (${target.destroyedTime})`
+        );
       }
     }
   });
@@ -5332,6 +5369,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
 }
 
 .status-header {
@@ -5345,12 +5383,6 @@ onUnmounted(() => {
   font-size: var(--font-lg);
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.status-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
 }
 
 /* 数据源指示器 */
@@ -5444,8 +5476,19 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
+.destroyed-time {
+  font-size: 12px;
+  font-weight: 500;
+  color: #f56c6c;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: rgba(245, 108, 108, 0.1);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .active-status {
-  margin-top: 8px;
+  margin-top: 0px;
 }
 
 @keyframes pulse {
@@ -5666,8 +5709,9 @@ onUnmounted(() => {
 .targets-list {
   max-height: 280px;
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -5679,16 +5723,18 @@ onUnmounted(() => {
   background: #fafafa;
   transition: all 0.2s;
   cursor: pointer;
-  min-height: 80px;
+  min-height: 90px;
+  min-width: 260px;
+  max-width: 260px;
   position: relative;
 }
 
-.target-item:hover {
+/* .target-item:hover {
   border-color: #007bff;
   background: #f8f9fa;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
-}
+} */
 
 .target-item.selected-target {
   border-color: #007bff;
@@ -5724,6 +5770,7 @@ onUnmounted(() => {
   color: #333;
   line-height: 1.2;
   flex: 1;
+  padding-right: 120px;
 }
 
 /* 锁定目标前缀样式 */
@@ -5744,6 +5791,9 @@ onUnmounted(() => {
 }
 
 .target-status-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -5839,6 +5889,17 @@ onUnmounted(() => {
 .destroyed-text {
   font-size: 10px;
   font-weight: 500;
+}
+
+.destroyed-time {
+  font-size: 9px;
+  font-weight: 500;
+  color: #f56c6c;
+  margin-left: 4px;
+  padding: 1px 2px;
+  background-color: rgba(245, 108, 108, 0.15);
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 /* 三等分连接后布局 */
