@@ -67,7 +67,8 @@ message Sensor
 message Weapon
 {
 	optional PartParam base = 1;
-	optional int32 quantity = 2;	
+	optional int32 quantity = 2;
+	optional double tilt = 3;	
 }
 
 message Track 

@@ -12,7 +12,7 @@
               <div class="title-with-back">
                 <el-button
                   class="back-button"
-                  size="normal"
+                  size="small"
                   @click="handleBackToStart"
                 >
                   <el-icon><ArrowLeft /></el-icon>
@@ -462,6 +462,7 @@
               高低角：{{
                 formatValue(connectedPlatform.targetLoad.pitch, "°", 2)
               }}
+              武器射角：{{ formatWeaponTiltAngle() }}
             </div>
             <div class="status-info no-data" v-if="!hasTargetData()">
               暂无目标数据
@@ -1074,11 +1075,10 @@ const ammunitionTypes = computed<AmmunitionType[]>(() => {
 
   // 如果未连接或没有武器数据，返回默认弹药类型
   return [
-    { label: "155mm高爆弹", value: "HE_155", count: 20 },
-    { label: "155mm穿甲弹", value: "AP_155", count: 15 },
-    { label: "155mm烟雾弹", value: "SMOKE_155", count: 8 },
-    { label: "155mm照明弹", value: "ILLUM_155", count: 12 },
-    { label: "120mm迫击炮弹", value: "MORTAR_120", count: 25 },
+    { label: "155mm高爆弹", value: "HE_155", count: 0 },
+    { label: "155mm穿甲弹", value: "AP_155", count: 0 },
+    { label: "155mm烟雾弹", value: "SMOKE_155", count: 0 },
+    { label: "155mm照明弹", value: "ILLUM_155", count: 0 },
   ];
 });
 
@@ -2053,6 +2053,26 @@ const formatValue = (
   return `${prefix && value >= 0 ? prefix : ""}${formatted}${unit}`;
 };
 
+// 格式化武器射角显示（展示第一个武器的射角）
+const formatWeaponTiltAngle = () => {
+  if (
+    !connectedPlatform.value?.weapons ||
+    !Array.isArray(connectedPlatform.value.weapons)
+  ) {
+    return "未设置";
+  }
+
+  // 获取第一个武器的射角
+  if (connectedPlatform.value.weapons.length > 0) {
+    const firstWeapon = connectedPlatform.value.weapons[0] as any;
+    if (firstWeapon.tilt !== undefined) {
+      return firstWeapon.tilt.toFixed(2) + "°";
+    }
+  }
+
+  return "未设置";
+};
+
 // 采用协同目标
 const adoptCoordinationTarget = () => {
   if (!receivedCoordinationTarget.name) {
@@ -2531,6 +2551,21 @@ const updateArtilleryStatusDisplay = (platform: any) => {
       console.log(`[ArtilleryPage] 弹药数量已更新: ${totalAmmunition}`);
     }
 
+    // 处理武器倾斜角信息（新增：支持 tilt 字段）
+    platform.weapons.forEach((weapon: any) => {
+      if (weapon.tilt !== undefined) {
+        const tiltAngle = weapon.tilt;
+        console.log(
+          `[ArtilleryPage] 武器 ${
+            weapon.base?.name || "未知"
+          } 倾斜角: ${tiltAngle}°`
+        );
+
+        // 这里可以根据需要更新界面显示或存储倾斜角信息
+        // 例如：可以用于火炮射击参数计算或状态显示
+      }
+    });
+
     console.log(`[ArtilleryPage] 武器信息处理完成:`, {
       武器数量: platform.weapons.length,
       总弹药数: totalAmmunition,
@@ -2538,6 +2573,7 @@ const updateArtilleryStatusDisplay = (platform: any) => {
         名称: w.base?.name,
         类型: w.base?.type,
         数量: w.quantity,
+        倾斜角: w.tilt !== undefined ? `${w.tilt}°` : "未设置", // 新增：显示倾斜角
       })),
     });
   }
@@ -3147,6 +3183,11 @@ onUnmounted(() => {
   /* 应用基础样式 */
   background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* 启用滚动支持 */
+  height: 100%; /* 填满父容器高度 */
+  overflow-y: auto; /* 启用垂直滚动，覆盖父组件的 overflow: hidden */
+  overflow-x: hidden; /* 防止横向滚动 */
 }
 
 /* ==================== 任务目标提醒栏 ==================== */
@@ -3876,8 +3917,8 @@ onUnmounted(() => {
 
 .control-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-sm); /* 使用间距而不是justify-content: space-between */
   margin-bottom: var(--spacing-md);
 }
 
@@ -3885,12 +3926,22 @@ onUnmounted(() => {
   font-size: var(--font-base);
   color: var(--text-regular);
   font-weight: 500;
+  white-space: nowrap; /* 防止标签换行 */
+  min-width: 70px; /* 固定最小宽度，防止被挤压 */
+  flex-shrink: 0; /* 防止标签被压缩 */
+}
+
+/* 弹药类型选择框 */
+.ammunition-select {
+  flex: 1; /* 自适应宽度 */
+  max-width: 200px; /* 限制最大宽度，防止过宽 */
 }
 
 .control-info {
   font-size: var(--font-base);
   color: var(--text-secondary);
   font-weight: 500;
+  flex: 1; /* 自适应宽度 */
 }
 
 /* ==================== 操作按钮区域 ==================== */

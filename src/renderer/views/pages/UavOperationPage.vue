@@ -229,6 +229,7 @@
           <div class="action-buttons">
             <!-- 激光编码输入 -->
             <div class="input-group mb-2">
+              <span class="input-label">激光编码</span>
               <div class="input-wrapper">
                 <el-input
                   v-model="laserCode"
@@ -250,6 +251,7 @@
 
             <!-- 照射持续时间输入 -->
             <div class="input-group mb-2">
+              <span class="input-label">照射时长</span>
               <div class="input-wrapper">
                 <el-input
                   v-model="irradiationDuration"
@@ -271,6 +273,7 @@
 
             <!-- 激光倒计时输入 -->
             <div class="input-group mb-2">
+              <span class="input-label">照射倒计时</span>
               <div class="input-wrapper">
                 <el-input
                   v-model="laserCountdown"
@@ -390,18 +393,6 @@
                     </template>
                   </el-option>
                 </el-select>
-              </div>
-              <!-- 目标状态提示 -->
-              <div v-if="isConnected" class="target-status-hint">
-                <span
-                  v-if="targetOptions.length === 0"
-                  class="text-gray-500 text-xs"
-                >
-                  当前平台未跟踪到目标
-                </span>
-                <span v-else class="text-green-600 text-xs">
-                  下拉选择: {{ targetOptions.length }} 个
-                </span>
               </div>
             </div>
 
@@ -2863,6 +2854,9 @@ const handleConnectPlatform = async () => {
     // 停止轨迹同步
     stopTrajectorySync();
 
+    // 停止激光锁定命令（如果正在运行）
+    stopLaserLockCommand();
+
     isConnected.value = false;
     connectedPlatform.value = null;
     connectedPlatformName.value = "";
@@ -2897,6 +2891,7 @@ const handleConnectPlatform = async () => {
     // 清空目标状态
     selectedTarget.value = "";
     selectedTargetFromList.value = "";
+    lockedTarget.value = ""; // 清除锁定目标状态
     targetStatus.name = "目标-001";
     targetStatus.destroyed = false;
 
@@ -4328,6 +4323,11 @@ onUnmounted(() => {
   /* 应用基础样式 */
   background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* 启用滚动支持 */
+  height: 100%; /* 填满父容器高度 */
+  overflow-y: auto; /* 启用垂直滚动，覆盖父组件的 overflow: hidden */
+  overflow-x: hidden; /* 防止横向滚动 */
 }
 
 /* ==================== 卡片统一样式 ==================== */
@@ -5177,6 +5177,18 @@ onUnmounted(() => {
 
 .input-group {
   margin-bottom: var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* 输入框标签样式 */
+.input-label {
+  font-size: 14px;
+  color: #333; /* 与 .param-label 保持一致 */
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 88px; /* 确保所有标签宽度一致，容纳"照射倒计时"等较长文本 */
 }
 
 .input-wrapper {

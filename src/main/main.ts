@@ -231,27 +231,49 @@ ipcMain.handle(
   "images:getPlatformImagePath",
   async (_, platformType: string) => {
     try {
-      // 图片文件名基于平台类型
-      const imageName = `${platformType}.jpg`;
+      // 支持多种图片格式
+      const supportedFormats = ["jpg", "jpeg", "png"];
+      let imagePath: string | null = null;
+      let foundFormat: string | null = null;
 
-      let imagePath: string;
+      // 遍历支持的格式，找到存在的图片文件
+      for (const format of supportedFormats) {
+        const imageName = `${platformType}.${format}`;
+        let testPath: string;
 
-      if (app.isPackaged) {
-        // 打包后，图片在应用根目录的images文件夹中
-        imagePath = join(process.resourcesPath, "..", "images", imageName);
-      } else {
-        // 开发环境，图片在src/images文件夹中
-        imagePath = join(__dirname, "..", "..", "src", "images", imageName);
+        if (app.isPackaged) {
+          // 打包后，图片在应用根目录的images文件夹中
+          testPath = join(process.resourcesPath, "..", "images", imageName);
+        } else {
+          // 开发环境，图片在src/images文件夹中
+          testPath = join(__dirname, "..", "..", "src", "images", imageName);
+        }
+
+        if (fs.existsSync(testPath)) {
+          imagePath = testPath;
+          foundFormat = format;
+          break;
+        }
       }
 
-      console.log(`[Images] 查找图片: ${platformType} -> ${imagePath}`);
+      console.log(
+        `[Images] 查找图片: ${platformType} -> ${imagePath || "未找到"}`
+      );
 
-      // 检查文件是否存在
-      if (fs.existsSync(imagePath)) {
-        console.log(`[Images] ✅ 找到图片: ${imagePath}`);
-        return { success: true, path: imagePath, exists: true };
+      if (imagePath && foundFormat) {
+        console.log(
+          `[Images] ✅ 找到图片: ${imagePath} (格式: ${foundFormat})`
+        );
+        return {
+          success: true,
+          path: imagePath,
+          exists: true,
+          format: foundFormat,
+        };
       } else {
-        console.log(`[Images] ❌ 图片不存在: ${imagePath}`);
+        console.log(
+          `[Images] ❌ 图片不存在，已尝试格式: ${supportedFormats.join(", ")}`
+        );
         return { success: true, path: null, exists: false };
       }
     } catch (error: any) {
@@ -266,35 +288,67 @@ ipcMain.handle(
   "images:getPlatformImageData",
   async (_, platformType: string) => {
     try {
-      const imageName = `${platformType}.jpg`;
+      // 支持多种图片格式
+      const supportedFormats = ["jpg", "jpeg", "png"];
+      let imagePath: string | null = null;
+      let foundFormat: string | null = null;
 
-      let imagePath: string;
+      // 遍历支持的格式，找到存在的图片文件
+      for (const format of supportedFormats) {
+        const imageName = `${platformType}.${format}`;
+        let testPath: string;
 
-      if (app.isPackaged) {
-        // 打包后，图片在应用根目录的images文件夹中
-        imagePath = join(process.resourcesPath, "..", "images", imageName);
-      } else {
-        // 开发环境，图片在src/images文件夹中
-        imagePath = join(__dirname, "..", "..", "src", "images", imageName);
+        if (app.isPackaged) {
+          // 打包后，图片在应用根目录的images文件夹中
+          testPath = join(process.resourcesPath, "..", "images", imageName);
+        } else {
+          // 开发环境，图片在src/images文件夹中
+          testPath = join(__dirname, "..", "..", "src", "images", imageName);
+        }
+
+        if (fs.existsSync(testPath)) {
+          imagePath = testPath;
+          foundFormat = format;
+          break;
+        }
       }
 
-      console.log(`[Images] 读取图片数据: ${platformType} -> ${imagePath}`);
+      console.log(
+        `[Images] 读取图片数据: ${platformType} -> ${imagePath || "未找到"}`
+      );
 
-      if (fs.existsSync(imagePath)) {
+      if (imagePath && foundFormat) {
         const imageData = fs.readFileSync(imagePath);
         const base64Data = imageData.toString("base64");
-        const mimeType = "image/jpeg"; // 假设都是jpg格式
+
+        // 根据实际文件格式设置正确的MIME类型
+        let mimeType: string;
+        switch (foundFormat.toLowerCase()) {
+          case "png":
+            mimeType = "image/png";
+            break;
+          case "jpg":
+          case "jpeg":
+            mimeType = "image/jpeg";
+            break;
+          default:
+            mimeType = "image/jpeg"; // 默认使用jpeg
+        }
 
         console.log(
-          `[Images] ✅ 成功读取图片数据: ${imagePath}, 大小: ${imageData.length} bytes`
+          `[Images] ✅ 成功读取图片数据: ${imagePath}, 格式: ${foundFormat}, 大小: ${imageData.length} bytes`
         );
         return {
           success: true,
           data: `data:${mimeType};base64,${base64Data}`,
           exists: true,
+          format: foundFormat,
+          mimeType: mimeType,
         };
       } else {
-        console.log(`[Images] ❌ 图片不存在: ${imagePath}`);
+        console.log(
+          `[Images] ❌ 图片不存在，已尝试格式: ${supportedFormats.join(", ")}`
+        );
         return { success: true, data: null, exists: false };
       }
     } catch (error: any) {

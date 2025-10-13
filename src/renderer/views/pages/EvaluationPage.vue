@@ -1869,11 +1869,14 @@ onUnmounted(() => {
 <style scoped>
 .evaluation-page {
   min-height: 100vh;
+  height: 100%; /* 填满父容器高度 */
   display: flex;
   flex-direction: column;
   padding: 16px;
+  padding-bottom: 24px; /* 底部留出更多空间 */
   background-color: #f5f7fa;
-  overflow-y: auto;
+  overflow-y: auto; /* 关键：启用垂直滚动，覆盖父组件的overflow: hidden */
+  overflow-x: hidden; /* 防止横向滚动 */
 }
 
 .page-header {
@@ -1887,6 +1890,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   min-height: 60px;
   flex-shrink: 0; /* 防止头部被压缩 */
+  flex-grow: 0; /* 防止头部扩展 */
 }
 
 .header-left {
@@ -2046,7 +2050,9 @@ onUnmounted(() => {
 /* 所有分组容器 */
 .all-groups-container {
   margin-bottom: 20px;
-  flex: 1; /* 允许容器扩展 */
+  flex-shrink: 0; /* 防止内容被压缩 */
+  flex-grow: 0; /* 不扩展，保持实际内容高度 */
+  width: 100%;
 }
 
 .no-groups-hint {
@@ -2079,6 +2085,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  flex-shrink: 0; /* 防止被压缩 */
 }
 
 .group-row {
@@ -2091,6 +2098,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid #e1e8ed;
   min-height: 320px;
+  flex-shrink: 0; /* 防止行被压缩 */
 }
 
 /* 分组标题 */
@@ -2196,12 +2204,13 @@ onUnmounted(() => {
   max-height: 280px;
   overflow-y: auto;
   padding-right: 4px;
+  margin-bottom: 8px; /* 底部留出空间 */
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 #f1f1f1;
 }
 
 .events-list::-webkit-scrollbar {
-  width: 4px;
+  width: 6px; /* 增加滚动条宽度，更易操作 */
 }
 
 .events-list::-webkit-scrollbar-track {
@@ -2707,7 +2716,8 @@ onUnmounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   flex-shrink: 0; /* 防止被压缩，确保始终可见 */
-  margin-top: auto; /* 推到页面底部 */
+  flex-grow: 0; /* 不扩展，保持实际内容高度 */
+  /* 不使用 margin-top: auto，让它自然排列 */
 }
 
 .summary-content {
