@@ -1,129 +1,140 @@
 <template>
   <div class="start-page">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <h1 class="system-title">无人机引导仿真系统</h1>
-      <p class="system-subtitle">请选择您的操作席位</p>
+    <!-- 左侧背景区域 -->
+    <div class="left-section">
+      <div class="background-image"></div>
     </div>
 
-    <!-- 席位选择区域 -->
-    <div class="seats-container">
-      <div class="seats-grid">
-        <!-- 无人机席位 -->
-        <div class="seat-card uav-seat" @click="selectSeat('uav')">
-          <div class="seat-icon">
-            <div class="icon-bg uav-bg">
-              <img
-                src="../../assets/UAV.svg"
-                alt="无人机"
-                class="seat-icon-svg"
-              />
-            </div>
-          </div>
-          <div class="seat-info">
-            <h3 class="seat-title">无人机席位</h3>
-            <p class="seat-description">
-              无人机操作控制、传感器管理、航线规划、目标跟踪
-            </p>
-          </div>
-          <div class="seat-arrow">
-            <el-icon><ArrowRight /></el-icon>
-          </div>
-        </div>
+    <!-- 右侧内容区域 -->
+    <div class="right-section">
+      <!-- 页面标题 -->
+      <div class="page-header">
+        <h1 class="system-title">无人机引导仿真系统</h1>
+        <p class="system-subtitle">请选择您的操作席位</p>
+      </div>
 
-        <!-- 火炮席位 -->
-        <div class="seat-card artillery-seat" @click="selectSeat('artillery')">
-          <div class="seat-icon">
-            <div class="icon-bg artillery-bg">
-              <img
-                src="../../assets/ROCKET.svg"
-                alt="火炮"
-                class="seat-icon-svg"
-              />
+      <!-- 席位选择区域 -->
+      <div class="seats-container">
+        <div class="seats-grid">
+          <!-- 无人机席位 -->
+          <div class="seat-card uav-seat" @click="selectSeat('uav')">
+            <div class="seat-icon">
+              <div class="icon-bg uav-bg">
+                <img
+                  src="../../assets/UAV.svg"
+                  alt="无人机"
+                  class="seat-icon-svg"
+                />
+              </div>
+            </div>
+            <div class="seat-info">
+              <h3 class="seat-title">无人机席位</h3>
+              <p class="seat-description">
+                无人机操作控制、传感器管理、航线规划、目标跟踪
+              </p>
+            </div>
+            <div class="seat-arrow">
+              <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
-          <div class="seat-info">
-            <h3 class="seat-title">火炮席位</h3>
-            <p class="seat-description">
-              火炮操作控制、目标设定、<br />
-              弹药管理、打击协同
-            </p>
-          </div>
-          <div class="seat-arrow">
-            <el-icon><ArrowRight /></el-icon>
-          </div>
-        </div>
 
-        <!-- 考评席位 -->
-        <div
-          class="seat-card evaluation-seat"
-          @click="selectSeat('evaluation')"
-        >
-          <div class="seat-icon">
-            <div class="icon-bg evaluation-bg">
-              <img
-                src="../../assets/RATE.svg"
-                alt="考评"
-                class="seat-icon-svg"
-              />
+          <!-- 火炮席位 -->
+          <div
+            class="seat-card artillery-seat"
+            @click="selectSeat('artillery')"
+          >
+            <div class="seat-icon">
+              <div class="icon-bg artillery-bg">
+                <img
+                  src="../../assets/ROCKET.svg"
+                  alt="火炮"
+                  class="seat-icon-svg"
+                />
+              </div>
+            </div>
+            <div class="seat-info">
+              <h3 class="seat-title">火炮席位</h3>
+              <p class="seat-description">
+                火炮操作控制、目标设定、<br />
+                弹药管理、打击协同
+              </p>
+            </div>
+            <div class="seat-arrow">
+              <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
-          <div class="seat-info">
-            <h3 class="seat-title">考评席位</h3>
-            <p class="seat-description">
-              作战效果评估、专家评分、<br />
-              演习数据分析、报告生成
-            </p>
-          </div>
-          <div class="seat-arrow">
-            <el-icon><ArrowRight /></el-icon>
-          </div>
-        </div>
 
-        <!-- 调试席位（隐藏，通过双击版本号开启）-->
-        <div
-          v-if="debugModeEnabled"
-          class="seat-card debug-seat"
-          @click="selectSeat('debug')"
-        >
-          <div class="seat-icon">
-            <div class="icon-bg debug-bg">
-              <i class="seat-symbol">🔧</i>
+          <!-- 考评席位 -->
+          <div
+            class="seat-card evaluation-seat"
+            @click="selectSeat('evaluation')"
+          >
+            <div class="seat-icon">
+              <div class="icon-bg evaluation-bg">
+                <img
+                  src="../../assets/RATE.svg"
+                  alt="考评"
+                  class="seat-icon-svg"
+                />
+              </div>
+            </div>
+            <div class="seat-info">
+              <h3 class="seat-title">考评席位</h3>
+              <p class="seat-description">
+                作战效果评估、专家评分、<br />
+                演习数据分析、报告生成
+              </p>
+            </div>
+            <div class="seat-arrow">
+              <el-icon><ArrowRight /></el-icon>
             </div>
           </div>
-          <div class="seat-info">
-            <h3 class="seat-title">调试席位</h3>
-            <p class="seat-description">
-              系统调试、数据测试、<br />
-              组播配置、协议解析
-            </p>
-          </div>
-          <div class="seat-arrow">
-            <el-icon><ArrowRight /></el-icon>
+
+          <!-- 调试席位（隐藏，通过双击版本号开启）-->
+          <div
+            v-if="debugModeEnabled"
+            class="seat-card debug-seat"
+            @click="selectSeat('debug')"
+          >
+            <div class="seat-icon">
+              <div class="icon-bg debug-bg">
+                <i class="seat-symbol">🔧</i>
+              </div>
+            </div>
+            <div class="seat-info">
+              <h3 class="seat-title">调试席位</h3>
+              <p class="seat-description">
+                系统调试、数据测试、<br />
+                组播配置、协议解析
+              </p>
+            </div>
+            <div class="seat-arrow">
+              <el-icon><ArrowRight /></el-icon>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 系统信息 -->
-    <div class="system-info">
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-label">系统版本：</span>
-          <span
-            class="info-value version-clickable"
-            @click="enableDebugMode"
-            :title="debugModeEnabled ? '调试模式已启用' : ''"
-            >v2.0.0</span
-          >
-        </div>
-        <div class="info-item">
-          <span class="info-label">当前时间：</span>
-          <span class="info-value">{{ currentTime }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">系统状态：</span>
-          <span class="info-value status-ready">就绪</span>
+      <!-- 系统信息 -->
+      <div class="system-info">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">系统版本：</span>
+            <span
+              class="info-value version-clickable"
+              @click="enableDebugMode"
+              :title="debugModeEnabled ? '调试模式已启用' : ''"
+              >v2.0.0</span
+            >
+          </div>
+          <div class="info-item">
+            <span class="info-label">当前时间：</span>
+            <span class="info-value">{{ currentTime }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">系统状态：</span>
+            <span class="info-value status-ready">就绪</span>
+          </div>
         </div>
       </div>
     </div>
@@ -215,102 +226,155 @@ onUnmounted(() => {
 <style scoped>
 .start-page {
   min-height: 100vh;
-  background: #ffffff;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+      135deg,
+      rgba(176, 218, 232, 0.15) 0%,
+      rgba(135, 206, 235, 0.2) 50%,
+      rgba(173, 216, 230, 0.15) 100%
+    ),
+    #e8f4f8;
+}
+
+/* 左侧背景区域 */
+.left-section {
+  width: 60%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 248, 255, 0.95) 0%,
+    rgba(224, 242, 254, 0.9) 100%
+  );
+}
+
+.background-image {
+  width: 100%;
+  height: 100%;
+  background: url("../../assets/images/bg6.png") center center no-repeat;
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 右侧内容区域 */
+.right-section {
+  width: 40%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 40px 60px;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 248, 255, 0.95) 0%,
+    rgba(224, 242, 254, 0.9) 100%
+  );
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  z-index: 1;
 }
 
-/* 背景装饰 */
-.start-page::before {
+.right-section::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: radial-gradient(
-      circle at 20% 50%,
-      rgba(59, 130, 246, 0.03) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 80% 20%,
-      rgba(99, 102, 241, 0.03) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at 40% 80%,
-      rgba(139, 92, 246, 0.03) 0%,
-      transparent 50%
-    );
+  background: radial-gradient(
+    circle at top right,
+    rgba(135, 206, 235, 0.1) 0%,
+    transparent 60%
+  );
   pointer-events: none;
 }
 
 /* 页面标题 */
 .page-header {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 50px;
   z-index: 1;
+  position: relative;
 }
 
 .system-title {
-  font-size: 48px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 16px 0;
+  font-size: 46px;
+  font-weight: 800;
+  color: #0c4a6e;
+  margin: 0 0 20px 0;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #0ea5e9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: none;
+  position: relative;
+}
+
+.system-title::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+  border-radius: 2px;
 }
 
 .system-subtitle {
-  font-size: 20px;
-  color: #64748b;
+  font-size: 18px;
+  color: #0369a1;
   margin: 0;
-  font-weight: 400;
+  font-weight: 500;
+  letter-spacing: 1px;
 }
 
 /* 席位选择区域 */
 .seats-container {
   z-index: 1;
   margin-bottom: 40px;
+  width: 100%;
 }
 
 .seats-grid {
   display: flex;
-  flex-direction: row;
-  gap: 24px;
-  max-width: 1200px;
+  flex-direction: column;
+  gap: 20px;
   width: 100%;
-  justify-content: center;
-  flex-wrap: wrap;
+  max-width: 500px;
+  margin: 0 auto;
 }
 
 /* 席位卡片 */
 .seat-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(1.5);
   border-radius: 16px;
-  padding: 32px 24px;
+  padding: 24px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2px solid rgba(135, 206, 235, 0.3);
+  box-shadow: 0 4px 16px rgba(3, 105, 161, 0.12),
+    0 2px 8px rgba(3, 105, 161, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   gap: 20px;
   position: relative;
   overflow: hidden;
-  min-height: 120px;
-  flex: 1;
-  min-width: 320px;
-  max-width: 380px;
+  width: 100%;
 }
 
 .seat-card::before {
@@ -318,20 +382,44 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 5px;
   height: 100%;
   background: transparent;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.seat-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
 }
 
 .seat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  border-color: #cbd5e1;
+  transform: translateY(-4px) scale(1.01);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px rgba(3, 105, 161, 0.2),
+    0 4px 12px rgba(3, 105, 161, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1);
+  border-color: rgba(14, 165, 233, 0.4);
+}
+
+.seat-card:hover::after {
+  opacity: 1;
 }
 
 .seat-card:active {
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.01);
+  transition: all 0.1s ease;
 }
 
 /* 席位图标 */
@@ -340,22 +428,30 @@ onUnmounted(() => {
 }
 
 .icon-bg {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
+  width: 70px;
+  height: 70px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 3px 12px rgba(3, 105, 161, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .seat-icon-svg {
-  width: 48px;
-  height: 48px;
-  filter: brightness(0) invert(1);
+  width: 40px;
+  height: 40px;
+  filter: brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
   z-index: 1;
   position: relative;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.seat-card:hover .seat-icon-svg {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .icon-bg::before {
@@ -367,25 +463,31 @@ onUnmounted(() => {
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    rgba(255, 255, 255, 0.1) 100%
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.05) 100%
   );
 }
 
+.seat-card:hover .icon-bg {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
 .uav-bg {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%);
 }
 
 .artillery-bg {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
 }
 
 .evaluation-bg {
-  background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
 }
 
 .debug-bg {
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
 }
 
 .seat-symbol {
@@ -402,57 +504,72 @@ onUnmounted(() => {
 }
 
 .seat-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0c4a6e;
   margin: 0 0 8px 0;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.seat-card:hover .seat-title {
+  color: #075985;
 }
 
 .seat-description {
-  font-size: 14px;
-  color: #64748b;
+  font-size: 13px;
+  color: #0369a1;
   margin: 0;
   line-height: 1.6;
+  transition: all 0.3s ease;
+}
+
+.seat-card:hover .seat-description {
+  color: #0c4a6e;
 }
 
 /* 箭头 */
 .seat-arrow {
   flex-shrink: 0;
-  color: #94a3b8;
-  font-size: 24px;
-  transition: all 0.3s ease;
+  color: #7dd3fc;
+  font-size: 22px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .seat-card:hover .seat-arrow {
-  color: #475569;
-  transform: translateX(4px);
+  color: #0ea5e9;
+  transform: translateX(6px) scale(1.15);
 }
 
 /* 特定席位的悬停效果 */
 .uav-seat:hover::before {
-  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(180deg, #0ea5e9 0%, #06b6d4 100%);
 }
 
 .artillery-seat:hover::before {
-  background: linear-gradient(180deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(180deg, #3b82f6 0%, #6366f1 100%);
 }
 
 .evaluation-seat:hover::before {
-  background: linear-gradient(180deg, #4ecdc4 0%, #44a08d 100%);
+  background: linear-gradient(180deg, #14b8a6 0%, #0d9488 100%);
 }
 
 .debug-seat:hover::before {
-  background: linear-gradient(180deg, #ffecd2 0%, #fcb69f 100%);
+  background: linear-gradient(180deg, #f59e0b 0%, #f97316 100%);
 }
 
 /* 系统信息 */
 .system-info {
   z-index: 1;
-  background: #f8fafc;
+  background: rgba(240, 249, 255, 0.85);
+  backdrop-filter: blur(15px) saturate(1.3);
   border-radius: 12px;
   padding: 20px 32px;
-  border: 1px solid #e2e8f0;
+  border: 2px solid rgba(135, 206, 235, 0.3);
+  box-shadow: 0 3px 12px rgba(3, 105, 161, 0.12),
+    0 2px 6px rgba(3, 105, 161, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  width: 100%;
+  max-width: 500px;
 }
 
 .info-grid {
@@ -469,15 +586,15 @@ onUnmounted(() => {
 }
 
 .info-label {
-  font-size: 14px;
-  color: #64748b;
+  font-size: 13px;
+  color: #0369a1;
   font-weight: 500;
 }
 
 .info-value {
   font-size: 14px;
-  color: #1e293b;
-  font-weight: 600;
+  color: #0c4a6e;
+  font-weight: 700;
   font-family: "Courier New", monospace;
 }
 
@@ -488,33 +605,67 @@ onUnmounted(() => {
 }
 
 .version-clickable:hover {
-  color: #3b82f6;
+  color: #0ea5e9;
 }
 
 .status-ready {
-  color: #22c55e !important;
-  font-weight: 700;
+  color: #14b8a6 !important;
+  font-weight: 800;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .start-page {
+    flex-direction: column;
+  }
+
+  .left-section {
+    width: 100%;
+    height: 40vh;
+  }
+
+  .right-section {
+    width: 100%;
+    height: auto;
+    min-height: 60vh;
+    padding: 40px 30px;
+  }
+}
+
 @media (max-width: 768px) {
   .system-title {
-    font-size: 36px;
+    font-size: 32px;
   }
 
   .system-subtitle {
-    font-size: 18px;
+    font-size: 16px;
+  }
+
+  .left-section {
+    height: 30vh;
+  }
+
+  .right-section {
+    padding: 30px 20px;
   }
 
   .seats-grid {
-    grid-template-columns: 1fr;
     gap: 16px;
-    max-width: 400px;
   }
 
   .seat-card {
-    padding: 24px 20px;
-    min-height: 100px;
+    padding: 20px;
   }
 
   .icon-bg {
@@ -522,36 +673,41 @@ onUnmounted(() => {
     height: 60px;
   }
 
-  .seat-symbol {
-    font-size: 24px;
+  .seat-icon-svg {
+    width: 35px;
+    height: 35px;
   }
 
   .seat-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .seat-description {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .info-grid {
     flex-direction: column;
-    gap: 16px;
-    align-items: center;
+    gap: 12px;
+    align-items: flex-start;
   }
 }
 
 @media (max-width: 480px) {
-  .start-page {
-    padding: 16px;
+  .system-title {
+    font-size: 26px;
   }
 
-  .system-title {
-    font-size: 28px;
+  .system-subtitle {
+    font-size: 14px;
+  }
+
+  .right-section {
+    padding: 20px 16px;
   }
 
   .seat-card {
-    padding: 20px 16px;
+    padding: 16px;
     gap: 16px;
   }
 
@@ -560,12 +716,17 @@ onUnmounted(() => {
     height: 50px;
   }
 
+  .seat-icon-svg {
+    width: 30px;
+    height: 30px;
+  }
+
   .seat-symbol {
     font-size: 20px;
   }
 
   .seat-title {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 </style>

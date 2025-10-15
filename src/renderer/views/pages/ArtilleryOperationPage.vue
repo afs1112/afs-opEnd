@@ -1,163 +1,148 @@
 <template>
   <div class="artillery-operation-page h-full p-4">
-    <!-- 顶部控制区域 -->
-    <div class="top-section mb-4">
-      <div class="top-content">
-        <!-- 连接控制卡片 -->
-        <div class="connection-card">
-          <!-- 未连接时的布局 -->
-          <div v-if="!isConnected" class="control-row">
-            <!-- 左侧标题区域 -->
-            <div class="title-section">
-              <div class="title-with-back">
-                <el-button
-                  class="back-button"
-                  size="small"
-                  @click="handleBackToStart"
-                >
-                  <el-icon><ArrowLeft /></el-icon>
-                  返回
-                </el-button>
-                <div class="seat-title">火炮席位</div>
-              </div>
-            </div>
-
-            <!-- 中间控制区域 -->
-            <div class="controls-section">
-              <el-select
-                v-model="selectedGroup"
-                placeholder="选择分组"
-                class="control-select short"
-                @change="handleSelectGroup"
-                clearable
-              >
-                <el-option
-                  v-for="group in groupOptions"
-                  :key="group.value"
-                  :label="group.label"
-                  :value="group.value"
-                />
-              </el-select>
-              <el-select
-                v-model="selectedInstance"
-                placeholder="选择火炮"
-                class="control-select large"
-                @change="handleSelectArtillery"
-                :disabled="!selectedGroup"
-                clearable
-              >
-                <el-option
-                  v-for="artillery in artilleryOptions"
-                  :key="artillery.value"
-                  :label="artillery.label"
-                  :value="artillery.value"
-                />
-              </el-select>
-              <el-button
-                class="control-btn"
-                @click="handleConnectPlatform"
-                type="primary"
-              >
-                连接平台
-              </el-button>
-              <div class="function-separator"></div>
-              <el-button
-                class="exercise-btn"
-                @click="openDocument"
-                type="success"
-              >
-                打开演练方案
-              </el-button>
-            </div>
+    <!-- 顶部连接控制卡片 -->
+    <div class="connection-card mb-4">
+      <!-- 未连接时的布局 -->
+      <div v-if="!isConnected" class="control-row">
+        <!-- 左侧标题区域 -->
+        <div class="title-section">
+          <div class="title-with-back">
+            <el-button
+              class="back-button"
+              size="small"
+              @click="handleBackToStart"
+            >
+              <el-icon><ArrowLeft /></el-icon>
+              返回
+            </el-button>
+            <div class="seat-title">火炮席位</div>
           </div>
+        </div>
 
-          <!-- 已连接时的布局 -->
-          <div v-if="isConnected" class="connected-layout">
-            <!-- 第一部分：组别和组内平台 -->
-            <div class="layout-section group-platforms-section">
-              <div class="platforms-container">
-                <!-- 平台列表 -->
-                <div class="platforms-list">
+        <!-- 中间控制区域 -->
+        <div class="controls-section">
+          <el-select
+            v-model="selectedGroup"
+            placeholder="选择分组"
+            class="control-select short"
+            @change="handleSelectGroup"
+            clearable
+          >
+            <el-option
+              v-for="group in groupOptions"
+              :key="group.value"
+              :label="group.label"
+              :value="group.value"
+            />
+          </el-select>
+          <el-select
+            v-model="selectedInstance"
+            placeholder="选择火炮"
+            class="control-select large"
+            @change="handleSelectArtillery"
+            :disabled="!selectedGroup"
+            clearable
+          >
+            <el-option
+              v-for="artillery in artilleryOptions"
+              :key="artillery.value"
+              :label="artillery.label"
+              :value="artillery.value"
+            />
+          </el-select>
+          <el-button
+            class="control-btn"
+            @click="handleConnectPlatform"
+            type="primary"
+          >
+            连接平台
+          </el-button>
+          <div class="function-separator"></div>
+          <el-button class="exercise-btn" @click="openDocument" type="success">
+            打开演练方案
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 已连接时的布局 -->
+      <div v-if="isConnected" class="connected-layout">
+        <!-- 第一部分：组别和组内平台 -->
+        <div class="layout-section group-platforms-section">
+          <div class="platforms-container">
+            <!-- 平台列表 -->
+            <div class="platforms-list">
+              <div
+                v-for="platform in sameGroupPlatforms"
+                :key="platform.name"
+                class="platform-item"
+                :class="{
+                  'current-platform': platform.name === connectedPlatformName,
+                  online: platform.isOnline && !platform.isCurrentPlatform,
+                  offline: !platform.isOnline && !platform.isCurrentPlatform,
+                  'connected-platform': platform.isCurrentPlatform,
+                }"
+              >
+                <!-- 平台图标/头像 -->
+                <div class="platform-avatar">
+                  <!-- 如果有图片数据，使用实际图片 -->
+                  <img
+                    v-if="platform.imageData"
+                    :src="platform.imageData"
+                    :alt="platform.displayType"
+                    class="avatar-image"
+                    @error="onImageError(platform)"
+                  />
+                  <!-- 如果没有图片，显示默认图标 -->
                   <div
-                    v-for="platform in sameGroupPlatforms"
-                    :key="platform.name"
-                    class="platform-item"
-                    :class="{
-                      'current-platform':
-                        platform.name === connectedPlatformName,
-                      online: platform.isOnline && !platform.isCurrentPlatform,
-                      offline:
-                        !platform.isOnline && !platform.isCurrentPlatform,
-                      'connected-platform': platform.isCurrentPlatform,
-                    }"
+                    v-else
+                    class="avatar-icon"
+                    :class="getPlatformIconClass(platform.type)"
                   >
-                    <!-- 平台图标/头像 -->
-                    <div class="platform-avatar">
-                      <!-- 如果有图片数据，使用实际图片 -->
-                      <img
-                        v-if="platform.imageData"
-                        :src="platform.imageData"
-                        :alt="platform.displayType"
-                        class="avatar-image"
-                        @error="onImageError(platform)"
-                      />
-                      <!-- 如果没有图片，显示默认图标 -->
-                      <div
-                        v-else
-                        class="avatar-icon"
-                        :class="getPlatformIconClass(platform.type)"
-                      >
-                        {{ getPlatformIcon(platform.type) }}
-                      </div>
-                    </div>
-
-                    <div class="platform-info">
-                      <span class="platform-name">{{ platform.name }}</span>
-                      <span class="platform-type">{{ selectedGroup }}</span>
-                      <span class="platform-status-text">{{
-                        platform.statusText
-                      }}</span>
-                    </div>
+                    {{ getPlatformIcon(platform.type) }}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- 第二部分：演习时间和天文时间 -->
-            <div class="layout-section time-section">
-              <div class="time-content">
-                <div class="exercise-time">
-                  演习时间：{{ environmentParams.exerciseTime }}
-                </div>
-                <div class="astronomical-time">
-                  天文时间：{{ environmentParams.astronomicalTime }}
+                <div class="platform-info">
+                  <span class="platform-name">{{ platform.name }}</span>
+                  <span class="platform-type">{{ selectedGroup }}</span>
+                  <span class="platform-status-text">{{
+                    platform.statusText
+                  }}</span>
                 </div>
               </div>
-            </div>
-
-            <!-- 第三部分：操作按钮 -->
-            <div class="layout-section controls-section">
-              <el-button
-                class="control-btn"
-                @click="handleConnectPlatform"
-                type="warning"
-              >
-                断开
-              </el-button>
-
-              <!-- 功能区域分隔符 -->
-              <div class="function-separator"></div>
-
-              <!-- 演练方案按钮 -->
-              <el-button
-                class="exercise-btn"
-                @click="openDocument"
-                type="success"
-              >
-                打开演练方案
-              </el-button>
             </div>
           </div>
+        </div>
+
+        <!-- 第二部分：演习时间和天文时间 -->
+        <div class="layout-section time-section">
+          <div class="time-content">
+            <div class="exercise-time">
+              演习时间：{{ environmentParams.exerciseTime }}
+            </div>
+            <div class="astronomical-time">
+              天文时间：{{ environmentParams.astronomicalTime }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 第三部分：操作按钮 -->
+        <div class="layout-section controls-section">
+          <el-button
+            class="control-btn"
+            @click="handleConnectPlatform"
+            type="warning"
+          >
+            断开
+          </el-button>
+
+          <!-- 功能区域分隔符 -->
+          <div class="function-separator"></div>
+
+          <!-- 演练方案按钮 -->
+          <el-button class="exercise-btn" @click="openDocument" type="success">
+            打开演练方案
+          </el-button>
         </div>
       </div>
     </div>
@@ -376,7 +361,7 @@
             >
               暂无环境数据
             </div>
-            <div class="status-info" v-else>
+            <div class="status-info" v-if="hasEnvironmentData()">
               温度{{ environmentParams.temperature }}，气压{{
                 environmentParams.pressure
               }}<br />
@@ -410,17 +395,28 @@
             >
               暂无平台数据
             </div>
-            <div class="status-info" v-if="connectedPlatform">
-              位置：{{
-                formatCoordinate(connectedPlatform.base?.location?.longitude)
-              }}
-              {{ formatCoordinate(connectedPlatform.base?.location?.latitude)
-              }}<br />
-              高度：{{ connectedPlatform.base?.location?.altitude || 0 }}m<br />
-              姿态：俯仰{{ formatAngle(connectedPlatform.base?.pitch) }} 横滚{{
-                formatAngle(connectedPlatform.base?.roll)
-              }}
-              偏航{{ formatAngle(connectedPlatform.base?.yaw) }}
+            <div class="status-info" v-if="hasPlatformData()">
+              <template v-if="connectedPlatform">
+                位置：{{
+                  formatCoordinate(connectedPlatform.base?.location?.longitude)
+                }}
+                {{ formatCoordinate(connectedPlatform.base?.location?.latitude)
+                }}<br />
+                高度：{{
+                  connectedPlatform.base?.location?.altitude || 0
+                }}m<br />
+                姿态：俯仰{{
+                  formatAngle(connectedPlatform.base?.pitch)
+                }}
+                横滚{{ formatAngle(connectedPlatform.base?.roll) }} 偏航{{
+                  formatAngle(connectedPlatform.base?.yaw)
+                }}
+              </template>
+              <template v-else>
+                位置：116.396°E 39.914°N<br />
+                高度：50m<br />
+                姿态：俯仰0° 横滚0° 偏航0°
+              </template>
             </div>
           </div>
         </div>
@@ -440,30 +436,38 @@
                 }}</span>
               </div>
             </div>
-            <div class="status-info" v-if="connectedPlatform?.targetLoad">
-              目标名称：{{ connectedPlatform.targetLoad.targetName || "未设置"
-              }}<br />
-              距离：{{
-                formatValue(connectedPlatform.targetLoad.distance, "m", 0)
-              }}<br />
-              方位：{{
-                formatValue(connectedPlatform.targetLoad.bearing, "°")
-              }}
-              高差：{{
-                formatValue(
-                  connectedPlatform.targetLoad.elevationDifference,
-                  "m",
-                  1,
-                  "+"
-                )
-              }}
-              方位角：{{
-                formatValue(connectedPlatform.targetLoad.azimuth, "°", 2)
-              }}
-              高低角：{{
-                formatValue(connectedPlatform.targetLoad.pitch, "°", 2)
-              }}
-              武器射角：{{ formatWeaponTiltAngle() }}
+            <div class="status-info" v-if="hasTargetData()">
+              <template v-if="connectedPlatform?.targetLoad">
+                目标名称：{{
+                  connectedPlatform.targetLoad.targetName || "未设置"
+                }}<br />
+                距离：{{
+                  formatValue(connectedPlatform.targetLoad.distance, "m", 0)
+                }}<br />
+                方位：{{
+                  formatValue(connectedPlatform.targetLoad.bearing, "°")
+                }}
+                高差：{{
+                  formatValue(
+                    connectedPlatform.targetLoad.elevationDifference,
+                    "m",
+                    1,
+                    "+"
+                  )
+                }}
+                方位角：{{
+                  formatValue(connectedPlatform.targetLoad.azimuth, "°", 2)
+                }}
+                高低角：{{
+                  formatValue(connectedPlatform.targetLoad.pitch, "°", 2)
+                }}
+                武器射角：{{ formatWeaponTiltAngle() }}
+              </template>
+              <template v-else>
+                目标名称：模拟目标<br />
+                距离：1500m<br />
+                方位：45° 高差：+10m 方位角：45.0° 高低角：5.5° 武器射角：待装订
+              </template>
             </div>
             <div class="status-info no-data" v-else>暂无目标数据</div>
           </div>
@@ -501,12 +505,13 @@
                 getLatestShell().base?.speed.toFixed(2) || 0.0
               }}m/s<br />
             </div>
-            <div
-              class="status-info no-data"
-              v-if="!getLatestShell() && isConnected"
-            >
-              暂无炮弹数据
+            <div class="status-info" v-else-if="!isConnected">
+              炮弹名称：模拟炮弹-001<br />
+              位置：116.396°E 39.914°N 高度：120.00m 预计总飞行时间：15秒
+              <br />
+              姿态：俯仰45° 横滚0° 偏航90° 速度：280.00m/s<br />
             </div>
+            <div class="status-info no-data" v-else>暂无炮弹数据</div>
           </div>
         </div>
       </div>
@@ -514,65 +519,49 @@
       <!-- 右侧协同报文区域 -->
       <div class="right-panel">
         <!-- 任务目标提醒栏 -->
-        <div v-if="isConnected" class="mission-target-banner">
-          <div class="banner-content">
-            <div class="banner-icon">
-              <el-icon size="16"><LocationFilled /></el-icon>
+        <!-- 任务目标卡片 -->
+        <div class="mission-target-card">
+          <div class="card-header">
+            <div class="header-left">
+              <el-icon class="target-icon" size="18"
+                ><LocationFilled
+              /></el-icon>
+              <span class="card-title">当前任务目标</span>
             </div>
-            <div class="target-main-content" v-if="missionTarget">
-              <!-- 状态标签绝对定位在右上角 -->
-              <div class="target-status-indicator">
-                <div
-                  v-if="missionTarget.status === 'destroyed'"
-                  class="target-status destroyed"
-                >
-                  <el-icon class="status-icon"><CircleClose /></el-icon>
-                  <span class="status-text">已摧毁</span>
-                </div>
-                <div
-                  v-else-if="missionTarget.status === 'active'"
-                  class="target-status active"
-                >
-                  <el-icon class="status-icon"><SuccessFilled /></el-icon>
-                  <span class="status-text">正常</span>
-                </div>
-                <div v-else class="target-status inactive">
-                  <el-icon class="status-icon"><WarningFilled /></el-icon>
-                  <span class="status-text">未扫到</span>
-                </div>
+            <!-- 状态标签在右上角 -->
+            <div class="target-status-indicator" v-if="missionTarget">
+              <div
+                v-if="missionTarget.status === 'destroyed'"
+                class="target-status destroyed"
+              >
+                <el-icon class="status-icon"><CircleClose /></el-icon>
+                <span class="status-text">已摧毁</span>
               </div>
-
-              <div class="target-header">
-                <span class="banner-title">当前任务目标：</span>
+              <div
+                v-else-if="missionTarget.status === 'active'"
+                class="target-status active"
+              >
+                <el-icon class="status-icon"><SuccessFilled /></el-icon>
+                <span class="status-text">正常</span>
               </div>
-              <div class="target-details">
-                <div class="target-avatar-name-section">
-                  <!-- 目标图片或默认图标 -->
-                  <div class="target-avatar">
-                    <img
-                      v-if="missionTarget.imageData"
-                      :src="missionTarget.imageData"
-                      :alt="missionTarget.platformType"
-                      class="target-avatar-image"
-                      @error="onTargetImageError(missionTarget)"
-                    />
-                    <el-icon
-                      v-else
-                      class="target-avatar-icon"
-                      :class="getPlatformIconClass(missionTarget.platformType)"
-                    >
-                      {{ getPlatformIcon(missionTarget.platformType) }}
-                    </el-icon>
-                  </div>
+              <div v-else class="target-status inactive">
+                <el-icon class="status-icon"><WarningFilled /></el-icon>
+                <span class="status-text">未扫到</span>
+              </div>
+            </div>
+          </div>
 
-                  <div class="target-name-type">
-                    <span class="target-name">{{ missionTarget.name }}</span>
-                    <span class="target-type">{{
-                      missionTarget.platformType
-                    }}</span>
-                  </div>
+          <div class="card-content">
+            <!-- 有目标时的展示 -->
+            <div v-if="missionTarget" class="target-info-with-image">
+              <div class="target-text-info">
+                <div class="target-name-row">
+                  <span class="target-name">{{ missionTarget.name }}</span>
+                  <span class="target-type">{{
+                    missionTarget.platformType
+                  }}</span>
                 </div>
-                <div class="target-coordinates">
+                <div class="target-coordinates-row">
                   <span class="coordinate-label">经纬高：</span>
                   <span class="coordinate-value">
                     {{ missionTarget.coordinates.longitude }}°,
@@ -581,10 +570,32 @@
                   </span>
                 </div>
               </div>
+
+              <!-- 目标图片放在右侧 -->
+              <div class="target-image-container">
+                <img
+                  v-if="missionTarget.imageData"
+                  :src="missionTarget.imageData"
+                  :alt="missionTarget.platformType"
+                  class="target-image"
+                  @error="onTargetImageError(missionTarget)"
+                />
+                <div
+                  v-else
+                  class="target-default-icon"
+                  :class="getPlatformIconClass(missionTarget.platformType)"
+                >
+                  {{ getPlatformIcon(missionTarget.platformType) }}
+                </div>
+              </div>
             </div>
-            <div class="target-main-content" v-else>
-              <span class="banner-title">当前任务目标：</span>
-              <span class="target-info no-target">暂无任务目标</span>
+
+            <!-- 无目标时的展示 -->
+            <div v-else class="no-target-info">
+              <el-icon class="no-target-icon" size="32"
+                ><WarningFilled
+              /></el-icon>
+              <span class="no-target-text">未设置目标</span>
             </div>
           </div>
         </div>
@@ -1559,7 +1570,6 @@ const getShellDataSourceClass = () => {
     return "simulated";
   } else if (getLatestShell()) {
     return "connected";
-    return "connected";
   } else {
     return "no-data";
   }
@@ -2343,29 +2353,21 @@ const fireAtDrone = async () => {
     }
 
     // 检查飞行时间是否已计算
-    console.log(
-      "[ArtilleryPage] 🔍 开火前飞行时间检查:",
-      {
-        estimatedFlightTime: estimatedFlightTime.value,
-        targetDistance: targetDistance.value,
-        currentTarget: currentTarget,
-        connectedPlatformTargetLoad: connectedPlatform.value?.targetLoad,
-        是否已装订目标: !!connectedPlatform.value?.targetLoad?.targetName
-      }
-    );
+    console.log("[ArtilleryPage] 🔍 开火前飞行时间检查:", {
+      estimatedFlightTime: estimatedFlightTime.value,
+      targetDistance: targetDistance.value,
+      currentTarget: currentTarget,
+      connectedPlatformTargetLoad: connectedPlatform.value?.targetLoad,
+      是否已装订目标: !!connectedPlatform.value?.targetLoad?.targetName,
+    });
 
     if (estimatedFlightTime.value === 0) {
-      console.warn(
-        "[ArtilleryPage] ⚠️ 警告：飞行时间为0，可能原因:",
-        {
-          目标装订状态: !!connectedPlatform.value?.targetLoad,
-          目标距离: targetDistance.value,
-          目标名称: currentTarget.name
-        }
-      );
-      ElMessage.warning(
-        "警告：飞行时间为0，请检查目标装订是否正确完成"
-      );
+      console.warn("[ArtilleryPage] ⚠️ 警告：飞行时间为0，可能原因:", {
+        目标装订状态: !!connectedPlatform.value?.targetLoad,
+        目标距离: targetDistance.value,
+        目标名称: currentTarget.name,
+      });
+      ElMessage.warning("警告：飞行时间为0，请检查目标装订是否正确完成");
     }
 
     // 设置发射状态
@@ -2443,17 +2445,14 @@ const fireAtDrone = async () => {
             "[ArtilleryPage] 发送发射协同命令数据:",
             coordinationCommandData
           );
-          console.log(
-            "[ArtilleryPage] 🔍 飞行时间调试信息:",
-            {
-              estimatedFlightTime当前值: estimatedFlightTime.value,
-              targetDistance当前值: targetDistance.value,
-              connectedPlatform目标装订: connectedPlatform.value?.targetLoad,
-              currentTarget: currentTarget,
-              数值转换结果: Number(estimatedFlightTime.value),
-              是否为NaN: isNaN(Number(estimatedFlightTime.value))
-            }
-          );
+          console.log("[ArtilleryPage] 🔍 飞行时间调试信息:", {
+            estimatedFlightTime当前值: estimatedFlightTime.value,
+            targetDistance当前值: targetDistance.value,
+            connectedPlatform目标装订: connectedPlatform.value?.targetLoad,
+            currentTarget: currentTarget,
+            数值转换结果: Number(estimatedFlightTime.value),
+            是否为NaN: isNaN(Number(estimatedFlightTime.value)),
+          });
 
           const coordinationResult = await (
             window as any
@@ -3273,7 +3272,7 @@ onUnmounted(() => {
   --transition-base: all 0.2s ease;
 
   /* 应用基础样式 */
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+  background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* 启用滚动支持 */
@@ -3282,208 +3281,214 @@ onUnmounted(() => {
   overflow-x: hidden; /* 防止横向滚动 */
 }
 
-/* ==================== 任务目标提醒栏 ==================== */
-.mission-target-banner {
-  background: var(--bg-base);
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  position: relative;
+/* ==================== 任务目标卡片 ==================== */
+.mission-target-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
+  margin-bottom: var(--spacing-lg);
   transition: var(--transition-base);
 }
 
-.mission-target-banner:hover {
-  box-shadow: var(--shadow-sm);
+.mission-target-card:hover {
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
-.banner-content {
+.mission-target-card .card-header {
   display: flex;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid #90caf9;
+}
+
+.mission-target-card .header-left {
+  display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
 }
 
-.banner-icon {
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  margin-top: 2px;
+.mission-target-card .target-icon {
+  color: #1976d2;
 }
 
-.target-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  position: relative;
-}
-
-.target-header {
-  display: flex;
-  align-items: center;
-}
-
-.banner-title {
-  font-size: var(--font-base);
+.mission-target-card .card-title {
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-regular);
+  color: #1976d2;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
-.target-status-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
+.mission-target-card .target-status-indicator {
   display: flex;
   align-items: center;
-  z-index: 1;
+  position: relative; /* 覆盖全局的绝对定位 */
+  top: auto;
+  right: auto;
 }
 
-.target-status {
+.mission-target-card .target-status {
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   border: 1px solid;
 }
 
-.target-status.active {
+.mission-target-card .target-status.active {
   background: #e8f5e8;
   color: #52c41a;
   border-color: rgba(82, 196, 26, 0.3);
 }
 
-.target-status.active .status-icon {
+.mission-target-card .target-status.active .status-icon {
   color: #52c41a;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-.target-status.inactive {
+.mission-target-card .target-status.inactive {
   background: #fff7e6;
   color: #faad14;
   border-color: rgba(250, 173, 20, 0.3);
 }
 
-.target-status.inactive .status-icon {
+.mission-target-card .target-status.inactive .status-icon {
   color: #faad14;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-.target-status.destroyed {
+.mission-target-card .target-status.destroyed {
   background: #fef0f0;
   color: #f56c6c;
   border-color: rgba(245, 108, 108, 0.3);
   animation: targetDestroyedPulse 2s infinite;
 }
 
-.target-status.destroyed .status-icon {
+.mission-target-card .target-status.destroyed .status-icon {
   color: #f56c6c;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-@keyframes targetDestroyedPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+.mission-target-card .card-content {
+  min-height: 80px;
+  display: flex;
+  align-items: center;
 }
 
-.target-details {
+/* 有目标时的布局 */
+.mission-target-card .target-info-with-image {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: var(--spacing-lg);
+}
+
+.mission-target-card .target-text-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-sm);
 }
 
-/* 目标图片和名称区域 */
-.target-avatar-name-section {
+.mission-target-card .target-name-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-sm);
 }
 
-/* 目标头像 */
-.target-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 2px solid #dee2e6;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  flex-shrink: 0;
+.mission-target-card .target-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
 }
 
-/* 目标图片样式 */
-.target-avatar-image {
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  object-fit: cover;
-  object-position: center;
-  border: none;
-  background: #f8f9fa;
-}
-
-.target-avatar-image:hover {
-  transform: scale(1.02);
-  transition: transform 0.2s ease;
-}
-
-/* 目标默认图标 */
-.target-avatar-icon {
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.target-avatar:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.2s ease;
-}
-
-.target-type {
-  font-size: 11px;
+.mission-target-card .target-type {
+  font-size: 12px;
   color: #666;
   background: #e9ecef;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 10px;
+  border-radius: 12px;
   font-weight: 500;
 }
 
-.target-coordinates {
+.mission-target-card .target-coordinates-row {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.coordinate-label {
-  font-size: 12px;
+.mission-target-card .coordinate-label {
+  font-size: 13px;
   color: #666;
   font-weight: 500;
 }
 
-.coordinate-value {
-  font-size: 12px;
+.mission-target-card .coordinate-value {
+  font-size: 13px;
   color: #333;
   font-weight: 500;
   font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
-.target-info {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
+/* 目标图片容器（右侧，更大） */
+.mission-target-card .target-image-container {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.target-info.no-target {
-  color: #6c757d;
+.mission-target-card .target-image-container:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+.mission-target-card .target-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mission-target-card .target-default-icon {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+/* 无目标时的展示 */
+.mission-target-card .no-target-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-lg) 0;
+}
+
+.mission-target-card .no-target-icon {
+  color: #d9d9d9;
+}
+
+.mission-target-card .no-target-text {
+  font-size: var(--font-base);
+  color: #999;
   font-style: italic;
 }
 
@@ -3495,28 +3500,15 @@ onUnmounted(() => {
   overflow-x: auto;
 }
 
-/* ==================== 顶部控制区域 ==================== */
-.top-section {
-  background: var(--bg-white);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-base);
+/* ==================== 顶部连接控制卡片 ==================== */
+/* 连接控制卡片 */
+.connection-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+  border: 2px solid #90caf9;
   transition: var(--transition-base);
-}
-
-.top-section:hover {
-  box-shadow: var(--shadow-lg);
-}
-
-.top-content {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xl);
-}
-
-.control-area {
-  flex: 1;
-  position: relative;
 }
 
 .control-row {
@@ -3633,7 +3625,10 @@ onUnmounted(() => {
 /* 中间状态显示区域 */
 .middle-panel {
   flex: 1;
-  width: 300px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* 右侧报文面板 */
@@ -3646,11 +3641,11 @@ onUnmounted(() => {
 
 /* ==================== 报文面板 ==================== */
 .report-panel {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -3660,7 +3655,8 @@ onUnmounted(() => {
 }
 
 .report-panel:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 .report-header {
@@ -3669,13 +3665,14 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 2px solid #90caf9;
 }
 
 .report-title {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1976d2;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
 .report-send-btn {
@@ -3978,27 +3975,29 @@ onUnmounted(() => {
 
 /* ==================== 任务控制区域 ==================== */
 .task-control {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
   flex: 1;
   min-height: 600px;
   transition: var(--transition-base);
 }
 
 .task-control:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 .task-header {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1976d2;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 2px solid var(--border-lighter);
+  border-bottom: 2px solid #90caf9;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
 /* 控制组 */
@@ -4102,18 +4101,20 @@ onUnmounted(() => {
 
 /* ==================== 状态卡片 ==================== */
 .status-card {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
-  height: 140px;
+  padding: var(--spacing-lg);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #81d4fa;
+  flex: 1;
   min-height: 140px;
   transition: var(--transition-base);
 }
 
 .status-card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #4fc3f7;
+  transform: translateY(-2px);
 }
 
 .status-content {
@@ -4343,15 +4344,10 @@ onUnmounted(() => {
 }
 
 /* =========================== 连接卡片样式 =========================== */
-/* 连接控制卡片（全宽） */
-.connection-card {
-  flex: 1;
-  width: 100%;
-  /* background: white; */
-  /* border-radius: 8px; */
-  /* padding: 16px; */
-  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
-  /* border: 2px solid #d0d0d0; */
+
+.connection-card:hover {
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 .control-row {
@@ -4488,12 +4484,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 8px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #b3e5fc;
   border-radius: 6px;
   min-width: 180px;
   min-height: 84px;
   position: relative;
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.1);
 }
 
 .platform-item.current-platform {

@@ -614,9 +614,6 @@
               位置：{{ targetStatus.position.longitude }}
               {{ targetStatus.position.latitude }}<br />
               高度：{{ targetStatus.position.altitude }}<br />
-              <div class="active-status">
-                是否摧毁：{{ targetStatus.destroyed ? "是" : "否" }}
-              </div>
             </div>
 
             <!-- 已连接但无目标数据 -->
@@ -628,65 +625,49 @@
       <!-- 右侧协同报文区域 -->
       <div class="right-panel">
         <!-- 任务目标提醒栏 -->
-        <div v-if="isConnected" class="mission-target-banner">
-          <div class="banner-content">
-            <div class="banner-icon">
-              <el-icon size="16"><LocationFilled /></el-icon>
+        <!-- 任务目标卡片 -->
+        <div class="mission-target-card">
+          <div class="card-header">
+            <div class="header-left">
+              <el-icon class="target-icon" size="18"
+                ><LocationFilled
+              /></el-icon>
+              <span class="card-title">当前任务目标</span>
             </div>
-            <div class="target-main-content" v-if="missionTarget">
-              <!-- 状态标签绝对定位在右上角 -->
-              <div class="target-status-indicator">
-                <div
-                  v-if="missionTarget.status === 'destroyed'"
-                  class="target-status destroyed"
-                >
-                  <el-icon class="status-icon"><CircleClose /></el-icon>
-                  <span class="status-text">已摧毁</span>
-                </div>
-                <div
-                  v-else-if="missionTarget.status === 'active'"
-                  class="target-status active"
-                >
-                  <el-icon class="status-icon"><SuccessFilled /></el-icon>
-                  <span class="status-text">正常</span>
-                </div>
-                <div v-else class="target-status inactive">
-                  <el-icon class="status-icon"><WarningFilled /></el-icon>
-                  <span class="status-text">未扫到</span>
-                </div>
+            <!-- 状态标签在右上角 -->
+            <div class="target-status-indicator" v-if="missionTarget">
+              <div
+                v-if="missionTarget.status === 'destroyed'"
+                class="target-status destroyed"
+              >
+                <el-icon class="status-icon"><CircleClose /></el-icon>
+                <span class="status-text">已摧毁</span>
               </div>
-
-              <div class="target-header">
-                <span class="banner-title">当前任务目标：</span>
+              <div
+                v-else-if="missionTarget.status === 'active'"
+                class="target-status active"
+              >
+                <el-icon class="status-icon"><SuccessFilled /></el-icon>
+                <span class="status-text">正常</span>
               </div>
-              <div class="target-details">
-                <div class="target-avatar-name-section">
-                  <!-- 目标图片或默认图标 -->
-                  <div class="target-avatar">
-                    <img
-                      v-if="missionTarget.imageData"
-                      :src="missionTarget.imageData"
-                      :alt="missionTarget.platformType"
-                      class="target-avatar-image"
-                      @error="onTargetImageError(missionTarget)"
-                    />
-                    <el-icon
-                      v-else
-                      class="target-avatar-icon"
-                      :class="getPlatformIconClass(missionTarget.platformType)"
-                    >
-                      {{ getPlatformIcon(missionTarget.platformType) }}
-                    </el-icon>
-                  </div>
+              <div v-else class="target-status inactive">
+                <el-icon class="status-icon"><WarningFilled /></el-icon>
+                <span class="status-text">未扫到</span>
+              </div>
+            </div>
+          </div>
 
-                  <div class="target-name-type">
-                    <span class="target-name">{{ missionTarget.name }}</span>
-                    <span class="target-type">{{
-                      missionTarget.platformType
-                    }}</span>
-                  </div>
+          <div class="card-content">
+            <!-- 有目标时的展示 -->
+            <div v-if="missionTarget" class="target-info-with-image">
+              <div class="target-text-info">
+                <div class="target-name-row">
+                  <span class="target-name">{{ missionTarget.name }}</span>
+                  <span class="target-type">{{
+                    missionTarget.platformType
+                  }}</span>
                 </div>
-                <div class="target-coordinates">
+                <div class="target-coordinates-row">
                   <span class="coordinate-label">经纬高：</span>
                   <span class="coordinate-value">
                     {{ missionTarget.coordinates.longitude }}°,
@@ -695,10 +676,32 @@
                   </span>
                 </div>
               </div>
+
+              <!-- 目标图片放在右侧 -->
+              <div class="target-image-container">
+                <img
+                  v-if="missionTarget.imageData"
+                  :src="missionTarget.imageData"
+                  :alt="missionTarget.platformType"
+                  class="target-image"
+                  @error="onTargetImageError(missionTarget)"
+                />
+                <div
+                  v-else
+                  class="target-default-icon"
+                  :class="getPlatformIconClass(missionTarget.platformType)"
+                >
+                  {{ getPlatformIcon(missionTarget.platformType) }}
+                </div>
+              </div>
             </div>
-            <div class="target-main-content" v-else>
-              <span class="banner-title">当前任务目标：</span>
-              <span class="target-info no-target">暂无任务目标</span>
+
+            <!-- 无目标时的展示 -->
+            <div v-else class="no-target-info">
+              <el-icon class="no-target-icon" size="32"
+                ><WarningFilled
+              /></el-icon>
+              <span class="no-target-text">未设置目标</span>
             </div>
           </div>
         </div>
@@ -1074,6 +1077,7 @@ const isLaserCodeEditing = ref(true);
 // 照射持续时间相关
 const irradiationDuration = ref("");
 const isDurationEditing = ref(true);
+const isIrradiationDurationInitialized = ref(false); // 照射时长是否已初始化
 
 // 激光倒计时相关
 const laserCountdown = ref("");
@@ -1602,6 +1606,12 @@ const selectTargetFromList = (targetName: string) => {
 
 // 获取任务目标（同组side为blue的平台）
 const getMissionTarget = async () => {
+  // 只有在已连接状态下才获取任务目标
+  if (!isConnected.value) {
+    missionTarget.value = null;
+    return;
+  }
+
   if (!selectedGroup.value || !platforms.value) {
     missionTarget.value = null;
     return;
@@ -1951,16 +1961,18 @@ const updatePlatformStatusDisplay = (platform: any) => {
           }
         }
 
-        // 更新照射持续时间（从desigDuring获取）
-        if (sensor.desigDuring !== undefined) {
+        // 更新照射持续时间（从desigDuring获取）- 只进行第一次初始化
+        if (
+          sensor.desigDuring !== undefined &&
+          !isIrradiationDurationInitialized.value
+        ) {
           const durationValue = sensor.desigDuring.toString();
-          // 只有在当前没有持续时间或持续时间不同时才更新
-          if (irradiationDuration.value !== durationValue) {
-            irradiationDuration.value = durationValue;
-            // 根据项目规范，自动填入后设置为不可编辑状态
-            isDurationEditing.value = false;
-            console.log(`[UavPage] 照射持续时间已更新: ${durationValue}秒`);
-          }
+          irradiationDuration.value = durationValue;
+          // 根据项目规范，自动填入后设置为不可编辑状态
+          isDurationEditing.value = false;
+          // 标记已初始化，后续不再更新
+          isIrradiationDurationInitialized.value = true;
+          console.log(`[UavPage] 照射持续时间已初始化: ${durationValue}秒`);
         }
       }
     });
@@ -2026,11 +2038,13 @@ const handlePlatformStatus = async (packet: any) => {
           }
         }
 
-        // 更新探测到的目标列表
-        updateDetectedTargets(parsedData.platform);
+        // 获取当前报文的updateTime
+        const currentUpdateTime = parsedData.platform[0]?.updateTime;
 
         // 检测目标是否被摧毁
         checkTargetDestroyed(parsedData.platform);
+        // 更新探测到的目标列表（传入当前报文的updateTime）
+        updateDetectedTargets(parsedData.platform, currentUpdateTime);
 
         // 更新环境参数（从 evironment 字段获取）
         if (parsedData.evironment) {
@@ -2480,7 +2494,10 @@ const getPlatformIconClass = (type: string): string => {
 };
 
 // 更新探测到的目标列表 - 改为持久化目标管理
-const updateDetectedTargets = (platforms: any[]) => {
+const updateDetectedTargets = (
+  platforms: any[],
+  currentUpdateTime?: number
+) => {
   if (!isConnected.value || !connectedPlatformName.value) {
     return;
   }
@@ -2583,21 +2600,25 @@ const updateDetectedTargets = (platforms: any[]) => {
         target.status = "inactive";
         console.log(`[UavPage] 目标失去扫描: ${target.name}`);
       }
+    }
 
-      // 检查目标是否被摧毁（不在任何平台中存在）
-      if (!targetPlatform && !target.destroyed) {
-        target.destroyed = true;
-        target.status = "destroyed";
-        // 记录摧毁时间
-        target.destroyedTime = environmentParams.exerciseTime;
-        console.log(
-          `[UavPage] 目标被摧毁: ${target.name}, 摧毁时间: ${target.destroyedTime}`
-        );
-        addLog(
-          "warning",
-          `目标 ${target.name} 已被摧毁 (${target.destroyedTime})`
-        );
-      }
+    // 检查目标是否被摧毁（不在任何平台中存在）- 与测评页面保持一致
+    if (!targetPlatform && !target.destroyed) {
+      target.destroyed = true;
+      target.status = "destroyed";
+      // 记录摧毁时间 - 使用当前报文的updateTime（第一次检测到目标不存在的报文时间）
+      const destroyedTime =
+        currentUpdateTime !== undefined
+          ? `T + ${Math.round(currentUpdateTime)}秒`
+          : environmentParams.exerciseTime;
+      target.destroyedTime = destroyedTime;
+      console.log(
+        `[UavPage] 目标被摧毁: ${target.name}, 摧毁时间: ${target.destroyedTime} (报文updateTime: ${currentUpdateTime})`
+      );
+      addLog(
+        "warning",
+        `目标 ${target.name} 已被摧毁 (${target.destroyedTime})`
+      );
     }
   });
 
@@ -2911,6 +2932,9 @@ const handleConnectPlatform = async () => {
     // 重置载荷开关状态
     optoElectronicPodEnabled.value = false;
     laserPodEnabled.value = false;
+
+    // 重置照射时长初始化标志，允许重新连接后重新初始化
+    isIrradiationDurationInitialized.value = false;
 
     // 断开连接时不清空目标历史记录，只重置活跃状态
     activeTargetNames.value.clear();
@@ -4358,7 +4382,7 @@ onUnmounted(() => {
   --transition-base: all 0.2s ease;
 
   /* 应用基础样式 */
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf3 100%);
+  background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* 启用滚动支持 */
@@ -4386,16 +4410,17 @@ onUnmounted(() => {
 .connection-card {
   flex: 1;
   width: 100%;
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+  border: 2px solid #90caf9;
   transition: var(--transition-base);
 }
 
 .connection-card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 /* 演练方案区域（在连接栏内） */
@@ -4558,6 +4583,9 @@ onUnmounted(() => {
 .middle-panel {
   flex: 1;
   min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* 右侧报文面板 */
@@ -4568,231 +4596,224 @@ onUnmounted(() => {
   gap: var(--spacing-md);
 }
 
-/* ==================== 任务目标提醒栏 ==================== */
-.mission-target-banner {
-  background: var(--bg-base);
-  border: 1px solid var(--border-light);
-  border-left: 4px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  position: relative;
+/* ==================== 任务目标卡片 ==================== */
+.mission-target-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
+  margin-bottom: var(--spacing-lg);
   transition: var(--transition-base);
 }
 
-.mission-target-banner:hover {
-  box-shadow: var(--shadow-sm);
+.mission-target-card:hover {
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
-.banner-content {
+.mission-target-card .card-header {
   display: flex;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid #90caf9;
+}
+
+.mission-target-card .header-left {
+  display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
 }
 
-.banner-icon {
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  margin-top: 2px;
+.mission-target-card .target-icon {
+  color: #1976d2;
 }
 
-.target-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  position: relative;
-}
-
-.target-header {
-  display: flex;
-  align-items: center;
-}
-
-.banner-title {
-  font-size: var(--font-base);
+.mission-target-card .card-title {
+  font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-regular);
+  color: #1976d2;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
-.target-status-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
+.mission-target-card .target-status-indicator {
   display: flex;
   align-items: center;
-  z-index: 1;
+  position: relative; /* 覆盖全局的绝对定位 */
+  top: auto;
+  right: auto;
 }
 
-.target-status {
+.mission-target-card .target-status {
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   border: 1px solid;
 }
 
-.target-status.active {
+.mission-target-card .target-status.active {
   background: #e8f5e8;
   color: #52c41a;
   border-color: rgba(82, 196, 26, 0.3);
 }
 
-.target-status.active .status-icon {
+.mission-target-card .target-status.active .status-icon {
   color: #52c41a;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-.target-status.inactive {
+.mission-target-card .target-status.inactive {
   background: #fff7e6;
   color: #faad14;
   border-color: rgba(250, 173, 20, 0.3);
 }
 
-.target-status.inactive .status-icon {
+.mission-target-card .target-status.inactive .status-icon {
   color: #faad14;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-.target-status.destroyed {
+.mission-target-card .target-status.destroyed {
   background: #fef0f0;
   color: #f56c6c;
   border-color: rgba(245, 108, 108, 0.3);
   animation: targetDestroyedPulse 2s infinite;
 }
 
-.target-status.destroyed .status-icon {
+.mission-target-card .target-status.destroyed .status-icon {
   color: #f56c6c;
-  font-size: 10px;
+  font-size: 11px;
 }
 
-@keyframes targetDestroyedPulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-.target-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* 目标图片和名称区域 */
-.target-avatar-name-section {
+.mission-target-card .card-content {
+  min-height: 80px;
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
-/* 目标头像 */
-.target-avatar {
+/* 有目标时的布局 */
+.mission-target-card .target-info-with-image {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 2px solid #dee2e6;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* 目标图片样式 */
-.target-avatar-image {
   width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  object-fit: cover;
-  object-position: center;
-  border: none;
-  background: #f8f9fa;
+  gap: var(--spacing-lg);
 }
 
-.target-avatar-image:hover {
-  transform: scale(1.02);
-  transition: transform 0.2s ease;
-}
-
-/* 目标默认图标 */
-.target-avatar-icon {
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.target-avatar:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.2s ease;
-}
-
-.target-name-type {
+.mission-target-card .target-text-info {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  flex: 1;
+  gap: var(--spacing-sm);
 }
 
-.target-name {
-  font-size: 15px;
+.mission-target-card .target-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.mission-target-card .target-name {
+  font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
-.target-type {
-  font-size: 11px;
+.mission-target-card .target-type {
+  font-size: 12px;
   color: #666;
   background: #e9ecef;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 10px;
+  border-radius: 12px;
   font-weight: 500;
 }
 
-.target-coordinates {
+.mission-target-card .target-coordinates-row {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.coordinate-label {
-  font-size: 12px;
+.mission-target-card .coordinate-label {
+  font-size: 13px;
   color: #666;
   font-weight: 500;
 }
 
-.coordinate-value {
-  font-size: 12px;
+.mission-target-card .coordinate-value {
+  font-size: 13px;
   color: #333;
   font-weight: 500;
   font-family: "SF Mono", "Monaco", "Menlo", monospace;
 }
 
-.target-info {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
+/* 目标图片容器（右侧，更大） */
+.mission-target-card .target-image-container {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.target-info.no-target {
-  color: #6c757d;
+.mission-target-card .target-image-container:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
+  transition: all 0.2s ease;
+}
+
+.mission-target-card .target-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mission-target-card .target-default-icon {
+  font-size: 32px;
+  font-weight: bold;
+}
+
+/* 无目标时的展示 */
+.mission-target-card .no-target-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-lg) 0;
+}
+
+.mission-target-card .no-target-icon {
+  color: #d9d9d9;
+}
+
+.mission-target-card .no-target-text {
+  font-size: var(--font-base);
+  color: #999;
   font-style: italic;
 }
 
 /* ==================== 报文面板样式 ==================== */
 .report-panel {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -4802,7 +4823,8 @@ onUnmounted(() => {
 }
 
 .report-panel:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 .report-header {
@@ -4811,7 +4833,7 @@ onUnmounted(() => {
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 2px solid #90caf9;
 }
 
 .cooperation-controls {
@@ -4828,7 +4850,8 @@ onUnmounted(() => {
 .report-title {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1976d2;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
 .report-send-btn {
@@ -5155,26 +5178,28 @@ onUnmounted(() => {
 
 /* ==================== 任务控制区域 ==================== */
 .task-control {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #90caf9;
   flex: 1;
   transition: var(--transition-base);
 }
 
 .task-control:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #64b5f6;
 }
 
 .task-header {
   font-size: var(--font-lg);
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1976d2;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 2px solid var(--border-lighter);
+  border-bottom: 2px solid #90caf9;
+  text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
 /* 控制组 */
@@ -5347,22 +5372,29 @@ onUnmounted(() => {
 
 /* ==================== 状态卡片 ==================== */
 .status-card {
-  background: var(--bg-white);
+  background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: var(--shadow-base);
-  border: 1px solid var(--border-base);
-  min-height: 120px;
+  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
+  border: 2px solid #81d4fa;
+  flex: 1;
+  min-height: 160px;
+  max-height: 160px;
   transition: var(--transition-base);
+  display: flex;
+  flex-direction: column;
 }
 
 .status-card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
+  border-color: #4fc3f7;
+  transform: translateY(-2px);
 }
 
 .status-card.target-status {
-  min-height: 200px;
-  max-height: 400px;
+  flex: 2;
+  overflow-y: auto;
+  max-height: none;
 }
 
 .status-content {
@@ -5718,15 +5750,16 @@ onUnmounted(() => {
 
 .target-item {
   padding: 8px 8px;
-  border: 1px solid #e0e0e0;
+  border: 2px solid #b3e5fc;
   border-radius: 6px;
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.9);
   transition: all 0.2s;
   cursor: pointer;
   min-height: 90px;
   min-width: 260px;
   max-width: 260px;
   position: relative;
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.08);
 }
 
 /* .target-item:hover {
@@ -6016,14 +6049,14 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 12px 8px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #b3e5fc;
   border-radius: 6px;
   min-width: 180px;
   min-height: 84px;
   /* transition: all 0.3s ease; */
   position: relative;
-  /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.1);
 }
 
 .platform-item.current-platform {

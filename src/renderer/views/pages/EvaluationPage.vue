@@ -200,41 +200,9 @@
                     </div>
                   </div>
                 </div>
-
-                <!-- 摧毁效果统计 -->
-                <div class="metric-group">
-                  <div class="metric-group-title">摧毁效果统计</div>
-                  <div class="metric-items">
-                    <div class="metric-item">
-                      <span class="metric-label">目标摧毁：</span>
-                      <span class="metric-value">
-                        {{ group.keyMetrics.targetDestroyedTime || "未摧毁" }}
-                      </span>
-                    </div>
-                    <div class="metric-item">
-                      <span class="metric-label">照射期间摧毁：</span>
-                      <span
-                        class="metric-value"
-                        :class="{
-                          'metric-excellent':
-                            group.keyMetrics.isDestroyedDuringIrradiation,
-                          'metric-poor':
-                            !group.keyMetrics.isDestroyedDuringIrradiation,
-                        }"
-                      >
-                        {{
-                          group.keyMetrics.isDestroyedDuringIrradiation
-                            ? "是"
-                            : "否"
-                        }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- 距离统计 -->
                 <div class="metric-group">
-                  <div class="metric-group-title">距离统计</div>
+                  <div class="metric-group-title">关键参数</div>
                   <div class="metric-items">
                     <div class="metric-item">
                       <span class="metric-label">开始照射距离：</span>
@@ -281,6 +249,86 @@
                       >
                         {{
                           formatDistance(group.keyMetrics.distanceAtDestruction)
+                        }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">照射时角度：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            (group.keyMetrics.angleAtIrradiationStart || 0) >=
+                            150,
+                          'metric-good':
+                            (group.keyMetrics.angleAtIrradiationStart || 0) >=
+                              120 &&
+                            (group.keyMetrics.angleAtIrradiationStart || 0) <
+                              150,
+                          'metric-average':
+                            (group.keyMetrics.angleAtIrradiationStart || 0) >=
+                              90 &&
+                            (group.keyMetrics.angleAtIrradiationStart || 0) <
+                              120,
+                          'metric-poor':
+                            (group.keyMetrics.angleAtIrradiationStart || 0) <
+                              90 &&
+                            (group.keyMetrics.angleAtIrradiationStart || 0) > 0,
+                        }"
+                      >
+                        {{
+                          formatAngle(group.keyMetrics.angleAtIrradiationStart)
+                        }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">摧毁时角度：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            (group.keyMetrics.angleAtDestruction || 0) >= 150,
+                          'metric-good':
+                            (group.keyMetrics.angleAtDestruction || 0) >= 120 &&
+                            (group.keyMetrics.angleAtDestruction || 0) < 150,
+                          'metric-average':
+                            (group.keyMetrics.angleAtDestruction || 0) >= 90 &&
+                            (group.keyMetrics.angleAtDestruction || 0) < 120,
+                          'metric-poor':
+                            (group.keyMetrics.angleAtDestruction || 0) < 90 &&
+                            (group.keyMetrics.angleAtDestruction || 0) > 0,
+                        }"
+                      >
+                        {{ formatAngle(group.keyMetrics.angleAtDestruction) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <!-- 摧毁效果统计 -->
+                <div class="metric-group">
+                  <div class="metric-group-title">摧毁效果统计</div>
+                  <div class="metric-items">
+                    <div class="metric-item">
+                      <span class="metric-label">目标摧毁：</span>
+                      <span class="metric-value">
+                        {{ group.keyMetrics.targetDestroyedTime || "未摧毁" }}
+                      </span>
+                    </div>
+                    <div class="metric-item">
+                      <span class="metric-label">照射期间摧毁：</span>
+                      <span
+                        class="metric-value"
+                        :class="{
+                          'metric-excellent':
+                            group.keyMetrics.isDestroyedDuringIrradiation,
+                          'metric-poor':
+                            !group.keyMetrics.isDestroyedDuringIrradiation,
+                        }"
+                      >
+                        {{
+                          group.keyMetrics.isDestroyedDuringIrradiation
+                            ? "是"
+                            : "否"
                         }}
                       </span>
                     </div>
@@ -568,6 +616,8 @@ interface KeyMetrics {
   isDestroyedDuringIrradiation: boolean; // 目标是否在照射期间摧毁
   distanceAtIrradiationStart?: number; // 开始照射时距离目标距离(米)
   distanceAtDestruction?: number; // 摧毁时距离目标距离(米)
+  angleAtIrradiationStart?: number; // 开始照射时角度(度)
+  angleAtDestruction?: number; // 摧毁时角度(度)
   totalIrradiationDuration?: number; // 总照射时长(秒)
   laserHitRate?: number; // 激光命中率(%)
   targetStatus?: string; // 目标状态追踪
@@ -672,6 +722,12 @@ function formatDistance(distance?: number): string {
   }
 }
 
+// 格式化角度
+function formatAngle(angle?: number): string {
+  if (angle === undefined || angle === null) return "无数据";
+  return `${angle.toFixed(1)}°`;
+}
+
 // Haversine距离计算公式（计算两个经纬度坐标之间的距离）
 const calculateDistance = (
   coord1: { longitude: number; latitude: number },
@@ -694,6 +750,50 @@ const calculateDistance = (
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
   return R * c; // 距离，单位：米
+};
+
+// 计算方位角（从点1指向点2的方位角，单位：度）
+const calculateBearing = (
+  coord1: { longitude: number; latitude: number },
+  coord2: { longitude: number; latitude: number }
+): number => {
+  const lat1Rad = (coord1.latitude * Math.PI) / 180;
+  const lat2Rad = (coord2.latitude * Math.PI) / 180;
+  const deltaLonRad = ((coord2.longitude - coord1.longitude) * Math.PI) / 180;
+
+  const y = Math.sin(deltaLonRad) * Math.cos(lat2Rad);
+  const x =
+    Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+    Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(deltaLonRad);
+
+  const bearingRad = Math.atan2(y, x);
+  const bearingDeg = (bearingRad * 180) / Math.PI;
+
+  // 转换为0-360度范围
+  return (bearingDeg + 360) % 360;
+};
+
+// 计算水平夹角（从目标点看，无人机和火炮之间的夹角，单位：度）
+const calculateHorizontalAngle = (
+  uavCoord: { longitude: number; latitude: number },
+  targetCoord: { longitude: number; latitude: number },
+  artilleryCoord: { longitude: number; latitude: number }
+): number => {
+  // 计算从目标到无人机的方位角
+  const bearingToUav = calculateBearing(targetCoord, uavCoord);
+
+  // 计算从目标到火炮的方位角
+  const bearingToArtillery = calculateBearing(targetCoord, artilleryCoord);
+
+  // 计算两个方位角的夹角
+  let angle = Math.abs(bearingToUav - bearingToArtillery);
+
+  // 确保角度在0-180度范围内（取较小的夹角）
+  if (angle > 180) {
+    angle = 360 - angle;
+  }
+
+  return angle;
 };
 
 // 获取平台类型显示名称
@@ -726,16 +826,6 @@ const checkMissionTargetStatus = (targetName: string): string => {
     return "inactive";
   }
 
-  // 检查目标是否在任何平台的tracks中被跟踪
-  const isBeingTracked = platforms.value.some((platform: any) => {
-    if (!platform.tracks || !Array.isArray(platform.tracks)) {
-      return false;
-    }
-    return platform.tracks.some(
-      (track: any) => track.targetName === targetName
-    );
-  });
-
   // 检查目标平台是否仍然存在
   const targetPlatformExists = platforms.value.some(
     (platform: any) => platform.base?.name === targetName
@@ -744,17 +834,14 @@ const checkMissionTargetStatus = (targetName: string): string => {
   if (!targetPlatformExists) {
     // 目标平台不存在，判定为已摧毁
     return "destroyed";
-  } else if (isBeingTracked) {
-    // 目标平台存在且正在被跟踪，状态正常
-    return "active";
   } else {
-    // 目标平台存在但未被跟踪，可能失联
-    return "inactive";
+    // 目标平台存在，判定为正常（简化逻辑，不再区分active/inactive）
+    return "active";
   }
 };
 
 // 更新所有分组数据（平铺展示）- 支持数据持久化
-const updateAllGroupsData = () => {
+const updateAllGroupsData = (currentUpdateTime?: number) => {
   if (!platforms.value || platforms.value.length === 0) {
     console.log("[EvaluationPage] 无平台数据，保持现有分组数据");
     // 不清空现有数据，保持组别信息持久化
@@ -898,10 +985,14 @@ const updateAllGroupsData = () => {
     }
   );
 
-  // 在所有分组更新完成后，检测目标摧毁事件
+  // 在所有分组更新完成后，检测目标摧毁事件（传入当前报文的updateTime）
   allGroups.value.forEach((group) => {
     if (group.currentTarget) {
-      updateTargetDestructionMetrics(group, group.currentTarget);
+      updateTargetDestructionMetrics(
+        group,
+        group.currentTarget,
+        currentUpdateTime
+      );
     }
   });
 
@@ -988,6 +1079,60 @@ const updateKeyMetrics = (
             0
           )}m，发射平台: ${platformName}，目标: ${targetName}`
         );
+
+        // 计算照射时角度（需要找到火炮位置）
+        console.log(
+          `[EvaluationPage] 开始查找火炮平台，组: ${group.name}，当前平台列表:`,
+          platforms.value.map((p) => ({
+            name: p.base?.name,
+            type: p.base?.type,
+            group: p.base?.group,
+            side: p.base?.side,
+          }))
+        );
+
+        // 火炮类型包括：Artillery, ROCKET_LAUNCHER, CANNON
+        const artilleryPlatform = platforms.value.find(
+          (p) =>
+            p.base?.group === group.name &&
+            ["Artillery", "ROCKET_LAUNCHER", "CANNON"].includes(p.base?.type) &&
+            p.base?.side === "red"
+        );
+
+        console.log(
+          `[EvaluationPage] 火炮平台查找结果:`,
+          artilleryPlatform
+            ? {
+                name: artilleryPlatform.base?.name,
+                type: artilleryPlatform.base?.type,
+                hasLocation: !!artilleryPlatform.base?.location,
+              }
+            : "未找到"
+        );
+
+        if (artilleryPlatform?.base?.location) {
+          const angle = calculateHorizontalAngle(
+            sourcePlatform.base.location, // 无人机位置
+            targetCoordinates, // 目标位置
+            artilleryPlatform.base.location // 火炮位置
+          );
+          group.keyMetrics.angleAtIrradiationStart = angle;
+          console.log(
+            `[EvaluationPage] 计算开始照射角度: ${angle.toFixed(
+              1
+            )}°，无人机: ${platformName}，目标: ${targetName}，火炮: ${
+              artilleryPlatform.base.name
+            }`
+          );
+        } else {
+          console.warn(
+            `[EvaluationPage] 无法找到火炮平台位置信息，组: ${
+              group.name
+            }，火炮平台: ${
+              artilleryPlatform ? artilleryPlatform.base?.name : "不存在"
+            }`
+          );
+        }
       } else {
         if (!sourcePlatform?.base?.location) {
           console.warn(
@@ -1056,7 +1201,8 @@ const parseExerciseTime = (timeStr: string): number => {
 // 更新目标摧毁指标
 const updateTargetDestructionMetrics = (
   group: GroupData,
-  currentTarget: GroupMember
+  currentTarget: GroupMember,
+  currentUpdateTime?: number
 ) => {
   if (!currentTarget) return;
 
@@ -1065,11 +1211,15 @@ const updateTargetDestructionMetrics = (
 
   // 检测目标状态从非摧毁变为摧毁
   if (previousStatus !== "destroyed" && currentStatus === "destroyed") {
-    const currentTime = exerciseTime.value;
-    group.keyMetrics.targetDestroyedTime = currentTime;
+    // 使用当前报文的updateTime（第一次检测到目标不存在的报文时间）
+    const destroyedTime =
+      currentUpdateTime !== undefined
+        ? `T + ${Math.round(currentUpdateTime)}秒`
+        : exerciseTime.value;
+    group.keyMetrics.targetDestroyedTime = destroyedTime;
 
     console.log(
-      `[EvaluationPage] 检测到目标 ${currentTarget.name} 被摧毁时间: ${currentTime}`
+      `[EvaluationPage] 检测到目标 ${currentTarget.name} 被摧毁时间: ${destroyedTime} (报文updateTime: ${currentUpdateTime})`
     );
 
     // 检查是否在照射期间摧毁
@@ -1091,7 +1241,7 @@ const updateTargetDestructionMetrics = (
       const irradiationEndTime = parseExerciseTime(
         group.keyMetrics.laserIrradiationEnd
       );
-      const destructionTime = parseExerciseTime(currentTime);
+      const destructionTime = parseExerciseTime(destroyedTime);
 
       if (
         destructionTime >= irradiationStartTime &&
@@ -1119,6 +1269,52 @@ const updateTargetDestructionMetrics = (
         );
         group.keyMetrics.distanceAtDestruction = distance;
         console.log(`[EvaluationPage] 计算摧毁时距离: ${distance.toFixed(0)}m`);
+
+        // 计算摧毁时角度（需要找到火炮位置）
+        console.log(`[EvaluationPage] 摧毁时查找火炮平台，组: ${group.name}`);
+
+        // 火炮类型包括：Artillery, ROCKET_LAUNCHER, CANNON
+        const artilleryPlatform = platforms.value.find(
+          (p) =>
+            p.base?.group === group.name &&
+            ["Artillery", "ROCKET_LAUNCHER", "CANNON"].includes(p.base?.type) &&
+            p.base?.side === "red"
+        );
+
+        console.log(
+          `[EvaluationPage] 摧毁时火炮平台查找结果:`,
+          artilleryPlatform
+            ? {
+                name: artilleryPlatform.base?.name,
+                type: artilleryPlatform.base?.type,
+                hasLocation: !!artilleryPlatform.base?.location,
+              }
+            : "未找到"
+        );
+
+        if (artilleryPlatform?.base?.location) {
+          const angle = calculateHorizontalAngle(
+            uavPlatform.base.location, // 无人机位置
+            currentTarget.coordinates, // 目标位置
+            artilleryPlatform.base.location // 火炮位置
+          );
+          group.keyMetrics.angleAtDestruction = angle;
+          console.log(
+            `[EvaluationPage] 计算摧毁时角度: ${angle.toFixed(1)}°，无人机: ${
+              uavPlatform.base.name
+            }，目标: ${currentTarget.name}，火炮: ${
+              artilleryPlatform.base.name
+            }`
+          );
+        } else {
+          console.warn(
+            `[EvaluationPage] 无法找到火炮平台位置信息，组: ${
+              group.name
+            }，火炮平台: ${
+              artilleryPlatform ? artilleryPlatform.base?.name : "不存在"
+            }`
+          );
+        }
       }
     }
   }
@@ -1438,17 +1634,17 @@ const handlePlatformUpdate = (packet: any) => {
         );
 
         // 更新演习时间（从平台数据的updateTime字段获取）
+        let currentUpdateTime: number | undefined;
         if (
           parsedData.platform.length > 0 &&
           parsedData.platform[0]?.updateTime !== undefined
         ) {
-          exerciseTime.value = formatExerciseTime(
-            parsedData.platform[0].updateTime
-          );
+          currentUpdateTime = parsedData.platform[0].updateTime;
+          exerciseTime.value = formatExerciseTime(currentUpdateTime);
         }
 
-        // 更新所有分组数据
-        updateAllGroupsData();
+        // 更新所有分组数据（传入当前报文的updateTime）
+        updateAllGroupsData(currentUpdateTime);
 
         // 标记有真实数据
         hasRealData.value = true;
