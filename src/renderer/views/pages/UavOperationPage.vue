@@ -4382,7 +4382,7 @@ onUnmounted(() => {
   --transition-base: all 0.2s ease;
 
   /* 应用基础样式 */
-  background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%);
+  background: #f6fbfe;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* 启用滚动支持 */
@@ -4413,14 +4413,13 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
-  border: 2px solid #90caf9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: none;
   transition: var(--transition-base);
 }
 
 .connection-card:hover {
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
-  border-color: #64b5f6;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 /* 演练方案区域（在连接栏内） */
@@ -4601,15 +4600,14 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
-  border: 2px solid #90caf9;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: none;
   margin-bottom: var(--spacing-lg);
   transition: var(--transition-base);
 }
 
 .mission-target-card:hover {
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
-  border-color: #64b5f6;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .mission-target-card .card-header {
@@ -4618,7 +4616,7 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid #90caf9;
+  border-bottom: none;
 }
 
 .mission-target-card .header-left {
@@ -4812,8 +4810,8 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
-  border: 2px solid #90caf9;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: none;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -4823,8 +4821,7 @@ onUnmounted(() => {
 }
 
 .report-panel:hover {
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
-  border-color: #64b5f6;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .report-header {
@@ -4833,7 +4830,7 @@ onUnmounted(() => {
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
-  border-bottom: 2px solid #90caf9;
+  border-bottom: none;
 }
 
 .cooperation-controls {
@@ -5181,15 +5178,14 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
-  border: 2px solid #90caf9;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: none;
   flex: 1;
   transition: var(--transition-base);
 }
 
 .task-control:hover {
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
-  border-color: #64b5f6;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .task-header {
@@ -5198,7 +5194,7 @@ onUnmounted(() => {
   color: #1976d2;
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
-  border-bottom: 2px solid #90caf9;
+  border-bottom: none;
   text-shadow: 0 1px 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -5375,8 +5371,8 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 3px 10px rgba(33, 150, 243, 0.12);
-  border: 2px solid #81d4fa;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  border: none;
   flex: 1;
   min-height: 160px;
   max-height: 160px;
@@ -5386,8 +5382,7 @@ onUnmounted(() => {
 }
 
 .status-card:hover {
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.25);
-  border-color: #4fc3f7;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
 }
 
@@ -5750,7 +5745,7 @@ onUnmounted(() => {
 
 .target-item {
   padding: 8px 8px;
-  border: 2px solid #b3e5fc;
+  border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.9);
   transition: all 0.2s;
@@ -5759,7 +5754,7 @@ onUnmounted(() => {
   min-width: 260px;
   max-width: 260px;
   position: relative;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* .target-item:hover {
@@ -5770,7 +5765,7 @@ onUnmounted(() => {
 } */
 
 .target-item.selected-target {
-  border-color: #007bff;
+  border: none;
   background: #e8f4fd;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
 }
@@ -6050,17 +6045,17 @@ onUnmounted(() => {
   gap: 12px;
   padding: 12px 8px;
   background: rgba(255, 255, 255, 0.9);
-  border: 2px solid #b3e5fc;
+  border: none;
   border-radius: 6px;
   min-width: 180px;
   min-height: 84px;
   /* transition: all 0.3s ease; */
   position: relative;
-  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .platform-item.current-platform {
-  border: 2px solid #007bff;
+  border: none;
   font-weight: 600;
 }
 
@@ -6215,7 +6210,7 @@ onUnmounted(() => {
 
 /* 已连接平台特殊样式 */
 .platform-item.connected-platform {
-  border: 2px solid #28a745;
+  border: none;
   background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
 }
 

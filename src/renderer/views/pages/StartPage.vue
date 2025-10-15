@@ -241,26 +241,22 @@ onUnmounted(() => {
 
 /* 左侧背景区域 */
 .left-section {
-  width: 60%;
+  width: 50%;
   height: 100vh;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(240, 248, 255, 0.95) 0%,
-    rgba(224, 242, 254, 0.9) 100%
-  );
+  background: #e3f2fd;
 }
 
 .background-image {
   width: 100%;
   height: 100%;
-  background: url("../../assets/images/bg6.png") center center no-repeat;
+  background: url("../../assets/images/bg7.png") center center no-repeat;
   background-position: center;
-  background-size: cover;
+  background-size: 80%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,18 +264,14 @@ onUnmounted(() => {
 
 /* 右侧内容区域 */
 .right-section {
-  width: 40%;
+  width: 50%;
   height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 60px;
-  background: linear-gradient(
-    135deg,
-    rgba(240, 248, 255, 0.95) 0%,
-    rgba(224, 242, 254, 0.9) 100%
-  );
+  background: #f6fbfe;
   position: relative;
   overflow-y: auto;
   z-index: 1;
