@@ -385,12 +385,12 @@ export class ProtobufParserService {
 
       // 检查Environment消息中的温度字段
       if (
-        decodedObject.evironment &&
-        decodedObject.evironment.temperature !== undefined
+        decodedObject.environment &&
+        decodedObject.environment.temperature !== undefined
       ) {
         console.log(
           "[Parser] 🌡️ 检测到环境温度数据:",
-          decodedObject.evironment.temperature,
+          decodedObject.environment.temperature,
           "°C"
         );
       }
@@ -689,6 +689,38 @@ export class ProtobufParserService {
           console.log(
             "[Parser] 💣 发射协同参数:",
             JSON.stringify(decodedObject.fireCoordinateParam, null, 2)
+          );
+        }
+      }
+
+      // 增加速度设置命令的特殊日志记录
+      if (
+        decodedObject.command === "Uav_Set_Speed" ||
+        decodedObject.command === 9
+      ) {
+        console.log("[Parser] 💨 检测到速度设置命令");
+        if (decodedObject.setSpeedParam) {
+          console.log(
+            "[Parser] 💨 速度设置参数:",
+            JSON.stringify(decodedObject.setSpeedParam, null, 2)
+          );
+        }
+      }
+
+      // 增加高度设置命令的特殊日志记录
+      if (
+        decodedObject.command === "Uav_Set_Altitude" ||
+        decodedObject.command === 13
+      ) {
+        console.log("[Parser] ✈️ 检测到高度设置命令");
+        if (decodedObject.setAltitudeParam) {
+          console.log(
+            "[Parser] ✈️ 高度设置参数:",
+            JSON.stringify(decodedObject.setAltitudeParam, null, 2)
+          );
+        } else {
+          console.warn(
+            "[Parser] ⚠️ 高度设置命令但未找到 setAltitudeParam 字段"
           );
         }
       }

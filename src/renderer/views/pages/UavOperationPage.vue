@@ -192,6 +192,14 @@
               >
                 速度设置
               </el-button>
+              <el-button
+                class="set-speed-btn"
+                type="success"
+                @click="showSetAltitudeDialog"
+                :disabled="!isConnected"
+              >
+                高度设置
+              </el-button>
               <!-- 同步轨迹按钮已移除，现在连接时自动开启同步轨迹 -->
             </div>
           </div>
@@ -1015,20 +1023,49 @@
         <el-form-item label="平台名称">
           <el-input :value="connectedPlatformName" disabled />
         </el-form-item>
-        <el-form-item label="目标速度">
+        <el-form-item label="平台速度">
           <el-input-number
             v-model="setSpeedForm.speed"
             :min="1"
-            :max="100"
+            :max="200"
             :step="1"
             class="w-full"
           />
-          <div class="text-xs text-gray-500 mt-1">单位: m/s，范围: 1-100</div>
+          <div class="text-xs text-gray-500 mt-1">单位: m/s，范围: 1-200</div>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="setSpeedDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="sendSetSpeedCommand">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 设置高度对话框 -->
+    <el-dialog
+      v-model="setAltitudeDialogVisible"
+      title="无人机高度设置"
+      width="400px"
+    >
+      <el-form :model="setAltitudeForm" label-width="100px">
+        <el-form-item label="平台名称">
+          <el-input :value="connectedPlatformName" disabled />
+        </el-form-item>
+        <el-form-item label="相对高度">
+          <el-input-number
+            v-model="setAltitudeForm.altitude"
+            :min="1"
+            :max="10000"
+            :step="10"
+            class="w-full"
+          />
+          <div class="text-xs text-gray-500 mt-1">单位: 米</div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="setAltitudeDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="sendSetAltitudeCommand"
+          >确定</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -1373,6 +1410,12 @@ const setSpeedForm = reactive({
   speed: 15, // 默认速度 15 m/s
 });
 
+// 设置高度相关
+const setAltitudeDialogVisible = ref(false);
+const setAltitudeForm = reactive({
+  altitude: 1000, // 默认高度 1000米
+});
+
 // 传感器转向相关
 const sensorParamForm = reactive({
   azSlew: 0,
@@ -1418,6 +1461,7 @@ const PlatformCommandEnum: { [key: string]: number } = {
   Uav_Lock_Target: 10, // 锁定目标
   Uav_Strike_Coordinate: 11, // 打击协同
   Arty_Fire_Coordinate: 12, // 发射协同
+  Uav_Set_Altitude: 13, // 设定无人机高度
 };
 
 // 获取光电传感器名称
@@ -2046,9 +2090,9 @@ const handlePlatformStatus = async (packet: any) => {
         // 更新探测到的目标列表（传入当前报文的updateTime）
         updateDetectedTargets(parsedData.platform, currentUpdateTime);
 
-        // 更新环境参数（从 evironment 字段获取）
-        if (parsedData.evironment) {
-          const env = parsedData.evironment;
+        // 更新环境参数（从 environment 字段获取）
+        if (parsedData.environment) {
+          const env = parsedData.environment;
           console.log("[UavPage] 收到原始环境数据:", env);
 
           // 从平台数据中更新环境参数
@@ -3197,6 +3241,68 @@ const sendSetSpeedCommand = async () => {
     }
   } catch (error: any) {
     const errorMsg = `发送速度设置命令失败: ${error.message}`;
+    addLog("error", errorMsg);
+    ElMessage.error(errorMsg);
+  }
+};
+
+// 设置高度相关方法
+const showSetAltitudeDialog = () => {
+  if (!isConnected.value) {
+    ElMessage.warning("请先连接平台");
+    return;
+  }
+
+  setAltitudeForm.altitude = 1000; // 默认高度 1000米
+  setAltitudeDialogVisible.value = true;
+};
+
+const sendSetAltitudeCommand = async () => {
+  try {
+    if (!isConnected.value || !connectedPlatformName.value) {
+      ElMessage.warning("请先连接平台");
+      return;
+    }
+
+    // 验证高度必须大于0
+    if (setAltitudeForm.altitude <= 0) {
+      ElMessage.warning("高度必须大于0米");
+      return;
+    }
+
+    const commandEnum = PlatformCommandEnum["Uav_Set_Altitude"];
+    if (commandEnum === undefined) {
+      throw new Error("未定义的高度设置命令");
+    }
+
+    const commandData = {
+      commandID: Date.now(),
+      platformName: connectedPlatformName.value,
+      command: commandEnum,
+      setAltitudeParam: {
+        altitude: Number(setAltitudeForm.altitude),
+      },
+    };
+
+    addLog(
+      "info",
+      `发送高度设置命令: 平台 ${connectedPlatformName.value} 设置高度为 ${setAltitudeForm.altitude} 米`
+    );
+
+    const result = await (window as any).electronAPI.multicast.sendPlatformCmd(
+      commandData
+    );
+
+    if (result.success) {
+      addLog("success", `高度设置命令发送成功`);
+      ElMessage.success("高度设置命令发送成功");
+      setAltitudeDialogVisible.value = false;
+    } else {
+      addLog("error", `高度设置命令发送失败: ${result.error}`);
+      ElMessage.error(`命令发送失败: ${result.error}`);
+    }
+  } catch (error: any) {
+    const errorMsg = `发送高度设置命令失败: ${error.message}`;
     addLog("error", errorMsg);
     ElMessage.error(errorMsg);
   }

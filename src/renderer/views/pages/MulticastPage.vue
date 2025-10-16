@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full p-4">
+  <div class="multicast-page flex flex-col h-full p-4">
     <!-- 配置区域 -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-4">
       <h2 class="text-xl font-semibold mb-4">组播配置</h2>
@@ -101,7 +101,7 @@
     </div>
 
     <!-- 数据包列表 -->
-    <div class="bg-white rounded-lg shadow-md p-6 flex-1 overflow-hidden">
+    <div class="packet-list-container bg-white rounded-lg shadow-md p-6 flex-1">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold">接收到的数据包</h2>
         <div class="flex gap-2">
@@ -1209,6 +1209,7 @@ const getCommandName = (command: number) => {
     10: "锁定目标",
     11: "打击协同", // 新增的打击协同命令
     12: "发射协同", // 新增的发射协同命令
+    13: "设置高度", // 新增的高度设置命令
   };
   return commandNames[command] || `未知命令(${command})`;
 };
@@ -1278,6 +1279,16 @@ const getCoordinationCommandDetails = (parsedData: any) => {
     return ` (目标: ${parsedData.fireParam.targetName})`;
   }
 
+  // 速度设置参数 (9)
+  if (command === 9 && parsedData.setSpeedParam?.speed !== undefined) {
+    return ` (速度: ${parsedData.setSpeedParam.speed}m/s)`;
+  }
+
+  // 高度设置参数 (13)
+  if (command === 13 && parsedData.setAltitudeParam?.altitude !== undefined) {
+    return ` (高度: ${parsedData.setAltitudeParam.altitude}m)`;
+  }
+
   return "";
 };
 
@@ -1309,6 +1320,8 @@ const copyPlatformCmdSummary = () => {
           p.parsedPacket?.parsedData?.sensorParam ||
           p.parsedPacket?.parsedData?.lockParam ||
           p.parsedPacket?.parsedData?.fireParam ||
+          p.parsedPacket?.parsedData?.setSpeedParam ||
+          p.parsedPacket?.parsedData?.setAltitudeParam ||
           null,
       })),
   };
@@ -1604,5 +1617,19 @@ onUnmounted(() => {
 <style scoped>
 .el-form-item {
   margin-bottom: 0;
+}
+
+/* 修复滚动问题：覆盖父组件 MainPage 的 overflow: hidden 限制 */
+.multicast-page {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 数据包列表容器滚动支持 */
+.packet-list-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* 在Flex布局中确保可以正确计算高度 */
 }
 </style>

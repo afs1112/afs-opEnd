@@ -17,6 +17,7 @@ enum PlatformCommand
   Uav_Lock_Target = 10;  //锁定目标
   Uav_Strike_Coordinate = 11; //打击协同
   Arty_Fire_Coordinate = 12; // 发射协同
+  Uav_Set_Altitude = 13; //设定无人机高度
 }
 
 message LockParam {
@@ -37,6 +38,7 @@ message PlatformCmd {
   optional LockParam lockParam =9; //锁定目标参数
   optional StrikeCoordinateParam strikeCoordinateParam =10; //打击协同参数
   optional FireCoordinateParam fireCoordinateParam =11; //发射协同参数
+  optional SetAltitudeparam setAltitudeParam =12; //高度设定参数
 };
 
 message FireCoordinateParam
@@ -89,4 +91,10 @@ message TargetSetParam
 message SetSpeedparam
 {
   optional  double speed = 1;
+}
+
+//高度设定参数
+message SetAltitudeparam
+{
+  optional  double altitude = 1;
 }

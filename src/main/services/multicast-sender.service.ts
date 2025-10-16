@@ -32,6 +32,9 @@ export interface PlatformCmdData {
   setSpeedParam?: {
     speed?: number;
   };
+  setAltitudeParam?: {
+    altitude?: number;
+  };
   lockParam?: {
     targetName?: string;
     sensorName?: string;
@@ -308,6 +311,7 @@ export class MulticastSenderService {
         NavParamType,
         TargetSetParamType,
         SetSpeedParamType,
+        SetAltitudeParamType,
         LockParamType,
         StrikeCoordinateParamType,
         FireCoordinateParamType;
@@ -349,6 +353,15 @@ export class MulticastSenderService {
         console.log("[MulticastSender] ✅ 找到 SetSpeedParamType");
       } catch (e) {
         console.log("[MulticastSender] ⚠️ 未找到 SetSpeedParamType:", e);
+      }
+
+      try {
+        SetAltitudeParamType = this.root.lookupType(
+          "PlatformStatus.SetAltitudeparam"
+        );
+        console.log("[MulticastSender] ✅ 找到 SetAltitudeParamType");
+      } catch (e) {
+        console.log("[MulticastSender] ⚠️ 未找到 SetAltitudeParamType:", e);
       }
 
       try {
@@ -464,6 +477,22 @@ export class MulticastSenderService {
       } else if (data.setSpeedParam && !SetSpeedParamType) {
         console.log(
           "[MulticastSender] ⚠️ setSpeedParam数据存在但SetSpeedParamType未找到，跳过"
+        );
+      }
+
+      // 如果有setAltitudeParam，添加到消息中
+      if (data.setAltitudeParam && SetAltitudeParamType) {
+        console.log(
+          "[MulticastSender] 添加setAltitudeParam:",
+          data.setAltitudeParam
+        );
+        const setAltitudeParam = SetAltitudeParamType.create({
+          altitude: data.setAltitudeParam.altitude || 100,
+        });
+        cmdData.setAltitudeParam = setAltitudeParam;
+      } else if (data.setAltitudeParam && !SetAltitudeParamType) {
+        console.log(
+          "[MulticastSender] ⚠️ setAltitudeParam数据存在但SetAltitudeParamType未找到，跳过"
         );
       }
 

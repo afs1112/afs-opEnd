@@ -115,7 +115,7 @@ message Environment
 message Platforms
 {
 	repeated Platform platform =1;
-	optional Environment evironment = 2;
+	optional Environment environment = 2;
 }	
 
 message PlatformDeleteParam

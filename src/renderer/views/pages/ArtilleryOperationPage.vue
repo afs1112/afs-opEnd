@@ -2722,9 +2722,9 @@ const handlePlatformStatus = async (packet: any) => {
           }
         }
 
-        // 更新环境参数（从 evironment 字段获取）- 完全复制无人机页面逻辑
-        if (parsedData.evironment) {
-          const env = parsedData.evironment;
+        // 更新环境参数（从 environment 字段获取）- 完全复制无人机页面逻辑
+        if (parsedData.environment) {
+          const env = parsedData.environment;
           console.log("[ArtilleryPage] 收到原始环境数据:", env);
 
           // 从平台数据中更新环境参数
