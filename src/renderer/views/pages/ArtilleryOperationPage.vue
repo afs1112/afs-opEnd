@@ -4455,7 +4455,6 @@ onUnmounted(() => {
   border: none !important;
   box-shadow: none !important;
   margin: 0;
-  padding: 12px 0;
 }
 
 .platforms-container {
@@ -4471,14 +4470,14 @@ onUnmounted(() => {
   flex-direction: row;
   gap: 8px;
   flex: 1;
-  max-height: 80px;
+  max-height: 120px;
 }
 
 .platform-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 8px;
+  padding: 6px 6px;
   background: rgba(255, 255, 255, 0.9);
   border: none;
   border-radius: 6px;
@@ -4565,8 +4564,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  width: 100px;
+  height: 100px;
   border-radius: 8px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border: 2px solid #dee2e6;
